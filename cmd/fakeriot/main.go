@@ -41,8 +41,12 @@ func main() {
 		"LOWKEY_SHARED_URL=" + urls.Shared,
 		"LOWKEY_STATIC_URL=" + urls.Static,
 	}
+	// written last and renamed into place so a script never reads half of it
 	envFile := filepath.Join(folder, "fakeriot.env")
-	if err := os.WriteFile(envFile, []byte(strings.Join(vars, "\n")+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(envFile+".tmp", []byte(strings.Join(vars, "\n")+"\n"), 0o644); err != nil {
+		fail(err)
+	}
+	if err := os.Rename(envFile+".tmp", envFile); err != nil {
 		fail(err)
 	}
 	fmt.Println(strings.Join(vars, "\n"))

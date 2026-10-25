@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: GOOS=windows go vet ./...
+      - run: go test -race ./...
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make windows
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lowkey-windows
+          path: |
+            bin/lowkey.exe
+            bin/fakeriot.exe
+          if-no-files-found: error
+
+  windows-doctor:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: lowkey-windows
+      - name: lowkey doctor against the fakeriot program
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "fakeriot"
+          $fr = Start-Process -FilePath .\fakeriot.exe -ArgumentList "-dir", $dir -PassThru -NoNewWindow
+          for ($i = 0; $i -lt 100 -and -not (Test-Path "$dir\fakeriot.env"); $i++) { Start-Sleep -Milliseconds 100 }
+          Get-Content "$dir\fakeriot.env" | ForEach-Object {
+            $k, $v = $_ -split '=', 2
+            Set-Item "env:$k" $v
+          }
+          $env:LOWKEY_DIR = $dir
+          .\lowkey.exe doctor
+          $code = $LASTEXITCODE
+          Stop-Process -Id $fr.Id -ErrorAction SilentlyContinue
+          exit $code

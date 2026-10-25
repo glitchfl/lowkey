@@ -21,7 +21,7 @@ func lockfilePassword(t *testing.T, path string) string {
 	return parts[3]
 }
 
-var doctorItems = []string{"lockfile", "local API", "entitlements", "phase", "session", "client version", "rank data"}
+var doctorItems = []string{"lockfile", "local API", "entitlements", "phase", "session", "client version", "rank data", "static data"}
 
 func TestDoctorPassesEveryCheckAgainstAHealthyRiotClient(t *testing.T) {
 	r := newRig(t)
@@ -231,5 +231,15 @@ func TestASHA1SignedLocalCertificateIsAcceptedOnLoopback(t *testing.T) {
 	r.env.LocalRoots = nil
 	if out, code := r.run("doctor"); code != 0 {
 		t.Fatalf("doctor failed:\n%s", out)
+	}
+}
+
+func TestDoctorReportsTheStaticDataSnapshotAgeEvenWithoutARiotClient(t *testing.T) {
+	r := newRig(t)
+	r.fr.StopClient()
+	out, _ := r.run("doctor")
+	l := line(t, out, "static data")
+	if !strings.HasPrefix(l, "PASS") || !strings.Contains(l, "snapshot from 2026-10-25") || !strings.Contains(l, "0 days old") {
+		t.Errorf("got %q", l)
 	}
 }

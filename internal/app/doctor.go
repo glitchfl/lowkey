@@ -41,7 +41,7 @@ func (d *doctor) skip(needs string, items ...string) {
 func runDoctor(ctx context.Context, env Env, opts options) int {
 	d := &doctor{env: env}
 	if opts.record {
-		rec, err := record.Start(env.Dir, env.Clock.Now, static.Embedded().Public)
+		rec, err := startRecording(env, static.Embedded())
 		if err != nil {
 			fmt.Fprintf(env.Console.Out, "can't start a recording: %v\n", err)
 			return 1
@@ -51,6 +51,7 @@ func runDoctor(ctx context.Context, env Env, opts options) int {
 	}
 	fmt.Fprintf(env.Console.Out, "lowkey %s doctor\n", env.Version)
 	d.check(ctx)
+	d.offline()
 	if d.rec != nil {
 		fmt.Fprintf(env.Console.Out, "recording saved in %s\n", d.rec.Dir)
 	}
@@ -143,7 +144,7 @@ func (d *doctor) check(ctx context.Context) {
 		Now:       env.Clock.Now,
 		Tokens:    tokenSource(local),
 		Guard:     guard,
-		Observe:   d.observeRemote(),
+		Observe:   remoteObserver(d.rec),
 	})
 	client.SetTarget(region, shard, "")
 
@@ -161,6 +162,13 @@ func (d *doctor) check(ctx context.Context) {
 		return
 	}
 	d.report(true, "rank data", fmt.Sprintf("your rank data came back from pd (shard %s)", shard))
+}
+
+// offline covers what doesn't need the Riot Client
+func (d *doctor) offline() {
+	generated := static.Embedded().Generated()
+	days := int(d.env.Clock.Now().Sub(generated).Hours() / 24)
+	d.report(true, "static data", fmt.Sprintf("snapshot from %s (%d days old)", generated.Format("2006-01-02"), days))
 }
 
 func (d *doctor) session(ctx context.Context, local *riot.Local) (region, shard string, ok bool) {
@@ -186,15 +194,6 @@ func (d *doctor) session(ctx context.Context, local *riot.Local) (region, shard 
 	}
 	d.report(true, "session", fmt.Sprintf("region %s · shard %s", region, shard))
 	return region, shard, true
-}
-
-func (d *doctor) observeRemote() func(remote.Service, string, string, int, []byte) {
-	if d.rec == nil {
-		return nil
-	}
-	return func(svc remote.Service, path, query string, status int, body []byte) {
-		d.rec.Remote(svc.String(), path, query, status, body)
-	}
 }
 
 func tokenSource(local *riot.Local) func(ctx context.Context) (remote.Tokens, error) {

@@ -37,6 +37,8 @@ func Run(ctx context.Context, env Env, args []string) int {
 		return 0
 	case "doctor":
 		return runDoctor(ctx, env, opts)
+	case "me":
+		return runMe(ctx, env, opts)
 	}
 	fmt.Fprintf(env.Console.Out, "%q isn't built yet\n", opts.command)
 	return 2

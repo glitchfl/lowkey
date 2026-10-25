@@ -225,3 +225,19 @@ func (r *rig) presence(f func(w *fakeriot.World)) {
 
 // settle gives lowkey a moment of real time to act on whatever just happened
 func settle() { time.Sleep(50 * time.Millisecond) }
+
+// settled waits for the texts, then for Riot to go quiet and the screen to stop changing
+func (r *rig) settled(texts ...string) string {
+	r.t.Helper()
+	r.screen(texts...)
+	var frame string
+	eventually(r.t, "the screen to settle", func() bool {
+		if r.fr.InFlight() != 0 {
+			return false
+		}
+		frame = r.con.last()
+		time.Sleep(30 * time.Millisecond)
+		return r.fr.InFlight() == 0 && r.con.last() == frame
+	})
+	return frame
+}

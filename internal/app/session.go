@@ -18,6 +18,9 @@ type session struct {
 	done    bool
 	err     error
 	matches map[string]*stats.Match
+
+	pending  int
+	finished func()
 }
 
 const updatesPage = 20
@@ -26,8 +29,18 @@ func newSession(self string, now time.Time, resetHour int) *session {
 	return &session{self: self, since: stats.ResetBoundary(now, resetHour), matches: map[string]*stats.Match{}}
 }
 
-func (e *engine) refreshSession(s *session) {
+// refreshSession rebuilds the session line - done runs once every request it needed is answered
+func (e *engine) refreshSession(s *session, done func()) {
+	s.pending = 1
+	s.finished = done
 	e.fetchUpdatesPage(s, 0)
+}
+
+func (s *session) settle() {
+	s.pending--
+	if s.pending == 0 && s.finished != nil {
+		s.finished()
+	}
 }
 
 // fetchUpdatesPage pages back until the updates reach past the reset boundary
@@ -41,6 +54,7 @@ func (e *engine) fetchUpdatesPage(s *session, start int) {
 			}
 			if err != nil {
 				s.done, s.err = true, err
+				s.settle()
 				return
 			}
 			s.updates = append(s.updates, page...)
@@ -49,17 +63,21 @@ func (e *engine) fetchUpdatesPage(s *session, start int) {
 					continue
 				}
 				id := u.MatchID
+				s.pending++
 				e.wantMatch(id, s.self, start+i, func(m *stats.Match, err error) {
 					if err == nil {
 						s.matches[id] = m
 					}
+					s.settle()
 				})
 			}
 			if len(page) == updatesPage && !page[len(page)-1].Start.Before(s.since) && start < 5*updatesPage {
+				s.pending++
 				e.fetchUpdatesPage(s, start+updatesPage)
-				return
+			} else {
+				s.done = true
 			}
-			s.done = true
+			s.settle()
 		})
 }
 

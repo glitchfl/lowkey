@@ -52,6 +52,16 @@ func (r *rig) enterAgentSelect() {
 	r.fr.EmitPregame(pregame, false)
 }
 
+func requestsExact(r *rig, path string) int {
+	n := 0
+	for _, req := range r.fr.RemoteRequests() {
+		if req.Path == path {
+			n++
+		}
+	}
+	return n
+}
+
 func requestsFor(r *rig, prefix string) int {
 	n := 0
 	for _, req := range r.fr.RemoteRequests() {
@@ -68,7 +78,7 @@ func TestAgentSelectShowsYourTeam(t *testing.T) {
 	r.screen("waiting for the next match")
 	r.subscribed()
 	r.enterAgentSelect()
-	frame := r.screen("AGENT SELECT · Ascent · Competitive", "SESSION · 2W 1L +26 RR", "Dia1 50", "Plat1 30")
+	frame := r.settled("AGENT SELECT · Ascent · Competitive", "SESSION · 2W 1L +26 RR", "Dia1 50", "Plat1 30")
 
 	rows := []struct {
 		agent, rank, peak, last, wr, wl, trend string
@@ -116,7 +126,7 @@ func TestStreamerModePlayersAreNeverLookedUp(t *testing.T) {
 			t.Errorf("requested a hidden player's data: %s", req.Path)
 		}
 	}
-	if requestsFor(r, "/mmr/v1/players/"+fakeriot.DefaultSelf) == 0 {
+	if requestsExact(r, "/mmr/v1/players/"+fakeriot.DefaultSelf) == 0 {
 		t.Error("streamer mode on yourself must not stop your own lookup")
 	}
 }
@@ -214,13 +224,14 @@ func TestADodgeDropsBackAndCancelsLookups(t *testing.T) {
 func TestUntrackedModesAreIgnored(t *testing.T) {
 	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) { w.Queue, w.Pregame.Queue = "spikerush", "spikerush" })
 	r.live()
-	r.screen("waiting for the next match")
+	r.screen("waiting for the next match", "SESSION")
 	r.subscribed()
+	before := len(r.fr.RemoteRequests())
 	r.enterAgentSelect()
 	r.screen("not tracking spikerush")
 	r.clock.Advance(10 * time.Second)
 	settle()
-	if reqs := r.fr.RemoteRequests(); len(reqs) != 0 {
+	if reqs := r.fr.RemoteRequests()[before:]; len(reqs) != 0 {
 		t.Errorf("made %d requests in an untracked mode, first %s", len(reqs), reqs[0].Path)
 	}
 }

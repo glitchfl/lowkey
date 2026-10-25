@@ -36,7 +36,11 @@ type member struct {
 	p      *player
 }
 
-const rosterEvery = 3 * time.Second
+const (
+	rosterEvery    = 3 * time.Second
+	defaultCutoff  = 40 * time.Second
+	sessionRefresh = 15 * time.Second
+)
 
 func (l *lobby) member(puuid string) *member {
 	for _, m := range l.members {
@@ -53,9 +57,9 @@ func (lv *live) startAgentSelect(matchID string) {
 		lv.untrackedMode(q)
 		return
 	}
-	lv.lobby = &lobby{kind: lobbyAgentSelect, matchID: matchID}
+	lob := &lobby{kind: lobbyAgentSelect, matchID: matchID}
+	lv.lobby = lob
 	lv.guard.SetWindow(remote.AgentSelect)
-	lob := lv.lobby
 	lv.ensureTarget(func() {
 		if lob != lv.lobby {
 			return
@@ -65,6 +69,88 @@ func (lv *live) startAgentSelect(matchID string) {
 			return
 		}
 		lv.fetchRoster(lob)
+	})
+}
+
+// startMatchLoad keeps everything agent select already fetched, in flight or not
+func (lv *live) startMatchLoad(matchID string) {
+	prev := lv.lobby
+	lv.stopRosterTimer()
+	lv.setPhase(phaseMatchLoad)
+	if lv.untracked != "" {
+		return
+	}
+	if q, ok := lv.presenceQueue(); ok && !tracked(q) && (prev == nil || !prev.known) {
+		lv.untrackedMode(q)
+		return
+	}
+	lob := &lobby{kind: lobbyMatchLoad, matchID: matchID}
+	if prev != nil {
+		lob.mode, lob.known, lob.mapURL, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.ownTeam
+		lob.members = prev.members
+	}
+	lv.lobby = lob
+	lv.guard.SetWindow(remote.MatchLoad)
+	lv.cutoffStop = lv.env.Clock.AfterFunc(defaultCutoff, func() {
+		lv.loop.post(func() { lv.onCutoff(lob) })
+	})
+	lv.ensureTarget(func() {
+		if lob != lv.lobby {
+			return
+		}
+		if lob.matchID == "" {
+			lv.findMatchID(lob, "/core-game/v1/players/")
+			return
+		}
+		lv.fetchRoster(lob)
+	})
+}
+
+// onCutoff is the deadline after match load - rounds are about to start, so everything stops
+func (lv *live) onCutoff(lob *lobby) {
+	if lob != lv.lobby || lv.phase != phaseMatchLoad {
+		return
+	}
+	lv.cutoffStop = nil
+	lv.eng.cancel()
+	lv.guard.SetWindow(remote.Closed)
+	lv.setPhase(phaseInRound)
+}
+
+func (lv *live) stopCutoff() {
+	if lv.cutoffStop != nil {
+		lv.cutoffStop()
+		lv.cutoffStop = nil
+	}
+}
+
+// matchEnded keeps the final table on screen and refreshes the session line a little later
+func (lv *live) matchEnded() {
+	if lv.lobby != nil && lv.lobby.kind == lobbyMatchLoad && lv.lobby.known {
+		lv.last = lv.lobby
+	}
+	lv.cancelLobby()
+	lv.stopCutoff()
+	lv.eng.forgetRound()
+	lv.env.Clock.AfterFunc(sessionRefresh, func() {
+		lv.loop.post(lv.refreshSessionInMenus)
+	})
+}
+
+// refreshSessionInMenus opens the session refresh window just long enough for its requests
+func (lv *live) refreshSessionInMenus() {
+	if lv.phase != phaseMenus || lv.conn == nil || lv.eng.sched == nil {
+		return
+	}
+	lv.guard.SetWindow(remote.SessionRefresh)
+	sess := newSession(lv.self, lv.env.Clock.Now(), defaultResetHour)
+	lv.ensureTarget(func() {
+		lv.eng.refreshSession(sess, func() {
+			if lv.phase == phaseMenus {
+				lv.guard.SetWindow(remote.Closed)
+			}
+			lv.sess = sess
+		})
 	})
 }
 
@@ -142,7 +228,7 @@ func (lv *live) stopRosterTimer() {
 func (lv *live) applyRoster(lob *lobby, roster riot.Roster) {
 	if !lob.known {
 		queue, ok := roster.Queue, roster.HasQueue
-		if !ok {
+		if !ok || queue == "" && lob.kind == lobbyMatchLoad {
 			queue, ok = lv.presenceQueue()
 		}
 		mode, tracked := stats.ModeByQueue(queue)
@@ -152,8 +238,11 @@ func (lv *live) applyRoster(lob *lobby, roster riot.Roster) {
 		}
 		lob.mode, lob.mapURL, lob.known = mode, roster.Map, true
 		lv.eng.fetchActs()
-		lv.sess = newSession(lv.self, lv.env.Clock.Now(), defaultResetHour)
-		lv.eng.refreshSession(lv.sess)
+		if lob.kind == lobbyAgentSelect {
+			sess := newSession(lv.self, lv.env.Clock.Now(), defaultResetHour)
+			lv.eng.refreshSession(sess, nil)
+			lv.sess = sess
+		}
 	}
 	for _, rp := range roster.Players {
 		if rp.PUUID == lv.self {
@@ -186,8 +275,15 @@ func (lv *live) applyRoster(lob *lobby, roster riot.Roster) {
 		}
 	}
 	for _, rp := range roster.Players {
-		if rp.PUUID != lv.self && (lob.kind == lobbyMatchLoad || rp.Team == lob.ownTeam) {
+		if rp.PUUID != lv.self && rp.Team == lob.ownTeam {
 			add(rp)
+		}
+	}
+	if lob.kind == lobbyMatchLoad {
+		for _, rp := range roster.Players {
+			if rp.Team != lob.ownTeam {
+				add(rp)
+			}
 		}
 	}
 	lob.members = members
@@ -201,12 +297,16 @@ func (lv *live) untrackedMode(queue string) {
 	lv.cancelLobby()
 }
 
-// cancelLobby drops the lobby and every outstanding lookup - a dodge, the cutoff or an untracked mode
+// cancelLobby drops the lobby and every outstanding lookup - a dodge, an untracked mode or the match ending
 func (lv *live) cancelLobby() {
-	lv.eng.cancel()
+	if lv.eng.sched != nil {
+		lv.eng.cancel()
+	}
 	lv.stopRosterTimer()
 	lv.lobby = nil
-	lv.guard.SetWindow(remote.Closed)
+	if lv.guard != nil {
+		lv.guard.SetWindow(remote.Closed)
+	}
 }
 
 func (lv *live) presenceQueue() (string, bool) {
@@ -218,9 +318,7 @@ func tracked(queue string) bool {
 	return ok
 }
 
-func (lv *live) lobbyScreen(s *render.Screen) {
-	lob := lv.lobby
-	title := map[lobbyKind]string{lobbyAgentSelect: "AGENT SELECT", lobbyMatchLoad: "MATCH LOADING"}[lob.kind]
+func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	if lob.known {
 		mapName, ok := lv.data.MapName(lob.mapURL)
 		if !ok {
@@ -232,12 +330,33 @@ func (lv *live) lobbyScreen(s *render.Screen) {
 	if len(lob.members) == 0 {
 		return
 	}
-	var rows []render.Row
-	for _, m := range lob.members {
-		rows = append(rows, lv.memberRow(m, lob.mode))
+	if lob.kind == lobbyAgentSelect {
+		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode)}
+		return
 	}
-	rows = append(rows, lv.averageRow(lob.members, lob.mode))
-	s.Sections = []render.Section{{Rows: rows}}
+	var allies, enemies []*member
+	for _, m := range lob.members {
+		if m.team == lob.ownTeam {
+			allies = append(allies, m)
+		} else {
+			enemies = append(enemies, m)
+		}
+	}
+	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
+	s.Sections = []render.Section{
+		lv.teamSection("ALLIES", allies, lob.mode),
+		lv.teamSection("ENEMIES", enemies, lob.mode),
+		{Rows: []render.Row{diffRow(us, them)}},
+	}
+}
+
+func (lv *live) teamSection(title string, members []*member, mode stats.Mode) render.Section {
+	sec := render.Section{Title: title}
+	for _, m := range members {
+		sec.Rows = append(sec.Rows, lv.memberRow(m, mode))
+	}
+	sec.Rows = append(sec.Rows, lv.teamAverages(members, mode).row(lv))
+	return sec
 }
 
 func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
@@ -262,15 +381,22 @@ func (lv *live) agentCell(id string) render.Cell {
 	return render.Cell{Text: "?"}
 }
 
-// averageRow is the mean over visible players that have a value - ranks use the nearest tier
-func (lv *live) averageRow(members []*member, mode stats.Mode) render.Row {
+// averages are the shown values of a team's average row - the diff subtracts what's on screen
+type averages struct {
+	covered, size    int
+	rank, peak, last int
+	wr, trend        int
+	hasWR, hasTrend  bool
+}
+
+func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 	var tiers, peaks, lasts, wins, trends []float64
-	covered := 0
+	a := averages{size: len(members)}
 	for _, m := range members {
 		if m.hidden || !m.p.mmrDone || m.p.mmrErr != nil || lv.eng.acts == nil {
 			continue
 		}
-		covered++
+		a.covered++
 		r := stats.RankOf(m.p.mmr, *lv.eng.acts, mode.Queue, lv.data.CurrentTier)
 		if r.Tier >= 3 {
 			tiers = append(tiers, float64(r.Tier))
@@ -290,30 +416,65 @@ func (lv *live) averageRow(members []*member, mode stats.Mode) render.Row {
 			}
 		}
 	}
+	a.rank, _ = roundedMean(tiers)
+	a.peak, _ = roundedMean(peaks)
+	a.last, _ = roundedMean(lasts)
+	a.wr, a.hasWR = roundedMean(wins)
+	a.trend, a.hasTrend = roundedMean(trends)
+	return a
+}
+
+func (a averages) row(lv *live) render.Row {
 	label := "AVERAGE"
-	if covered < len(members) {
-		label += fmt.Sprintf(" %d/%d", covered, len(members))
+	if a.covered < a.size {
+		label += fmt.Sprintf(" %d/%d", a.covered, a.size)
 	}
 	row := render.Row{"name": {Text: label}}
-	if v, ok := mean(tiers); ok {
-		row["rank"] = tierCell(lv.data, int(math.Round(v)), "")
+	if a.rank > 0 {
+		row["rank"] = tierCell(lv.data, a.rank, "")
 	}
-	if v, ok := mean(peaks); ok {
-		row["peak"] = tierCell(lv.data, int(math.Round(v)), "")
+	if a.peak > 0 {
+		row["peak"] = tierCell(lv.data, a.peak, "")
 	}
-	if v, ok := mean(lasts); ok {
-		row["last_act"] = tierCell(lv.data, int(math.Round(v)), "")
+	if a.last > 0 {
+		row["last_act"] = tierCell(lv.data, a.last, "")
 	}
-	if v, ok := mean(wins); ok {
-		row["wr"] = render.Cell{Text: fmt.Sprintf("%d%%", int(math.Round(v)))}
+	if a.hasWR {
+		row["wr"] = render.Cell{Text: fmt.Sprintf("%d%%", a.wr)}
 	}
-	if v, ok := mean(trends); ok {
-		row["rr_trend"] = render.Cell{Text: signed(int(math.Round(v)))}
+	if a.hasTrend {
+		row["rr_trend"] = render.Cell{Text: signed(a.trend)}
 	}
 	return row
 }
 
-func mean(vs []float64) (float64, bool) {
+// diffRow is us minus them - ranks in tiers - for every stat both teams have
+func diffRow(us, them averages) render.Row {
+	row := render.Row{"name": {Text: "US - THEM"}}
+	diff := func(key string, a, b int, ok bool) {
+		if ok {
+			row[key] = render.Cell{Text: arrow(a - b)}
+		}
+	}
+	diff("rank", us.rank, them.rank, us.rank > 0 && them.rank > 0)
+	diff("peak", us.peak, them.peak, us.peak > 0 && them.peak > 0)
+	diff("last_act", us.last, them.last, us.last > 0 && them.last > 0)
+	diff("wr", us.wr, them.wr, us.hasWR && them.hasWR)
+	diff("rr_trend", us.trend, them.trend, us.hasTrend && them.hasTrend)
+	return row
+}
+
+func arrow(d int) string {
+	switch {
+	case d > 0:
+		return fmt.Sprintf("▲%d", d)
+	case d < 0:
+		return fmt.Sprintf("▼%d", -d)
+	}
+	return "0"
+}
+
+func roundedMean(vs []float64) (int, bool) {
 	if len(vs) == 0 {
 		return 0, false
 	}
@@ -321,5 +482,5 @@ func mean(vs []float64) (float64, bool) {
 	for _, v := range vs {
 		sum += v
 	}
-	return sum / float64(len(vs)), true
+	return int(math.Round(sum / float64(len(vs)))), true
 }

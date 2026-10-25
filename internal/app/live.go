@@ -63,9 +63,11 @@ type live struct {
 	recent    []string
 
 	lobby      *lobby
+	last       *lobby
 	sess       *session
 	rosterAt   time.Time
 	rosterStop func() bool
+	cutoffStop func() bool
 
 	frame string
 }
@@ -309,11 +311,18 @@ func (lv *live) toIdle() {
 }
 
 func (lv *live) toMenus() {
-	if lv.phase == phaseAgentSelect || lv.phase == phaseMatchLoad || lv.phase == phaseInRound {
+	from := lv.phase
+	switch from {
+	case phaseAgentSelect:
 		lv.cancelLobby()
+	case phaseMatchLoad, phaseInRound:
+		lv.matchEnded()
 	}
 	lv.midMatch, lv.untracked, lv.problem = false, "", ""
 	lv.setPhase(phaseMenus)
+	if lv.sess == nil && (from == phaseIdle || from == phaseWaiting) {
+		lv.refreshSessionInMenus()
+	}
 }
 
 func (lv *live) onPregame(matchID string) {
@@ -333,8 +342,12 @@ func (lv *live) onPregame(matchID string) {
 }
 
 func (lv *live) onCoreGame(matchID string) {
-	if lv.phase == phaseMenus || lv.phase == phaseAgentSelect || lv.phase == phaseWaiting {
-		lv.setPhase(phaseMatchLoad)
+	switch {
+	case lv.phase == phaseMenus || lv.phase == phaseAgentSelect || lv.phase == phaseWaiting:
+		lv.startMatchLoad(matchID)
+	case lv.phase == phaseMatchLoad && lv.lobby != nil && lv.lobby.matchID == "" && matchID != "":
+		lv.lobby.matchID = matchID
+		lv.fetchRoster(lv.lobby)
 	}
 }
 
@@ -404,12 +417,17 @@ func (lv *live) screen() render.Screen {
 		s.Status = []string{"waiting for Valorant"}
 	case lv.phase == phaseMenus:
 		s.Status = []string{"waiting for the next match"}
+		if lv.last != nil {
+			lv.lobbyScreen(&s, lv.last, "LAST MATCH")
+		}
+		s.Session = lv.sess.line()
 	case lv.untracked != "":
 		s.Status = []string{"not tracking " + lv.untracked + " - waiting for the next match"}
 	case lv.midMatch:
 		s.Status = []string{"match in progress - lowkey waits for it to end"}
 	case lv.lobby != nil:
-		lv.lobbyScreen(&s)
+		title := map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}[lv.phase]
+		lv.lobbyScreen(&s, lv.lobby, title)
 		s.Session = lv.sess.line()
 	case lv.phase == phaseAgentSelect:
 		s.Header = "AGENT SELECT"

@@ -60,7 +60,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 	me := newPlayer(l.self, mode.Queue, defaultMatches)
 	eng.lookUp(me, wantRank|wantSample)
 	sess := newSession(l.self, env.Clock.Now(), defaultResetHour)
-	eng.refreshSession(sess)
+	eng.refreshSession(sess, nil)
 	if err := lp.run(ctx, func() bool { return eng.busy == 0 }, nil); err != nil {
 		fmt.Fprintf(out, "lowkey me: %v\n", err)
 		return 1

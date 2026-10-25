@@ -233,3 +233,26 @@ func TestOnePlayersFailureLeavesEveryoneElseComplete(t *testing.T) {
 		t.Errorf("the error log holds a secret:\n%s", log)
 	}
 }
+
+func TestARiotClientRestartMidMatchWaitsForTheMenus(t *testing.T) {
+	r := fromAgentSelect(t)
+	r.enterMatchLoad()
+	r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
+	r.clock.Advance(40 * time.Second)
+	r.screen("IN MATCH")
+
+	if err := r.fr.Restart(); err != nil {
+		t.Fatal(err)
+	}
+	// back on a new port, presence still says INGAME - lowkey can't tell how far the match is, so it waits
+	r.screen("match in progress")
+	r.subscribed()
+	before := len(r.fr.RemoteRequests())
+	r.clock.Advance(20 * time.Minute)
+	settle()
+	if n := len(r.fr.RemoteRequests()); n != before {
+		t.Errorf("%d requests after reconnecting mid-match", n-before)
+	}
+	r.presence(func(w *fakeriot.World) { w.Loop, w.CoreGame = fakeriot.LoopMenus, nil })
+	r.screen("waiting for the next match")
+}

@@ -130,3 +130,17 @@ func TestEachMatchIsFetchedOnceEvenWhenTheSessionAndSampleShareIt(t *testing.T) 
 		t.Errorf("competitive updates fetched %d times, want once for both the trend and the session", updates)
 	}
 }
+
+func TestTheLiveSessionLineStartsOverAtTheResetHourAcrossARestart(t *testing.T) {
+	r := newRigAt(t, at(26, 5, 50), fakeriot.Options{}, ranked, func(w *fakeriot.World) {
+		compGame(w, "20000000-0000-4000-8000-000000000001", at(26, 5, 30), 10, win)
+		compGame(w, "20000000-0000-4000-8000-000000000002", at(25, 23, 0), -8, loss)
+	})
+	r.live()
+	r.screen("SESSION · 1W 1L +2 RR since 06:00")
+
+	// after 6am a fresh start has to count from this morning, not yesterday
+	r.clock.Advance(20 * time.Minute)
+	r.restart()
+	r.screen("SESSION · 0W 0L +0 RR since 06:00")
+}

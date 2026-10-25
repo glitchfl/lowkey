@@ -402,7 +402,7 @@ func (lv *live) setPhase(p phase) {
 	lv.phase = p
 }
 
-// ensureTarget makes sure lowkey knows the region, shard and client version before it asks Riot anything
+// ensureTarget makes sure the region and shard and client version are known before lowkey asks Riot anything
 func (lv *live) ensureTarget(then func()) {
 	if r := lv.cfg.Settings().Region; r != "" && r != lv.region {
 		lv.region = r
@@ -434,7 +434,7 @@ func (lv *live) ensureTarget(then func()) {
 	if riot.ValidVersion(lv.presence.PartyClientVersion) {
 		lv.version = lv.presence.PartyClientVersion
 	} else if !lv.logRead {
-		// the log only changes when Valorant restarts, so it's read once per game session
+		// the log only changes when Valorant restarts - read it once per game session
 		lv.logRead = true
 		if v, ok := riot.VersionFromLog(lv.env.GameLog); ok {
 			lv.version = v
@@ -508,7 +508,7 @@ func (lv *live) screen() render.Screen {
 	return s
 }
 
-// redraw writes the whole screen as one write, in place on a terminal - it also picks up lowkey.toml edits
+// redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
 	lines := lv.screen().Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), lv.env.Console.Terminal)

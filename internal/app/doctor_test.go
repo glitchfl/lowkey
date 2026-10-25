@@ -90,7 +90,7 @@ func TestDoctorNeverPrintsTokensOrThePassword(t *testing.T) {
 	}
 }
 
-// the standard base64 of the spec's platform JSON, worked out by hand
+// the standard base64 of the spec's platform JSON - worked out by hand
 const wantPlatform = "eyJwbGF0Zm9ybVR5cGUiOiJQQyIsInBsYXRmb3JtT1MiOiJXaW5kb3dzIiwicGxhdGZvcm1PU1ZlcnNpb24iOiIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwicGxhdGZvcm1DaGlwc2V0IjoiVW5rbm93biJ9"
 
 func jwtShaped(s string) bool { return len(strings.Split(s, ".")) == 3 && strings.HasPrefix(s, "eyJ") }

@@ -25,7 +25,7 @@ func newErrlog(dir string, now func() time.Time) *errlog {
 	return &errlog{path: filepath.Join(dir, "lowkey.log"), now: now}
 }
 
-// secret registers a value that must never reach the log, such as the lockfile password
+// secret registers a value that must never reach the log - the lockfile password for one
 func (l *errlog) secret(s string) {
 	if l == nil || s == "" {
 		return

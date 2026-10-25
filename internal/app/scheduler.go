@@ -39,13 +39,13 @@ type job struct {
 // backoff is how long to wait after each 429 before giving up on the item
 var backoff = []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second}
 
-// scheduler is the only path to Riot's servers: at most two requests in flight, in priority order
+// scheduler is the only path to Riot's servers - at most two requests in flight in priority order
 type scheduler struct {
 	client *remote.Client
 	clock  Clock
 	log    *errlog
 	limit  int
-	// rateLimited hears when a 429 pauses everything, when it resumes and when an item is given up
+	// rateLimited hears when a 429 pauses everything and when it resumes and when an item is given up
 	rateLimited func(paused, gaveUp bool)
 	// outcome hears how every request that wasn't cancelled ended
 	outcome func(err error)
@@ -199,7 +199,7 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 	j.done(body, err)
 }
 
-// pause stops every dispatch - Riot's limits apply to the account, not one endpoint
+// pause stops every dispatch - Riot's limits apply to the account and not one endpoint
 func (s *scheduler) pause(d time.Duration) {
 	if s.paused {
 		return

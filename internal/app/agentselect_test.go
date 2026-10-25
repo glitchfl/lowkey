@@ -16,7 +16,7 @@ const (
 	pregame = "9e000000-0000-4000-8000-000000000001"
 )
 
-// agentSelectLobby: you, two ranked allies, one in streamer mode and one unranked
+// agentSelectLobby - you plus two ranked allies and one in streamer mode and one unranked
 func agentSelectLobby(w *fakeriot.World) {
 	ranked(w)
 	todaysGames(w)

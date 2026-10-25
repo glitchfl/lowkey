@@ -11,7 +11,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-// session is your competitive W/L and net RR since the reset hour, rebuilt from Riot's history each time
+// session is your competitive W/L and net RR since the reset hour - rebuilt from Riot's history each time so a restart keeps it
 type session struct {
 	self    string
 	since   time.Time

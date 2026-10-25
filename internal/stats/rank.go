@@ -56,7 +56,7 @@ type Season struct {
 	WinsByTier         map[string]int `json:"WinsByTier"`
 }
 
-// MMR holds seasons by queue and then act, act IDs lowercased
+// MMR holds seasons by queue and then act - act IDs lowercased
 type MMR map[string]map[string]Season
 
 func DecodeMMR(body []byte) (MMR, error) {

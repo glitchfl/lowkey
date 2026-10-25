@@ -13,7 +13,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-// party, agent and met only mean something in a lobby
+// these columns only mean something in a lobby
 var lobbyOnly = map[string]bool{"party": true, "agent": true, "met": true}
 
 func runMe(ctx context.Context, env Env, opts options) int {

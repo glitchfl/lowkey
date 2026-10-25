@@ -37,7 +37,7 @@ func (l *loop) drain() int {
 	return len(q)
 }
 
-// run handles posted work until done reports true, calling settled whenever the queue empties
+// run handles posted work until done reports true - settled runs whenever the queue empties
 func (l *loop) run(ctx context.Context, done func() bool, settled func()) error {
 	for {
 		for l.drain() > 0 {

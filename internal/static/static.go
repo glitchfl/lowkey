@@ -1,4 +1,4 @@
-// Package static is lowkey's built-in knowledge of agents, maps and rank tiers
+// Package static is lowkey's built-in knowledge of agents and maps and rank tiers
 package static
 
 import (

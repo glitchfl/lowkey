@@ -15,7 +15,7 @@ import (
 
 var testZone = time.FixedZone("UTC+2", 2*60*60)
 
-// 20:00 local on 2026-10-25, well past the 6am session reset
+// 20:00 local on 2026-10-25 - well past the 6am session reset
 var testStart = time.Date(2026, 10, 25, 20, 0, 0, 0, testZone)
 
 type console struct {
@@ -242,7 +242,7 @@ func (r *rig) presence(f func(w *fakeriot.World)) {
 // settle gives lowkey a moment of real time to act on whatever just happened
 func settle() { time.Sleep(50 * time.Millisecond) }
 
-// settled waits for the texts, then for Riot to go quiet and the screen to stop changing
+// settled waits for the texts and then for Riot to go quiet and the screen to stop changing
 func (r *rig) settled(texts ...string) string {
 	r.t.Helper()
 	return r.settledWith(0, texts...)
@@ -264,7 +264,7 @@ func (r *rig) settledWith(held int, texts ...string) string {
 	return frame
 }
 
-// checkPolicy runs after every test: whatever happened, Riot must never have seen a forbidden request
+// checkPolicy runs after every test - whatever happened Riot must never have seen a forbidden request
 func (r *rig) checkPolicy() {
 	t := r.t
 	hidden := r.fr.Hidden()

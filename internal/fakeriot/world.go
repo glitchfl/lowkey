@@ -153,7 +153,7 @@ type Match struct {
 	Rounds  []Round
 	// community docs say roundTime - the spec says timeSinceRoundStartMillis - lowkey must read both
 	KillTimeField string
-	// Heavy fills in kill positions, economies and scores so the JSON is as big as a real match
+	// Heavy fills in kill positions plus economies and scores so the JSON is as big as a real match
 	Heavy bool
 }
 

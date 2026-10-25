@@ -18,7 +18,7 @@ const (
 	coreGame = "c9000000-0000-4000-8000-000000000001"
 )
 
-// matchLobby is agentSelectLobby plus the enemy team, one of them in streamer mode
+// matchLobby is agentSelectLobby plus the enemy team - one of them in streamer mode
 func matchLobby(w *fakeriot.World) {
 	agentSelectLobby(w)
 	e1 := w.Player(enemy1)
@@ -95,8 +95,8 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 	if allies < 0 || enemies < allies {
 		t.Fatalf("want an ALLIES section before ENEMIES:\n%s", frame)
 	}
-	// header line, ALLIES, 5 allies, average, ENEMIES, then enemies from the 10th line under the header
-	// none of the enemies has matches in this fixture, so names show "-"
+	// under the header come ALLIES - 5 allies - the average - ENEMIES - then the enemies from the 9th line
+	// none of the enemies has matches in this fixture so names show "-"
 	enemyRows := []struct{ agent, name, rank string }{
 		{"Raze", "-", "Plat2 10"}, {"Breach", "-", "Gold3 70"}, {"Viper", "hidden", ""}, {"Cypher", "-", "Plat3 0"}, {"Skye", "-", "-"},
 	}
@@ -180,7 +180,7 @@ func TestTheCutoffStopsEveryLookup(t *testing.T) {
 func TestBackInTheMenusShowsTheLastMatchAndRefreshesTheSession(t *testing.T) {
 	r := fromAgentSelect(t)
 	r.enterMatchLoad()
-	// everything, the session refresh included, has to land before the cutoff cancels what's left
+	// everything has to land before the cutoff cancels what's left - the session refresh included
 	r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
 	r.clock.Advance(40 * time.Second)
 	r.screen("IN MATCH")

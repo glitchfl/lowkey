@@ -6,7 +6,7 @@ type Mode struct {
 	Key   string // the name lowkey.toml uses
 	Queue string
 	Name  string
-	// deathmatch and TDM have no rounds worth averaging - ACS, ADR and FB% show "-" there
+	// deathmatch and TDM have no rounds worth averaging - ACS ADR and FB% show "-" there
 	Rounds  bool
 	Teams   bool
 	WinRate bool

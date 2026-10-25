@@ -7,7 +7,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-// pastLobby is a lobby that ended this session - kept in memory only, so a restart forgets it
+// pastLobby is a lobby that ended this session - kept in memory only so a restart forgets it
 type pastLobby struct {
 	matchID string
 	at      time.Time
@@ -21,7 +21,7 @@ type pastPlayer struct {
 
 type encounter struct {
 	ally   bool
-	result string // W, L, D or empty when lowkey never saw how it ended
+	result string // W or L or D - empty when lowkey never saw how it ended
 	at     time.Time
 }
 

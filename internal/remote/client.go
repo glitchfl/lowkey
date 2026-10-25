@@ -149,7 +149,7 @@ func (c *Client) URL(svc Service, path string, query url.Values) (*url.URL, erro
 	return u, nil
 }
 
-// Get makes one read, refreshing tokens before they expire and once more if Riot rejects them
+// Get makes one read - it refreshes tokens before they expire and once more if Riot rejects them
 func (c *Client) Get(ctx context.Context, svc Service, path string, query url.Values) ([]byte, error) {
 	u, err := c.URL(svc, path, query)
 	if err != nil {

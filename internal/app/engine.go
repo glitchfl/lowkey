@@ -12,7 +12,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-// engine looks players up through the scheduler and keeps what came back. It lives on the loop goroutine.
+// engine looks players up through the scheduler and keeps what came back - it lives on the loop goroutine
 type engine struct {
 	sched   *scheduler
 	post    func(func())
@@ -75,7 +75,7 @@ func newPlayer(puuid, queue string, n int) *player {
 	return &player{puuid: strings.ToLower(puuid), queue: queue, n: n, sample: map[string]*stats.Match{}}
 }
 
-// submit runs a job and hands its result back on the loop, unless the work was cancelled meanwhile
+// submit hands a job's result back on the loop - unless the work was cancelled meanwhile
 func (e *engine) submit(j *job, handle func(body []byte, err error)) {
 	e.busy++
 	gen := e.gen
@@ -234,7 +234,7 @@ func (e *engine) wantMatch(id, owner string, seq int, got func(*stats.Match, err
 		})
 }
 
-// loaded is the player's sample so far, newest first
+// loaded is the sample so far - newest first
 func (p *player) loaded() []*stats.Match {
 	var out []*stats.Match
 	for _, id := range p.history {

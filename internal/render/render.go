@@ -59,7 +59,7 @@ func Lookup(key string) (Column, bool) {
 	return Column{}, false
 }
 
-// Columns turns keys into columns, skipping unknown ones
+// Columns turns keys into columns and skips unknown ones
 func Columns(keys []string) []Column {
 	var cols []Column
 	for _, k := range keys {

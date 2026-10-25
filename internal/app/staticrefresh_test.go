@@ -45,7 +45,7 @@ func TestAnUnknownAgentShowsAPlaceholderUntilOneRefresh(t *testing.T) {
 		t.Errorf("after the refresh: got %q, want Nova", got)
 	}
 
-	// more redraws, roster refreshes and a later lobby never ask again
+	// more redraws and roster refreshes never ask again
 	r.fr.EmitPregame(pregame, false)
 	r.clock.Advance(3 * time.Second)
 	r.settled("AGENT SELECT", "Nova")

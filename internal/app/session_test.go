@@ -73,7 +73,7 @@ func TestSessionCountsCompetitiveGamesSinceTheResetHour(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("me failed:\n%s", out)
 	}
-	// since 06:00: two wins, one loss, the draw adds RR but no result
+	// since 06:00 - two wins and one loss - the draw adds RR but no result
 	if l := sessionLine(t, out); !strings.Contains(l, "2W 1L +26 RR") || !strings.Contains(l, "since 06:00") {
 		t.Errorf("got %q", l)
 	}

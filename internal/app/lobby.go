@@ -75,7 +75,7 @@ func (lv *live) startAgentSelect(matchID string) {
 	})
 }
 
-// startMatchLoad keeps everything agent select already fetched, in flight or not
+// startMatchLoad keeps everything agent select already fetched - in flight or not
 func (lv *live) startMatchLoad(matchID string) {
 	prev := lv.lobby
 	lv.stopRosterTimer()
@@ -116,7 +116,7 @@ func (lv *live) startMatchLoad(matchID string) {
 	})
 }
 
-// onCutoff is the deadline after match load - rounds are about to start, so everything stops
+// onCutoff is the deadline after match load - rounds are about to start so everything stops
 func (lv *live) onCutoff(lob *lobby) {
 	if lob != lv.lobby || lv.phase != phaseMatchLoad {
 		return
@@ -269,7 +269,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	for _, rp := range roster.Players {
-		// the guard learns streamer mode straight from Riot's data, whatever the rows decide - and with
+		// the guard learns streamer mode straight from Riot's data whatever the rows decide - and with
 		// enemy lookups off it refuses anything about an enemy too
 		offLimits := !cfg.EnemyLookups && lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
 		if rp.Incognito || offLimits {
@@ -326,7 +326,7 @@ func (lv *live) untrackedMode(queue string) {
 	lv.cancelLobby()
 }
 
-// cancelLobby drops the lobby and every outstanding lookup - a dodge, an untracked mode or the match ending
+// cancelLobby drops the lobby and every outstanding lookup - a dodge or an untracked mode or the match ending
 func (lv *live) cancelLobby() {
 	if lv.eng.sched != nil {
 		lv.eng.cancel()

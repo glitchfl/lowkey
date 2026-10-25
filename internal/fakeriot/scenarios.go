@@ -32,7 +32,7 @@ type Scenario struct {
 	Steps []Step
 }
 
-// LobbyWorld is a competitive lobby with ranks, recent matches and games today - heavy makes match
+// LobbyWorld is a competitive lobby with ranks plus recent matches and games today - heavy makes match
 // details as big as real ones for memory checks
 func LobbyWorld(now time.Time, heavy bool) *World {
 	w := NewWorld(now)
@@ -231,7 +231,7 @@ func FindScenario(name string) (Scenario, bool) {
 	return Scenario{}, false
 }
 
-// Play runs the steps in real time - for the fakeriot program, tests drive steps themselves
+// Play runs the steps in real time for the fakeriot program - tests drive steps themselves
 func (s *Server) Play(ctx context.Context, sc Scenario, logf func(format string, args ...any)) error {
 	for _, step := range sc.Steps {
 		select {

@@ -74,7 +74,7 @@ func TestMeShowsYourSampleStats(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("me failed:\n%s", out)
 	}
-	// 52 kills / 45 deaths, 26 of 133 hits, 13000 score and 8000 damage over 60 rounds, 9 first bloods
+	// 52 kills / 45 deaths - 26 of 133 hits - 13000 score and 8000 damage over 60 rounds - 9 first bloods
 	want := map[string]string{
 		"PLAYER": "Kestrel#EUW", "K/D": "1.16", "HS%": "20%", "ACS": "217", "ADR": "133", "FB%": "15%",
 		"N": "3", "MAINS": "Jett Raze",

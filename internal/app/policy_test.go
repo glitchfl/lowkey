@@ -125,7 +125,7 @@ func TestIDsFromRiotNeverBecomeForbiddenPaths(t *testing.T) {
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
-	// presence moves first, so lowkey asks Riot for the match ID
+	// presence moves first so lowkey asks Riot for the match ID
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopPregame })
 	r.screen("AGENT SELECT")
 	r.clock.Advance(10 * time.Second)

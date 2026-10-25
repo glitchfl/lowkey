@@ -12,7 +12,7 @@ import (
 
 var sampleKeys = []string{"name", "kd", "hs", "acs", "adr", "fb", "mains"}
 
-// playerRow shows what's known - cells still loading stay blank, cells with no value show "-"
+// playerRow shows what's known - cells still loading stay blank and cells with no value show "-"
 func playerRow(p *player, mode stats.Mode, acts *stats.Acts, data *static.Data) render.Row {
 	row := render.Row{}
 	switch {

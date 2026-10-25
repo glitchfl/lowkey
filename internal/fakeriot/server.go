@@ -63,7 +63,7 @@ type Server struct {
 
 type Request struct {
 	Seq      int
-	Service  string // local, pd, glz, shared or static
+	Service  string // local / pd / glz / shared / static
 	Region   string
 	Shard    string
 	Method   string
@@ -86,7 +86,7 @@ type Fault struct {
 	Header  map[string]string
 	Times   int // 0 keeps the fault until RemoveFaults
 	Delay   time.Duration
-	Hold    bool // wait for Release, ReleaseHeld or the client giving up
+	Hold    bool // wait for Release or ReleaseHeld or the client giving up
 	Drop    bool // close the connection without answering
 }
 
@@ -218,7 +218,7 @@ func (s *Server) Self() string {
 	return s.world.Self
 }
 
-// RemoteRequests leaves out the local API, which never leaves the PC
+// RemoteRequests leaves out the local API - it never leaves the PC
 func (s *Server) RemoteRequests() []Request {
 	var out []Request
 	for _, r := range s.Requests() {
@@ -265,7 +265,7 @@ func (s *Server) RemoveFaults() {
 	s.faults = nil
 }
 
-// Held lists the requests waiting on a Hold fault, oldest first
+// Held lists the requests waiting on a Hold fault - oldest first
 func (s *Server) Held() []Request {
 	s.mu.Lock()
 	defer s.mu.Unlock()

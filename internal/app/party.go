@@ -13,7 +13,7 @@ type party struct {
 
 const ownPartyMarker = "●"
 
-// likelySymbols avoid ▲ and ▼, which the diff row uses
+// likelySymbols avoid ▲ and ▼ - the diff row uses those
 var likelySymbols = []string{"◆", "■", "◇", "□", "★"}
 
 // fetchParty only ever asks about your own PUUID

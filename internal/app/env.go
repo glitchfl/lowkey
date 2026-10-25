@@ -10,7 +10,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/riot"
 )
 
-// Env is the single seam: production builds it from the real machine, tests build it around fakeriot
+// Env is the single seam - production builds it from the real machine and tests build it around fakeriot
 type Env struct {
 	Lockfile string
 	// nil trusts Riot's own root - tests pass fakeriot's
@@ -18,7 +18,7 @@ type Env struct {
 	Servers    Servers
 	Clock      Clock
 	Console    Console
-	// Dir is the folder next to the exe holding lowkey.toml, the error log and recordings
+	// Dir is the folder next to the exe that holds lowkey.toml plus the error log and recordings
 	Dir     string
 	GameLog string
 	Version string

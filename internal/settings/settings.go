@@ -90,7 +90,7 @@ type file struct {
 	Region           *string   `toml:"region"`
 }
 
-// Parse fills missing keys with defaults - a clamped value comes back with a note, anything invalid as an error
+// Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
 func Parse(data []byte) (Settings, string, error) {
 	var f file
 	md, err := toml.Decode(string(data), &f)
@@ -220,7 +220,7 @@ func (f *File) Refresh() bool {
 	}
 	data, err := os.ReadFile(f.path)
 	if err == nil && len(strings.TrimSpace(string(data))) == 0 {
-		// editors truncate before they write - an empty read is a save in progress, so look again next time
+		// editors truncate before they write - an empty read is a save in progress so look again next time
 		return false
 	}
 	f.exists, f.mtime = true, fi.ModTime()

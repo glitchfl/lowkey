@@ -9,7 +9,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/fakeriot"
 )
 
-// modeMatches gives a player n matches in a queue, each with the same line
+// modeMatches gives a player n identical matches in a queue
 func modeMatches(w *fakeriot.World, puuid, queue, mode, prefix string, n int, s line5) {
 	for i := 0; i < n; i++ {
 		m := &fakeriot.Match{
@@ -28,7 +28,7 @@ const dmMatch = "d9000000-0000-4000-8000-000000000001"
 
 func dmPlayer(i int) string { return fmt.Sprintf("d%07d-0000-4000-8000-000000000000", i) }
 
-// deathmatch: you and 13 others, each on a team of one - player 13 is in streamer mode
+// deathmatch - you and 13 others each on a team of one - player 13 is in streamer mode
 func deathmatch(w *fakeriot.World) {
 	me := w.Player(w.Self)
 	me.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 20, RR: 12})

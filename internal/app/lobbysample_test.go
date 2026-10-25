@@ -43,8 +43,8 @@ func addRounds(m *fakeriot.Match, puuid string, s line5) {
 	}
 }
 
-// lobbySamples: KD/HS/ACS/ADR/FB of 2.00/30/200/150/10 for ally one, 0.50/20/150/100/5 for ally two
-// (one match shared with ally one), 2.50/50/250/200/20 and 0.50/10/100/80/0 for two enemies
+// lobbySamples - KD/HS/ACS/ADR/FB of 2.00/30/200/150/10 for ally one and 0.50/20/150/100/5 for ally two
+// (one match shared with ally one) - 2.50/50/250/200/20 and 0.50/10/100/80/0 for two enemies
 func lobbySamples(w *fakeriot.World) {
 	w.Player(ally2).Name, w.Player(ally2).Tag = "AllyTwo", "A2"
 	w.Player(enemy1).Name, w.Player(enemy1).Tag = "EnemyOne", "E1"
@@ -79,7 +79,7 @@ func TestEveryVisiblePlayerGetsSampleStats(t *testing.T) {
 
 	type sample struct{ name, kd, hs, acs, adr, fb, n, mains string }
 	rows := map[int]sample{
-		// todaysGames: 15/15 with 4000 score over 20 rounds and no round data, six of them
+		// todaysGames - six of 15/15 with 4000 score over 20 rounds and no round data
 		2:  {"Kestrel#EUW", "1.00", "-", "200", "0", "0%", "6", "Jett"},
 		3:  {"AllyOne#A1", "2.00", "30%", "200", "150", "10%", "5", "Jett"},
 		4:  {"AllyTwo#A2", "0.50", "20%", "150", "100", "5%", "3", "KJ"},
@@ -102,7 +102,7 @@ func TestEveryVisiblePlayerGetsSampleStats(t *testing.T) {
 		t.Errorf("a player with no matches is identified by agent, got %q", got)
 	}
 
-	// allies average 1.17/25/183/83/5 over three players, enemies 1.50/30/175/140/10 over two
+	// allies average 1.17/25/183/83/5 over three players - enemies 1.50/30/175/140/10 over two
 	averages := []struct {
 		line                 int
 		kd, hs, acs, adr, fb string
@@ -145,11 +145,11 @@ func TestLobbyRequestsStayWithinTheBudget(t *testing.T) {
 			t.Errorf("%s fetched %d times", path, n)
 		}
 	}
-	// you 6, ally one 4 + the shared match, ally two 2, enemies 2 + 1
+	// you 6 - ally one 4 plus the shared match - ally two 2 - enemies 2 and 1
 	if details != 16 {
 		t.Errorf("fetched %d match details, want 16 with the premade's shared match counted once", details)
 	}
-	// two rosters, your party, content, two session refreshes, then rank, trend and history per visible player
+	// two rosters - your party - content - two session refreshes - then rank and trend and history per visible player
 	visible := 8
 	budget := 2 + 2 + 1 + 2 + visible*3 + details
 	if n := len(r.fr.RemoteRequests()); n > budget {
@@ -175,7 +175,7 @@ func TestTheCutoffLeavesHonestPartialSamples(t *testing.T) {
 }
 
 func TestMatchDetailsGoRoundRobinNewestFirst(t *testing.T) {
-	// no session matches and no premades, so the order is only about the round robin
+	// no session matches and no premades so the order is only about the round robin
 	r := newRig(t, matchLobby, func(w *fakeriot.World) {
 		w.Matches = map[string]*fakeriot.Match{}
 		w.Player(w.Self).Updates = nil
@@ -190,7 +190,7 @@ func TestMatchDetailsGoRoundRobinNewestFirst(t *testing.T) {
 	r.subscribed()
 	r.enterAgentSelect()
 
-	// one release frees one slot, so waiting for the next request to park makes the order exact
+	// one release frees one slot - waiting for the next request to park makes the order exact
 	release := func(path string, thenHeld int) {
 		t.Helper()
 		if !r.fr.Release(path) {
@@ -199,7 +199,7 @@ func TestMatchDetailsGoRoundRobinNewestFirst(t *testing.T) {
 		eventually(t, fmt.Sprintf("%d held requests", thenHeld), func() bool { return len(r.fr.Held()) == thenHeld })
 	}
 	waitHeld(t, r.fr, 2)
-	// histories finish in roster order, so that's the order players join the rotation
+	// histories finish in roster order - that's the order players join the rotation
 	for _, p := range []string{fakeriot.DefaultSelf, ally1, ally2, ally4} {
 		release("/match-history/v1/history/"+p, 2)
 	}

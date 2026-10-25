@@ -66,7 +66,7 @@ func TestYourOwnPartyIsMarkedExactly(t *testing.T) {
 	}
 }
 
-// likelyParties: allies one and two queued together twice, enemies one-two and two-four too,
+// likelyParties - allies one and two queued together twice and so did enemies one and two and enemies two and four
 // enemy five shared one match with enemy one and two with the hidden enemy three
 func likelyParties(w *fakeriot.World) {
 	together(w, matchID(1), 30*time.Hour, "Blue", ally1, ally2)

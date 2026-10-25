@@ -7,7 +7,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/fakeriot"
 )
 
-// ranked is your account across acts and queues, with values worked out by hand below
+// ranked is your account across acts and queues - the expected values are worked out by hand
 func ranked(w *fakeriot.World) {
 	me := w.Player(w.Self)
 	me.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{
@@ -18,7 +18,7 @@ func ranked(w *fakeriot.World) {
 		Tier: 19, RR: 40, Wins: 20, WinsWithPlacements: 20, Games: 38,
 		WinsByTier: map[string]int{"17": 4, "19": 3},
 	})
-	// episode 4: 22 was immortal 2 back then, 25 today
+	// episode 4 - 22 was immortal 2 back then and is 25 today
 	me.SetRank("competitive", fakeriot.ActEp4, fakeriot.SeasonInfo{
 		Tier: 22, Wins: 30, WinsWithPlacements: 30, Games: 50,
 		WinsByTier: map[string]int{"21": 2, "22": 1},

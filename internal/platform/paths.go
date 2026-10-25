@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-// ExeDir is where lowkey keeps lowkey.toml, its error log and recordings
+// ExeDir is where lowkey keeps lowkey.toml plus its error log and recordings
 func ExeDir() string {
 	exe, err := os.Executable()
 	if err != nil {

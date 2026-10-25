@@ -3,6 +3,7 @@ package fakeriot
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -130,8 +131,13 @@ func (s *Server) Emit(event, uri, eventType string, data any) int {
 }
 
 func (s *Server) emitLifecycle(service, resource string, duplicate bool) {
+	s.mu.Lock()
+	s.messages++
+	id := s.messages
+	s.mu.Unlock()
+	// a duplicate is the same message under a second path - genuine updates get their own id
 	data := obj{
-		"ackRequired": false, "id": "", "payload": "", "resource": resource, "service": service,
+		"ackRequired": false, "id": fmt.Sprintf("rms-%d", id), "payload": "", "resource": resource, "service": service,
 		"timestamp": s.now().UnixMilli(), "version": "1.0",
 	}
 	s.Emit(EventMessaging, "/riot-messaging-service/v1/message/"+resource, "Create", data)

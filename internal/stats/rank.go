@@ -127,11 +127,15 @@ func RankOf(m MMR, acts Acts, queue string, remap Remap) Rank {
 
 // WinRate is a whole percentage
 func (r Rank) WinRate() int {
+	return int(r.WinRatio()*100 + 0.5)
+}
+
+func (r Rank) WinRatio() float64 {
 	games := r.Wins + r.Losses
 	if games == 0 {
 		return 0
 	}
-	return int(float64(r.Wins)/float64(games)*100 + 0.5)
+	return float64(r.Wins) / float64(games)
 }
 
 type Update struct {

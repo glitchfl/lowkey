@@ -57,7 +57,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 	defer sched.close()
 	eng := newEngine(sched, lp.post)
 	eng.fetchActs()
-	me := newPlayer(l.self, mode.Queue, 13)
+	me := newPlayer(l.self, mode.Queue, defaultMatches)
 	eng.lookUp(me, wantRank|wantSample)
 	sess := newSession(l.self, env.Clock.Now(), defaultResetHour)
 	eng.refreshSession(sess)

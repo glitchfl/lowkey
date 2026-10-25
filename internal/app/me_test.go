@@ -37,8 +37,9 @@ func cellIn(t *testing.T, out, column string, nth int) string {
 	t.Helper()
 	lines := strings.Split(out, "\n")
 	for i, l := range lines {
+		// titles and the session line use "·" - only the column header line doesn't
 		hs := headerIndex([]rune(l), []rune(column))
-		if hs < 0 || i+nth >= len(lines) {
+		if hs < 0 || strings.Contains(l, "·") || i+nth >= len(lines) {
 			continue
 		}
 		he := hs + len([]rune(column))

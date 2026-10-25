@@ -255,15 +255,22 @@ func detectVersion(ctx context.Context, client *remote.Client, priv riot.Private
 	if err != nil {
 		return "", ""
 	}
+	if v, ok := staticVersion(body); ok {
+		return v, "valorant-api.com"
+	}
+	return "", ""
+}
+
+func staticVersion(body []byte) (string, bool) {
 	var v struct {
 		Data struct {
 			RiotClientVersion string `json:"riotClientVersion"`
 		} `json:"data"`
 	}
-	if json.Unmarshal(body, &v) == nil && riot.ValidVersion(v.Data.RiotClientVersion) {
-		return v.Data.RiotClientVersion, "valorant-api.com"
+	if json.Unmarshal(body, &v) != nil || !riot.ValidVersion(v.Data.RiotClientVersion) {
+		return "", false
 	}
-	return "", ""
+	return v.Data.RiotClientVersion, true
 }
 
 func phaseFromLoop(state string) string {

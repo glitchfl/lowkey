@@ -53,6 +53,7 @@ type Server struct {
 	maxInflight int
 	held        []*heldRequest
 	ws          map[*wsConn]bool
+	messages    int
 
 	local     *http.Server
 	localPort int

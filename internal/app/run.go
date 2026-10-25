@@ -43,8 +43,7 @@ func Run(ctx context.Context, env Env, args []string) int {
 	case "me":
 		return runMe(ctx, env, opts)
 	}
-	fmt.Fprintf(env.Console.Out, "%q isn't built yet\n", opts.command)
-	return 2
+	return runLive(ctx, env, opts, setup)
 }
 
 func parseArgs(args []string) (options, error) {

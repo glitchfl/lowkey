@@ -43,6 +43,8 @@ type Local struct {
 	base string
 	auth string
 	http *http.Client
+	// the WebSocket library refuses clients with a timeout - it uses contexts instead
+	ws *http.Client
 	// Observe sees every response - record mode hooks in here
 	Observe func(path string, status int, body []byte)
 	// Rejected gets a certificate chain that failed the check so the right root can be pinned later
@@ -74,13 +76,9 @@ func NewLocal(lf Lockfile, roots *x509.CertPool) *Local {
 		MaxIdleConns:        2,
 		IdleConnTimeout:     30 * time.Second,
 	}
-	l.http = &http.Client{
-		Transport: tr,
-		Timeout:   10 * time.Second,
-		CheckRedirect: func(*http.Request, []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+	noRedirects := func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	l.http = &http.Client{Transport: tr, Timeout: 10 * time.Second, CheckRedirect: noRedirects}
+	l.ws = &http.Client{Transport: tr, CheckRedirect: noRedirects}
 	return l
 }
 

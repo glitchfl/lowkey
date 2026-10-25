@@ -158,3 +158,70 @@ func (r *rig) start(args ...string) <-chan int {
 	}()
 	return done
 }
+
+func (c *console) framesCopy() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]string(nil), c.frames...)
+}
+
+func (c *console) last() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.frames) == 0 {
+		return ""
+	}
+	return c.frames[len(c.frames)-1]
+}
+
+// live starts lowkey's normal mode and stops it when the test ends
+func (r *rig) live() {
+	r.t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	go func() { done <- app.Run(ctx, r.env, nil) }()
+	r.t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			r.t.Error("lowkey didn't stop when its window closed")
+		}
+	})
+}
+
+// screen waits until the latest frame shows every piece of text and returns that frame
+func (r *rig) screen(texts ...string) string {
+	r.t.Helper()
+	var frame string
+	eventually(r.t, fmt.Sprintf("a screen showing %q", texts), func() bool {
+		frame = r.con.last()
+		for _, s := range texts {
+			if !strings.Contains(frame, s) {
+				return false
+			}
+		}
+		return true
+	})
+	return frame
+}
+
+// subscribed waits for lowkey's WebSocket subscriptions so emitted events reach it
+func (r *rig) subscribed() {
+	r.t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := r.fr.WaitSubscribed(ctx, fakeriot.EventMessaging, fakeriot.EventPresences); err != nil {
+		r.t.Fatalf("lowkey never subscribed to Riot Client events: %v", err)
+	}
+}
+
+// presence changes your presence and pushes it like the chat service does
+func (r *rig) presence(f func(w *fakeriot.World)) {
+	r.t.Helper()
+	r.fr.Update(f)
+	r.fr.EmitPresence()
+}
+
+// settle gives lowkey a moment of real time to act on whatever just happened
+func settle() { time.Sleep(50 * time.Millisecond) }

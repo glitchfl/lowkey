@@ -373,6 +373,11 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 			enemies = append(enemies, m)
 		}
 	}
+	// until the core-game roster arrives there are only the allies carried over from agent select
+	if len(enemies) == 0 {
+		s.Sections = []render.Section{lv.teamSection("ALLIES", allies, lob.mode, marks, met)}
+		return
+	}
 	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
 	s.Sections = []render.Section{
 		lv.teamSection("ALLIES", allies, lob.mode, marks, met),

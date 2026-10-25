@@ -69,3 +69,36 @@ jobs:
           $want = Join-Path $env:LOCALAPPDATA "Riot Games\Riot Client\Config\lockfile"
           if (-not ($lines -match [regex]::Escape($want))) { throw "doctor didn't look for $want" }
           exit 0
+
+  windows-e2e:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@v8
+        with:
+          name: lowkey-windows
+          path: artifacts
+      - name: scenarios and performance checks against the real lowkey.exe
+        shell: pwsh
+        run: |
+          $env:LOWKEY_EXE = (Resolve-Path artifacts\lowkey.exe).Path
+          go test ./e2e -count=1 -v -timeout 15m
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, build, windows-doctor, windows-e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: lowkey-windows
+      - name: publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" lowkey.exe --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

@@ -304,11 +304,17 @@ func (w *World) matchDetails(m *Match) []byte {
 		for _, mp := range m.Players {
 			statFor(mp.PUUID)
 		}
+		locations := []obj{}
+		if m.Heavy {
+			for j, mp := range m.Players {
+				locations = append(locations, obj{"subject": mp.PUUID, "viewRadians": 1.5707963 + float64(j)/10, "location": location(1000+j*37, -2000+j*53)})
+			}
+		}
 		for _, k := range r.Kills {
 			kill := obj{
 				"gameTime": i*100000 + k.At, timeField: k.At,
 				"killer": k.Killer, "victim": k.Victim, "victimLocation": location(100, 200),
-				"assistants": []string{}, "playerLocations": []obj{},
+				"assistants": []string{}, "playerLocations": locations,
 				"finishingDamage": obj{"damageType": "Weapon", "damageItem": "9c82e19d-4575-0200-1a81-3eacf00cf872", "isSecondaryFireMode": false},
 			}
 			s := statFor(k.Killer)
@@ -329,13 +335,22 @@ func (w *World) matchDetails(m *Match) []byte {
 		for _, puuid := range order {
 			playerStats = append(playerStats, stats[puuid])
 		}
+		var economies, scores any
+		if m.Heavy {
+			var e, sc []obj
+			for _, mp := range m.Players {
+				e = append(e, obj{"subject": mp.PUUID, "loadoutValue": 3900, "weapon": "9c82e19d-4575-0200-1a81-3eacf00cf872", "armor": "822bcab2-40a2-324e-c137-e09195ad7692", "remaining": 1200, "spent": 3900})
+				sc = append(sc, obj{"subject": mp.PUUID, "score": 210})
+			}
+			economies, scores = e, sc
+		}
 		rounds = append(rounds, obj{
 			"roundNum": i, "roundResult": "Eliminated", "roundCeremony": "CeremonyDefault",
-			"winningTeam": "Blue", "plantRoundTime": 0, "plantPlayerLocations": nil,
+			"winningTeam": "Blue", "plantRoundTime": 0, "plantPlayerLocations": locations,
 			"plantLocation": location(0, 0), "plantSite": "", "defuseRoundTime": 0,
 			"defusePlayerLocations": nil, "defuseLocation": location(0, 0),
 			"playerStats": playerStats, "roundResultCode": "Elimination",
-			"playerEconomies": nil, "playerScores": nil,
+			"playerEconomies": economies, "playerScores": scores,
 		})
 	}
 	return mustJSON(obj{

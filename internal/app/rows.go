@@ -23,6 +23,13 @@ func playerRow(p *player, mode stats.Mode, acts *stats.Acts, data *static.Data) 
 			row[k] = dash
 		}
 	}
+	if p.updatesDone {
+		if trend, ok := stats.Trend(p.updates, 5); ok && p.updatesErr == nil {
+			row["rr_trend"] = render.Cell{Text: signed(trend)}
+		} else {
+			row["rr_trend"] = dash
+		}
+	}
 	if p.historyDone {
 		if p.historyErr != nil {
 			for _, k := range append(sampleKeys, "n") {

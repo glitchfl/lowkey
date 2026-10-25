@@ -21,7 +21,7 @@ type engine struct {
 	actsErr error
 
 	matches   map[string]*stats.Match
-	waiters   map[string][]*player
+	waiters   map[string][]func(*stats.Match, error)
 	ranks     map[string]stats.MMR
 	histories map[string][]string
 	busy      int
@@ -64,7 +64,7 @@ func newEngine(sched *scheduler, post func(func())) *engine {
 		post:      post,
 		changed:   func() {},
 		matches:   map[string]*stats.Match{},
-		waiters:   map[string][]*player{},
+		waiters:   map[string][]func(*stats.Match, error){},
 		ranks:     map[string]stats.MMR{},
 		histories: map[string][]string{},
 	}
@@ -96,7 +96,7 @@ func (e *engine) cancel() {
 	e.sched.cancelAll()
 	e.gen++
 	e.busy = 0
-	e.waiters = map[string][]*player{}
+	e.waiters = map[string][]func(*stats.Match, error){}
 }
 
 // forgetRound clears what's only good until the menus
@@ -189,22 +189,28 @@ func (e *engine) gotHistory(p *player, ids []string) {
 	}
 	p.history, p.historyDone = ids, true
 	for seq, id := range ids {
-		e.wantMatch(p, id, seq)
+		e.wantMatch(id, p.puuid, seq, func(m *stats.Match, err error) {
+			if err != nil {
+				p.detailErr++
+				return
+			}
+			p.sample[id] = m
+		})
 	}
 }
 
-// wantMatch fetches each match once no matter how many players share it
-func (e *engine) wantMatch(p *player, id string, seq int) {
+// wantMatch fetches each match once no matter how many players or the session line want it
+func (e *engine) wantMatch(id, owner string, seq int, got func(*stats.Match, error)) {
 	if m, ok := e.matches[id]; ok {
-		p.sample[id] = m
+		got(m, nil)
 		return
 	}
 	if ws, ok := e.waiters[id]; ok {
-		e.waiters[id] = append(ws, p)
+		e.waiters[id] = append(ws, got)
 		return
 	}
-	e.waiters[id] = []*player{p}
-	e.submit(&job{prio: prioDetails, player: p.puuid, seq: seq, svc: remote.PD, path: "/match-details/v1/matches/" + id},
+	e.waiters[id] = []func(*stats.Match, error){got}
+	e.submit(&job{prio: prioDetails, player: owner, seq: seq, svc: remote.PD, path: "/match-details/v1/matches/" + id},
 		func(body []byte, err error) {
 			ws := e.waiters[id]
 			delete(e.waiters, id)
@@ -212,15 +218,11 @@ func (e *engine) wantMatch(p *player, id string, seq int) {
 			if err == nil {
 				m, err = stats.DecodeMatch(body)
 			}
-			for _, w := range ws {
-				if err != nil {
-					w.detailErr++
-				} else {
-					w.sample[id] = m
-				}
-			}
 			if err == nil {
 				e.matches[id] = m
+			}
+			for _, w := range ws {
+				w(m, err)
 			}
 		})
 }

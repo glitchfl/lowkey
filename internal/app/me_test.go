@@ -228,9 +228,10 @@ func TestMeAsksRiotOnlyForWhatYourRowNeeds(t *testing.T) {
 		got = append(got, req.Service+" "+req.Path)
 	}
 	want := map[string]bool{
-		"pd /mmr/v1/players/" + fakeriot.DefaultSelf:           true,
-		"pd /match-history/v1/history/" + fakeriot.DefaultSelf: true,
-		"shared /content-service/v3/content":                   true,
+		"pd /mmr/v1/players/" + fakeriot.DefaultSelf:                         true,
+		"pd /match-history/v1/history/" + fakeriot.DefaultSelf:               true,
+		"pd /mmr/v1/players/" + fakeriot.DefaultSelf + "/competitiveupdates": true,
+		"shared /content-service/v3/content":                                 true,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got requests %v, want exactly %v", got, want)

@@ -66,7 +66,12 @@ func newRig(t *testing.T, setup ...func(w *fakeriot.World)) *rig {
 
 func newRigWith(t *testing.T, opts fakeriot.Options, setup ...func(w *fakeriot.World)) *rig {
 	t.Helper()
-	clock := fakeriot.NewClock(testStart)
+	return newRigAt(t, testStart, opts, setup...)
+}
+
+func newRigAt(t *testing.T, start time.Time, opts fakeriot.Options, setup ...func(w *fakeriot.World)) *rig {
+	t.Helper()
+	clock := fakeriot.NewClock(start)
 	world := fakeriot.NewWorld(clock.Now())
 	for _, f := range setup {
 		f(world)

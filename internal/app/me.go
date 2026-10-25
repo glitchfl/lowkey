@@ -12,7 +12,9 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-var meColumns = []string{"name", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains"}
+var meColumns = []string{"name", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend"}
+
+const defaultResetHour = 6
 
 func runMe(ctx context.Context, env Env, opts options) int {
 	out := env.Console.Out
@@ -57,6 +59,8 @@ func runMe(ctx context.Context, env Env, opts options) int {
 	eng.fetchActs()
 	me := newPlayer(l.self, mode.Queue, 13)
 	eng.lookUp(me, wantRank|wantSample)
+	sess := newSession(l.self, env.Clock.Now(), defaultResetHour)
+	eng.refreshSession(sess)
 	if err := lp.run(ctx, func() bool { return eng.busy == 0 }, nil); err != nil {
 		fmt.Fprintf(out, "lowkey me: %v\n", err)
 		return 1
@@ -68,10 +72,13 @@ func runMe(ctx context.Context, env Env, opts options) int {
 		}
 	}
 
+	// your trend comes from the session's competitive updates - no second request
+	me.updates, me.updatesDone, me.updatesErr = sess.updates, true, sess.err
 	row := playerRow(me, mode, eng.acts, data)
 	screen := render.Screen{
 		Header:   "YOU · " + mode.Name,
 		Sections: []render.Section{{Rows: []render.Row{row}}},
+		Session:  sess.line(),
 	}
 	for _, line := range screen.Lines(render.Columns(meColumns), env.Console.Width(), env.Console.Terminal) {
 		fmt.Fprintln(out, line)

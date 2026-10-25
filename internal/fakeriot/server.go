@@ -80,6 +80,7 @@ type Request struct {
 type Fault struct {
 	Service string // empty matches every service
 	Path    string // prefix - empty matches every path
+	Exact   bool   // match Path exactly instead of as a prefix
 	Status  int
 	Body    string
 	Header  map[string]string
@@ -245,6 +246,17 @@ func (s *Server) AddFault(f Fault) {
 	defer s.mu.Unlock()
 	fc := f
 	s.faults = append(s.faults, &fc)
+}
+
+// Answered counts remote requests to a path by status
+func (s *Server) Answered(path string, status int) int {
+	n := 0
+	for _, r := range s.RemoteRequests() {
+		if r.Path == path && r.Status == status {
+			n++
+		}
+	}
+	return n
 }
 
 func (s *Server) RemoveFaults() {
@@ -455,7 +467,7 @@ func (s *Server) matchFault(service, path string) *Fault {
 		if f.Service != "" && f.Service != service {
 			continue
 		}
-		if !strings.HasPrefix(path, f.Path) {
+		if !strings.HasPrefix(path, f.Path) || f.Exact && path != f.Path {
 			continue
 		}
 		if f.Times > 0 {

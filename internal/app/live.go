@@ -56,12 +56,14 @@ type live struct {
 	version  string
 	logRead  bool
 
-	phase     phase
-	midMatch  bool
-	notReady  bool
-	untracked string
-	problem   string
-	recent    []string
+	phase       phase
+	midMatch    bool
+	notReady    bool
+	untracked   string
+	problem     string
+	recent      []string
+	rateLimit   rateState
+	unreachable bool
 
 	lobby      *lobby
 	last       *lobby
@@ -72,6 +74,14 @@ type live struct {
 
 	frame string
 }
+
+type rateState int
+
+const (
+	rateFine rateState = iota
+	rateBackingOff
+	rateGaveUp
+)
 
 type connection struct {
 	local  *riot.Local
@@ -223,6 +233,24 @@ func (lv *live) connected(gen int, ent riot.Entitlements, events *riot.Events, l
 		Observe:   remoteObserver(lv.rec),
 	})
 	lv.eng.sched = newScheduler(lv.client, lv.env.Clock, lv.log)
+	lv.eng.sched.rateLimited = func(paused, gaveUp bool) {
+		lv.loop.post(func() {
+			switch {
+			case gaveUp:
+				lv.rateLimit = rateGaveUp
+			case lv.rateLimit == rateGaveUp:
+			case paused:
+				lv.rateLimit = rateBackingOff
+			default:
+				lv.rateLimit = rateFine
+			}
+		})
+	}
+	lv.eng.sched.outcome = func(err error) {
+		var ue *remote.UnreachableError
+		unreachable := errors.As(err, &ue)
+		lv.loop.post(func() { lv.unreachable = unreachable })
+	}
 	lv.region, lv.shard, lv.version = "", "", ""
 	priv, present := riot.OwnValorant(list, ent.Subject)
 	lv.applyPresence(priv, present, true)
@@ -427,6 +455,9 @@ func (lv *live) screen() render.Screen {
 		s.Status = []string{"not tracking " + lv.untracked + " - waiting for the next match"}
 	case lv.midMatch:
 		s.Status = []string{"match in progress - lowkey waits for it to end"}
+	case lv.lobby != nil && len(lv.lobby.members) == 0 && lv.unreachable && lv.last != nil:
+		lv.lobbyScreen(&s, lv.last, "LAST MATCH")
+		s.Session = lv.sess.line()
 	case lv.lobby != nil:
 		title := map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}[lv.phase]
 		lv.lobbyScreen(&s, lv.lobby, title)
@@ -438,8 +469,17 @@ func (lv *live) screen() render.Screen {
 	default:
 		s.Header = "IN MATCH"
 	}
-	if lv.problem != "" {
+	switch {
+	case lv.unreachable:
+		s.Status = append(s.Status, "can't reach Riot's servers - showing the last table")
+	case lv.problem != "":
 		s.Status = append(s.Status, lv.problem)
+	}
+	switch lv.rateLimit {
+	case rateBackingOff:
+		s.Status = append(s.Status, "Riot is rate-limiting - backing off")
+	case rateGaveUp:
+		s.Status = append(s.Status, "Riot is rate-limiting - some stats are missing")
 	}
 	return s
 }

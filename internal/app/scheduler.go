@@ -45,8 +45,10 @@ type scheduler struct {
 	clock  Clock
 	log    *errlog
 	limit  int
-	// rateLimited hears when a 429 pauses everything and when an item is given up
-	rateLimited func(retryIn time.Duration, gaveUp bool)
+	// rateLimited hears when a 429 pauses everything, when it resumes and when an item is given up
+	rateLimited func(paused, gaveUp bool)
+	// outcome hears how every request that wasn't cancelled ended
+	outcome func(err error)
 
 	mu        sync.Mutex
 	queue     []*job
@@ -179,18 +181,20 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 		s.pause(wait)
 		s.mu.Unlock()
 		if s.rateLimited != nil {
-			s.rateLimited(wait, false)
+			s.rateLimited(true, false)
 		}
 		return
 	}
 	s.dispatch()
 	s.mu.Unlock()
 	if errors.As(err, &se) && se.Status == http.StatusTooManyRequests && s.rateLimited != nil {
-		s.rateLimited(0, true)
+		s.rateLimited(false, true)
 	}
-	var refused *remote.RefusedError
-	if errors.As(err, &refused) {
+	if err != nil {
 		s.log.printf("%s %s: %v", j.svc, j.path, err)
+	}
+	if s.outcome != nil {
+		s.outcome(err)
 	}
 	j.done(body, err)
 }
@@ -203,8 +207,11 @@ func (s *scheduler) pause(d time.Duration) {
 	s.paused = true
 	s.clock.AfterFunc(d, func() {
 		s.mu.Lock()
-		defer s.mu.Unlock()
 		s.paused = false
 		s.dispatch()
+		s.mu.Unlock()
+		if s.rateLimited != nil {
+			s.rateLimited(false, false)
+		}
 	})
 }

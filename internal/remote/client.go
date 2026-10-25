@@ -90,6 +90,8 @@ type Config struct {
 type Client struct {
 	cfg  Config
 	http *http.Client
+	// one refresh at a time - the others wait and reuse its tokens
+	refreshing sync.Mutex
 
 	mu      sync.Mutex
 	tokens  Tokens
@@ -158,11 +160,11 @@ func (c *Client) Get(ctx context.Context, svc Service, path string, query url.Va
 			return nil, err
 		}
 	}
-	body, err := c.do(ctx, svc, u, path)
+	body, used, err := c.do(ctx, svc, u, path)
 	var se *StatusError
 	if svc != Static && errors.As(err, &se) && rejectedToken(se) {
-		c.invalidate()
-		body, err = c.do(ctx, svc, u, path)
+		c.invalidate(used)
+		body, _, err = c.do(ctx, svc, u, path)
 	}
 	return body, err
 }
@@ -172,13 +174,18 @@ func rejectedToken(se *StatusError) bool {
 		(se.Status == http.StatusBadRequest && se.Code == "BAD_CLAIMS")
 }
 
-func (c *Client) invalidate() {
+// invalidate forgets the tokens Riot rejected - unless another request already replaced them
+func (c *Client) invalidate(used Tokens) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.have = false
+	if c.tokens.Access == used.Access {
+		c.have = false
+	}
 }
 
 func (c *Client) token(ctx context.Context) (Tokens, error) {
+	c.refreshing.Lock()
+	defer c.refreshing.Unlock()
 	c.mu.Lock()
 	t, have := c.tokens, c.have
 	c.mu.Unlock()
@@ -195,16 +202,16 @@ func (c *Client) token(ctx context.Context) (Tokens, error) {
 	return t, nil
 }
 
-func (c *Client) do(ctx context.Context, svc Service, u *url.URL, path string) ([]byte, error) {
+func (c *Client) do(ctx context.Context, svc Service, u *url.URL, path string) ([]byte, Tokens, error) {
+	var t Tokens
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, t, err
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 	if svc != Static {
-		t, err := c.token(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("riot client tokens: %w", err)
+		if t, err = c.token(ctx); err != nil {
+			return nil, t, fmt.Errorf("riot client tokens: %w", err)
 		}
 		_, _, version := c.Target()
 		req.Header.Set("Authorization", "Bearer "+t.Access)
@@ -215,25 +222,25 @@ func (c *Client) do(ctx context.Context, svc Service, u *url.URL, path string) (
 	resp, err := c.http.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, t, ctx.Err()
 		}
-		return nil, &UnreachableError{Err: stripURL(err)}
+		return nil, t, &UnreachableError{Err: stripURL(err)}
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, t, ctx.Err()
 		}
-		return nil, &UnreachableError{Err: stripURL(err)}
+		return nil, t, &UnreachableError{Err: stripURL(err)}
 	}
 	if c.cfg.Observe != nil {
 		c.cfg.Observe(svc, path, u.RawQuery, resp.StatusCode, body)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, &StatusError{Status: resp.StatusCode, RetryAfter: retryAfter(resp.Header), Code: errorCode(body)}
+		return nil, t, &StatusError{Status: resp.StatusCode, RetryAfter: retryAfter(resp.Header), Code: errorCode(body)}
 	}
-	return body, nil
+	return body, t, nil
 }
 
 // url errors carry the full URL - keep messages short and free of query details

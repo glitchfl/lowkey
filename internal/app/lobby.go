@@ -53,6 +53,7 @@ func (l *lobby) member(puuid string) *member {
 
 func (lv *live) startAgentSelect(matchID string) {
 	lv.setPhase(phaseAgentSelect)
+	lv.rateLimit, lv.problem = rateFine, ""
 	if q, ok := lv.presenceQueue(); ok && !tracked(q) {
 		lv.untrackedMode(q)
 		return
@@ -85,6 +86,9 @@ func (lv *live) startMatchLoad(matchID string) {
 		return
 	}
 	lob := &lobby{kind: lobbyMatchLoad, matchID: matchID}
+	if prev == nil {
+		lv.rateLimit, lv.problem = rateFine, ""
+	}
 	if prev != nil {
 		lob.mode, lob.known, lob.mapURL, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.ownTeam
 		lob.members = prev.members

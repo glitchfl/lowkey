@@ -84,7 +84,7 @@ type Config struct {
 	Tokens func(ctx context.Context) (Tokens, error)
 	Guard  *Guard
 	// Observe sees every answered request - record mode hooks in here
-	Observe func(svc Service, u *url.URL, status int, body []byte)
+	Observe func(svc Service, path, query string, status int, body []byte)
 }
 
 type Client struct {
@@ -158,11 +158,11 @@ func (c *Client) Get(ctx context.Context, svc Service, path string, query url.Va
 			return nil, err
 		}
 	}
-	body, err := c.do(ctx, svc, u, false)
+	body, err := c.do(ctx, svc, u, path)
 	var se *StatusError
 	if svc != Static && errors.As(err, &se) && rejectedToken(se) {
 		c.invalidate()
-		body, err = c.do(ctx, svc, u, true)
+		body, err = c.do(ctx, svc, u, path)
 	}
 	return body, err
 }
@@ -195,7 +195,7 @@ func (c *Client) token(ctx context.Context) (Tokens, error) {
 	return t, nil
 }
 
-func (c *Client) do(ctx context.Context, svc Service, u *url.URL, retry bool) ([]byte, error) {
+func (c *Client) do(ctx context.Context, svc Service, u *url.URL, path string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -228,7 +228,7 @@ func (c *Client) do(ctx context.Context, svc Service, u *url.URL, retry bool) ([
 		return nil, &UnreachableError{Err: stripURL(err)}
 	}
 	if c.cfg.Observe != nil {
-		c.cfg.Observe(svc, u, resp.StatusCode, body)
+		c.cfg.Observe(svc, path, u.RawQuery, resp.StatusCode, body)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, &StatusError{Status: resp.StatusCode, RetryAfter: retryAfter(resp.Header), Code: errorCode(body)}

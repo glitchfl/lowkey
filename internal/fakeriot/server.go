@@ -7,6 +7,8 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,6 +19,9 @@ import (
 	"sync"
 	"time"
 )
+
+// rejected handshakes are expected in tests that check certificate trust
+var quiet = log.New(io.Discard, "", 0)
 
 type Options struct {
 	// nil uses real time
@@ -117,7 +122,7 @@ func Start(opts Options) (*Server, error) {
 		return nil, err
 	}
 	s.remoteURL = "http://" + ln.Addr().String()
-	s.remote = &http.Server{Handler: http.HandlerFunc(s.serveRemote)}
+	s.remote = &http.Server{Handler: http.HandlerFunc(s.serveRemote), ErrorLog: quiet}
 	go s.remote.Serve(ln)
 
 	if s.world.RiotClient {
@@ -291,6 +296,7 @@ func (s *Server) startClient() error {
 	srv := &http.Server{
 		Handler:   http.HandlerFunc(s.serveLocal),
 		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
+		ErrorLog:  quiet,
 	}
 	go srv.ServeTLS(ln, "", "")
 
@@ -502,10 +508,14 @@ func (s *Server) serveLocal(rw http.ResponseWriter, r *http.Request) {
 			"issuer": "https://entitlements.auth.riotgames.com", "subject": s.world.Self,
 			"token": s.entitlement,
 		}))
-	case "/chat/v4/presences":
-		writeJSON(w, http.StatusOK, s.world.presences())
-	case "/product-session/v1/external-sessions":
-		writeJSON(w, http.StatusOK, s.world.sessions())
+	case "/chat/v4/presences", "/product-session/v1/external-sessions":
+		if raw, ok := s.world.Raw["local "+r.URL.Path]; ok {
+			writeJSON(w, raw.Status, raw.Body)
+		} else if r.URL.Path == "/chat/v4/presences" {
+			writeJSON(w, http.StatusOK, s.world.presences())
+		} else {
+			writeJSON(w, http.StatusOK, s.world.sessions())
+		}
 	default:
 		writeJSON(w, http.StatusNotFound, errorBody(404, "RESOURCE_NOT_FOUND", "no such endpoint"))
 	}

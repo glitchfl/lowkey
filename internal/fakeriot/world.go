@@ -222,7 +222,7 @@ func NewWorld(now time.Time) *World {
 		TokenLifetime:   time.Hour,
 	}
 	w.PartyMembers = []string{w.Self}
-	w.Players[w.Self] = &Player{PUUID: w.Self, Name: "me", Tag: "self"}
+	w.Players[w.Self] = &Player{PUUID: w.Self, Name: "Kestrel", Tag: "EUW"}
 	w.Seasons = DefaultSeasons()
 	return w
 }

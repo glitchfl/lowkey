@@ -7,15 +7,19 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
+	"github.com/glitchfl/lowkey/internal/static"
 )
 
 type doctor struct {
 	env    Env
+	rec    *record.Recorder
 	failed bool
 }
 
@@ -36,8 +40,20 @@ func (d *doctor) skip(needs string, items ...string) {
 
 func runDoctor(ctx context.Context, env Env, opts options) int {
 	d := &doctor{env: env}
+	if opts.record {
+		rec, err := record.Start(env.Dir, env.Clock.Now, static.Embedded().Public)
+		if err != nil {
+			fmt.Fprintf(env.Console.Out, "can't start a recording: %v\n", err)
+			return 1
+		}
+		defer rec.Close()
+		d.rec = rec
+	}
 	fmt.Fprintf(env.Console.Out, "lowkey %s doctor\n", env.Version)
 	d.check(ctx)
+	if d.rec != nil {
+		fmt.Fprintf(env.Console.Out, "recording saved in %s\n", d.rec.Dir)
+	}
 	if d.failed {
 		fmt.Fprintln(env.Console.Out, "some checks failed")
 		return 1
@@ -48,7 +64,11 @@ func runDoctor(ctx context.Context, env Env, opts options) int {
 
 func (d *doctor) check(ctx context.Context) {
 	env := d.env
-	lf, err := riot.ReadLockfile(env.Lockfile)
+	raw, err := os.ReadFile(env.Lockfile)
+	var lf riot.Lockfile
+	if err == nil {
+		lf, err = riot.ParseLockfile(raw)
+	}
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			d.report(false, "lockfile", fmt.Sprintf("not found at %s - is the Riot Client running?", env.Lockfile))
@@ -62,6 +82,10 @@ func (d *doctor) check(ctx context.Context) {
 
 	local := riot.NewLocal(lf, env.LocalRoots)
 	defer local.Close()
+	if d.rec != nil {
+		d.rec.Lockfile(string(raw), lf.Password)
+		local.Observe = d.rec.Local
+	}
 	base := fmt.Sprintf("https://127.0.0.1:%d", lf.Port)
 	ent, err := local.Entitlements(ctx)
 	var se *riot.StatusError
@@ -119,6 +143,7 @@ func (d *doctor) check(ctx context.Context) {
 		Now:       env.Clock.Now,
 		Tokens:    tokenSource(local),
 		Guard:     guard,
+		Observe:   d.observeRemote(),
 	})
 	client.SetTarget(region, shard, "")
 
@@ -161,6 +186,15 @@ func (d *doctor) session(ctx context.Context, local *riot.Local) (region, shard 
 	}
 	d.report(true, "session", fmt.Sprintf("region %s · shard %s", region, shard))
 	return region, shard, true
+}
+
+func (d *doctor) observeRemote() func(remote.Service, string, string, int, []byte) {
+	if d.rec == nil {
+		return nil
+	}
+	return func(svc remote.Service, path, query string, status int, body []byte) {
+		d.rec.Remote(svc.String(), path, query, status, body)
+	}
 }
 
 func tokenSource(local *riot.Local) func(ctx context.Context) (remote.Tokens, error) {

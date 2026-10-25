@@ -37,6 +37,8 @@ func TestRateLimitsBackOffFiveTenTwentyThenGiveUp(t *testing.T) {
 			eventually(t, "the first 429", func() bool { return r.fr.Answered(path, 429) == 1 })
 			r.screen("Riot is rate-limiting")
 			for i, wait := range c.waits {
+				// fakeriot logs the 429 before lowkey reads it - wait for lowkey's backoff timer
+				eventually(t, "the backoff timer", func() bool { return r.clock.Pending() == 1 })
 				r.clock.Advance(wait - 100*time.Millisecond)
 				settle()
 				if n := r.fr.Answered(path, 429); n != i+1 {

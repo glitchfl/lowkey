@@ -356,7 +356,7 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 		return
 	}
 	marks := lv.markers(lob)
-	met := lv.metIndex()
+	met := lv.metIndex(lob.matchID)
 	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
 	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
 		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met)}
@@ -453,6 +453,11 @@ func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 				}
 			}
 		}
+		if m.p.updatesDone && m.p.updatesErr == nil {
+			if t, ok := stats.Trend(m.p.updates, 5); ok {
+				trends = append(trends, float64(t))
+			}
+		}
 		if !m.p.mmrDone || m.p.mmrErr != nil || lv.eng.acts == nil {
 			continue
 		}
@@ -469,11 +474,6 @@ func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 		}
 		if mode.WinRate && r.HasRecord {
 			wins = append(wins, r.WinRatio()*100)
-		}
-		if m.p.updatesDone && m.p.updatesErr == nil {
-			if t, ok := stats.Trend(m.p.updates, 5); ok {
-				trends = append(trends, float64(t))
-			}
 		}
 	}
 	a.rank, _ = roundedMean(tiers)

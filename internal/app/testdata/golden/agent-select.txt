@@ -1,0 +1,9 @@
+AGENT SELECT · Ascent · Competitive
+PLAYER       AGENT  RANK      PEAK   LAST   WR    W-L   K/D  HS%  ACS  ADR  FB%  N  MAINS  TREND  MET
+Kestrel#EUW         Dia3 12   Imm2   Dia2  57%   12-9  1.00    -  200    0   0%  6  Jett     +14
+AllyOne#A1   Jett   Dia1 50   Dia1   -     50%  10-10  2.00  30%  200  150  10%  5  Jett      +5
+AllyTwo#A2          Plat1 30  Plat1  -     60%    6-4  0.50  20%  150  100   5%  3  KJ       -10
+hidden       Omen
+-            Sage   -         -      -       -      -     -    -    -    -    -  0  -          -
+AVERAGE 4/5         Dia1      Dia2   Dia2  56%         1.17  25%  183   83   5%               +3
+SESSION · 2W 1L +26 RR since 06:00

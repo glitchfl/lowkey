@@ -1,0 +1,18 @@
+MATCH LOADING · Bind · Deathmatch
+PLAYER         AGENT    RANK     PEAK   LAST  WR  W-L   K/D  HS%  ACS  ADR  FB%  N  MAINS  TREND  MET
+Kestrel#EUW    Jett     Dia3 12  Dia3   -      -    -  1.50  40%    -    -    -  2  Reyn       -
+dm1#DM         Phoenix  Plat2 0  Plat2  -      -    -  1.00  50%    -    -    -  1  Reyn       -
+dm2#DM         Phoenix  Dia1 0   Dia1   -      -    -  2.00  50%    -    -    -  1  Reyn       -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+-              Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -
+hidden         Phoenix
+AVERAGE 13/14           Dia1     Dia1                  1.50  47%
+SESSION · 0W 0L +0 RR since 06:00

@@ -1,0 +1,3 @@
+lowkey.toml: unknown column "kda" - using the last good settings
+waiting for the next match
+SESSION · 0W 0L +0 RR since 06:00

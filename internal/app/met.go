@@ -43,8 +43,9 @@ func (lv *live) remember(lob *lobby) {
 	lv.history = append(lv.history, past)
 }
 
-// metIndex keeps each player's most recent encounter from matches lowkey already has and earlier lobbies
-func (lv *live) metIndex() map[string]encounter {
+// metIndex keeps each player's most recent encounter from matches lowkey already has and earlier lobbies -
+// the match on screen never counts as meeting its own players
+func (lv *live) metIndex(shown string) map[string]encounter {
 	idx := map[string]encounter{}
 	add := func(puuid string, e encounter) {
 		if puuid == lv.self || lv.everHidden[puuid] {
@@ -56,7 +57,7 @@ func (lv *live) metIndex() map[string]encounter {
 	}
 	for _, m := range lv.eng.matches {
 		me := m.Players[lv.self]
-		if me == nil {
+		if me == nil || m.ID == shown {
 			continue
 		}
 		res := resultFor(m, me.Team)
@@ -65,6 +66,9 @@ func (lv *live) metIndex() map[string]encounter {
 		}
 	}
 	for _, past := range lv.history {
+		if past.matchID == shown {
+			continue
+		}
 		res := ""
 		if m, ok := lv.eng.matches[past.matchID]; ok && m.Players[lv.self] != nil {
 			res = resultFor(m, m.Players[lv.self].Team)

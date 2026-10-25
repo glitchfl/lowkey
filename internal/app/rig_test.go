@@ -245,15 +245,21 @@ func settle() { time.Sleep(50 * time.Millisecond) }
 // settled waits for the texts, then for Riot to go quiet and the screen to stop changing
 func (r *rig) settled(texts ...string) string {
 	r.t.Helper()
+	return r.settledWith(0, texts...)
+}
+
+// settledWith is settled for when some requests are deliberately held in flight
+func (r *rig) settledWith(held int, texts ...string) string {
+	r.t.Helper()
 	r.screen(texts...)
 	var frame string
 	eventually(r.t, "the screen to settle", func() bool {
-		if r.fr.InFlight() != 0 {
+		if r.fr.InFlight() != held {
 			return false
 		}
 		frame = r.con.last()
 		time.Sleep(30 * time.Millisecond)
-		return r.fr.InFlight() == 0 && r.con.last() == frame
+		return r.fr.InFlight() == held && r.con.last() == frame
 	})
 	return frame
 }

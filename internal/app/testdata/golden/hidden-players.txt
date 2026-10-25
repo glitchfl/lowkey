@@ -1,0 +1,18 @@
+MATCH LOADING · Ascent · Competitive
+PLAYER       AGENT    RANK      PEAK   LAST   WR   W-L   K/D  HS%  ACS  ADR  FB%  N  MAINS  TREND  MET
+ALLIES
+Kestrel#EUW  Sova     Dia3 12   Imm2   Dia2  57%  12-9  1.00    -  200    0   0%  6  Jett     +14
+hidden       Jett
+-            Killjoy  Plat1 30  Plat1  -     60%   6-4     -    -    -    -    -  0  -        -10
+hidden       Omen
+-            Sage     -         -      -       -     -     -    -    -    -    -  0  -          -
+AVERAGE 3/5           Dia1      Dia3   Dia2  59%        1.00       200    0   0%               +2
+ENEMIES
+hidden       Raze
+hidden       Breach
+hidden       Viper
+-            Cypher   Plat3 0   Plat3  -     70%   7-3     -    -    -    -    -  0  -         +0
+-            Skye     -         -      -       -     -     -    -    -    -    -  0  -          -
+AVERAGE 2/5           Plat3     Plat3        70%                                               +0
+US - THEM             ▲1        ▲3           ▼11                                               ▲2
+SESSION · 2W 1L +26 RR since 06:00

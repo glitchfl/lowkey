@@ -86,7 +86,7 @@ jobs:
         shell: pwsh
         run: |
           $env:LOWKEY_EXE = (Resolve-Path artifacts\lowkey.exe).Path
-          go test ./e2e -count=1 -v -timeout 15m
+          go test ./tests/e2e -count=1 -v -timeout 15m
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

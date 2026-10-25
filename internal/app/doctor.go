@@ -256,7 +256,11 @@ func tokenSource(local *riot.Local) func(ctx context.Context) (remote.Tokens, er
 		if err != nil {
 			return remote.Tokens{}, err
 		}
+		// the pair is only as good as whichever token runs out first
 		exp, _ := riot.Expiry(ent.AccessToken)
+		if e, ok := riot.Expiry(ent.Token); ok && (exp.IsZero() || e.Before(exp)) {
+			exp = e
+		}
 		return remote.Tokens{Access: ent.AccessToken, Entitlement: ent.Token, Expires: exp}, nil
 	}
 }

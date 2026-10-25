@@ -63,17 +63,40 @@ func TestRateLimitsBackOffFiveTenTwentyThenGiveUp(t *testing.T) {
 }
 
 func TestTokensAreRefreshedBeforeTheyExpire(t *testing.T) {
-	r := inAgentSelect(t, func(w *fakeriot.World) { w.TokenLifetime = 10 * time.Minute })
+	t.Run("access token", func(t *testing.T) {
+		refreshedBeforeExpiry(t, func(w *fakeriot.World) { w.TokenLifetime = 10 * time.Minute })
+	})
+	t.Run("entitlements token", func(t *testing.T) {
+		refreshedBeforeExpiry(t, func(w *fakeriot.World) { w.EntitlementLifetime = 10 * time.Minute })
+	})
+}
+
+func refreshedBeforeExpiry(t *testing.T, lifetime func(w *fakeriot.World)) {
+	r := inAgentSelect(t, lifetime)
 	r.enterAgentSelect()
 	r.settled("AGENT SELECT", "Dia1 50")
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
 	r.screen("waiting for the next match")
 
+	refreshes := func() int {
+		n := 0
+		for _, req := range r.fr.Requests() {
+			if req.Path == "/entitlements/v1/token" {
+				n++
+			}
+		}
+		return n
+	}
+	before := refreshes()
+	// one minute before the token runs out it still works - only an early refresh shows up here
 	r.clock.Advance(9 * time.Minute)
 	r.fr.Update(func(w *fakeriot.World) { w.Pregame.ID = "9e000000-0000-4000-8000-000000000002" })
 	r.fr.Update(func(w *fakeriot.World) { w.Loop = fakeriot.LoopPregame })
 	r.fr.EmitPregame("9e000000-0000-4000-8000-000000000002", false)
 	frame := r.settled("AGENT SELECT", "Dia1 50")
+	if refreshes() == before {
+		t.Error("lowkey kept a token that expires within two minutes instead of refreshing it")
+	}
 	for _, req := range r.fr.RemoteRequests() {
 		if req.Status == 400 || req.Status == 401 {
 			t.Errorf("%s was answered %d - the token should have been refreshed first", req.Path, req.Status)

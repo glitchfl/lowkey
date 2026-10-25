@@ -295,3 +295,20 @@ func TestGoldenStatusLines(t *testing.T) {
 		})
 	}
 }
+
+func TestNewDataRedrawsAtMostAboutFourTimesASecond(t *testing.T) {
+	r := fromAgentSelect(t, lobbySamples)
+	r.settled("AGENT SELECT", "AllyOne#A1", "AllyTwo#A2")
+	// slow answers spread the enemies' lookups over a few hundred milliseconds
+	r.fr.AddFault(fakeriot.Fault{Service: "pd", Delay: 40 * time.Millisecond})
+	from := len(r.con.writeTimes())
+	r.enterMatchLoad()
+	r.settled("MATCH LOADING", "EnemyTwo#E2", "US - THEM")
+	times := r.con.writeTimes()[from:]
+	elapsed := times[len(times)-1].Sub(times[0])
+	// the phase change and the finished table draw at once - everything between waits its turn
+	allowed := int(elapsed/(250*time.Millisecond)) + 3
+	if len(times) > allowed {
+		t.Errorf("%d frames in %v of match load, want at most %d", len(times), elapsed.Round(time.Millisecond), allowed)
+	}
+}

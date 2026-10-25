@@ -9,6 +9,7 @@ import (
 )
 
 // staticRefresh remembers which unknown IDs a finished refresh already looked for - once per run each
+// whether it worked or not - a refresh the cutoff cancelled never finished so it can go again
 type staticRefresh struct {
 	asked      map[string]bool
 	agentsBusy bool
@@ -44,12 +45,11 @@ func (lv *live) refreshStatic() {
 		q := url.Values{"isPlayableCharacter": {"true"}}
 		lv.eng.submit(&job{prio: prioRoster, svc: remote.Static, path: "/v1/agents", query: q}, func(body []byte, err error) {
 			lv.static.agentsBusy = false
-			if err != nil {
-				return
-			}
-			lv.data.AddAgents(decodeStaticAgents(body))
 			for _, id := range agents {
 				lv.static.asked[id] = true
+			}
+			if err == nil {
+				lv.data.AddAgents(decodeStaticAgents(body))
 			}
 		})
 	}
@@ -58,11 +58,10 @@ func (lv *live) refreshStatic() {
 		lv.static.mapsBusy = true
 		lv.eng.submit(&job{prio: prioRoster, svc: remote.Static, path: "/v1/maps"}, func(body []byte, err error) {
 			lv.static.mapsBusy = false
-			if err != nil {
-				return
-			}
-			lv.data.AddMaps(decodeStaticMaps(body))
 			lv.static.asked[mapURL] = true
+			if err == nil {
+				lv.data.AddMaps(decodeStaticMaps(body))
+			}
 		})
 	}
 }

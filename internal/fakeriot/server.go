@@ -47,6 +47,7 @@ type Server struct {
 	access      string
 	entitlement string
 	tokenExp    time.Time
+	entitleExp  time.Time
 	log         []*Request
 	faults      []*Fault
 	inflight    int
@@ -387,8 +388,12 @@ func (s *Server) writeLockfile() error {
 func (s *Server) issueTokens() {
 	now := s.now()
 	s.tokenExp = now.Add(s.world.TokenLifetime)
+	s.entitleExp = s.tokenExp
+	if s.world.EntitlementLifetime > 0 {
+		s.entitleExp = now.Add(s.world.EntitlementLifetime)
+	}
 	s.access = makeJWT(s.world.Self, now, s.tokenExp)
-	s.entitlement = makeJWT(s.world.Self, now, s.tokenExp)
+	s.entitlement = makeJWT(s.world.Self, now, s.entitleExp)
 }
 
 func makeJWT(sub string, iat, exp time.Time) string {
@@ -574,7 +579,7 @@ func (s *Server) serveLocal(rw http.ResponseWriter, r *http.Request) {
 			}))
 			return
 		}
-		if !s.now().Before(s.tokenExp.Add(-5 * time.Minute)) {
+		if soon := s.now().Add(5 * time.Minute); !soon.Before(s.tokenExp) || !soon.Before(s.entitleExp) {
 			s.issueTokens()
 		}
 		writeJSON(w, http.StatusOK, mustJSON(obj{
@@ -659,7 +664,7 @@ func (s *Server) checkTokens(r *http.Request) (int, []byte) {
 	if r.Header.Get("Authorization") != "Bearer "+s.access || r.Header.Get("X-Riot-Entitlements-JWT") != s.entitlement {
 		return http.StatusUnauthorized, errorBody(401, "BAD_CLAIMS", "Failure validating/decoding RSO Access Token")
 	}
-	if !s.now().Before(s.tokenExp) {
+	if !s.now().Before(s.tokenExp) || !s.now().Before(s.entitleExp) {
 		return http.StatusBadRequest, errorBody(400, "BAD_CLAIMS", "Failure validating/decoding RSO Access Token")
 	}
 	return 0, nil

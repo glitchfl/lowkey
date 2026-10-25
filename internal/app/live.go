@@ -28,7 +28,10 @@ const (
 	phaseInRound
 )
 
-const recentEvents = 32
+const (
+	recentEvents = 32
+	redrawEvery  = 250 * time.Millisecond
+)
 
 // live is lowkey's normal mode - everything in it runs on the loop goroutine
 type live struct {
@@ -78,7 +81,10 @@ type live struct {
 	rosterStop func() bool
 	cutoffStop func() bool
 
-	frame string
+	frame       string
+	drawnAt     time.Time
+	drawnKind   string
+	redrawTimer *time.Timer
 }
 
 type rateState int
@@ -237,6 +243,7 @@ func (lv *live) connected(gen int, ent riot.Entitlements, events *riot.Events, l
 	lv.conn.events = events
 	lv.retries, lv.notReady = 0, false
 	lv.self = strings.ToLower(ent.Subject)
+	lv.eng.self = lv.self
 	lv.guard = remote.NewGuard()
 	lv.guard.SetSelf(lv.self)
 	lv.client = remote.New(remote.Config{
@@ -362,6 +369,7 @@ func (lv *live) toMenus() {
 	case phaseAgentSelect:
 		lv.remember(lv.lobby)
 		lv.cancelLobby()
+		lv.eng.forgetRound()
 	case phaseMatchLoad, phaseInRound:
 		lv.matchEnded()
 	}
@@ -511,7 +519,8 @@ func (lv *live) screen() render.Screen {
 // redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
-	lines := lv.screen().Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), lv.env.Console.Terminal)
+	screen := lv.screen()
+	lines := screen.Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), lv.env.Console.Terminal)
 	var frame string
 	if lv.env.Console.Terminal {
 		var b strings.Builder
@@ -528,7 +537,17 @@ func (lv *live) redraw() {
 	if frame == lv.frame {
 		return
 	}
-	lv.frame = frame
+	// a new header or status line draws at once - rows filling in while lookups run wait for their slot
+	kind := screen.Header + "\n" + strings.Join(screen.Status, "\n")
+	if wait := redrawEvery - time.Since(lv.drawnAt); kind == lv.drawnKind && lv.eng.busy > 0 && wait > 0 {
+		if lv.redrawTimer == nil {
+			lv.redrawTimer = time.AfterFunc(wait, func() {
+				lv.loop.post(func() { lv.redrawTimer = nil })
+			})
+		}
+		return
+	}
+	lv.frame, lv.drawnAt, lv.drawnKind = frame, time.Now(), kind
 	lv.env.Console.Out.Write([]byte(frame))
 	if lv.rec != nil {
 		lv.recordScreen()

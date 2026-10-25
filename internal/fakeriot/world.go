@@ -97,7 +97,9 @@ type World struct {
 	Raw map[string]RawResponse
 
 	TokenLifetime time.Duration
-	TokenNotReady int // entitlements answers "not ready" this many more times
+	// zero gives the entitlements token the same lifetime as the access token
+	EntitlementLifetime time.Duration
+	TokenNotReady       int // entitlements answers "not ready" this many more times
 
 	// what valorant-api.com knows beyond lowkey's snapshot - agent UUID or map URL to name
 	StaticAgents map[string]string

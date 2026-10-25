@@ -235,3 +235,27 @@ func TestUntrackedModesAreIgnored(t *testing.T) {
 		t.Errorf("made %d requests in an untracked mode, first %s", len(reqs), reqs[0].Path)
 	}
 }
+
+func TestADodgeDropsCachedRankDataToo(t *testing.T) {
+	r := newRig(t, agentSelectLobby)
+	r.live()
+	r.screen("waiting for the next match")
+	r.subscribed()
+	r.enterAgentSelect()
+	r.settled("AGENT SELECT", "Dia1 50")
+	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
+	r.screen("waiting for the next match")
+
+	// a dodge costs RR, so the next lobby must not reuse the old rank data
+	r.fr.Update(func(w *fakeriot.World) {
+		w.Player(w.Self).SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 20, RR: 2, Wins: 12, WinsWithPlacements: 12, Games: 21})
+	})
+	r.enterAgentSelect()
+	frame := r.settled("AGENT SELECT", "Dia1 50")
+	if got := cellIn(t, frame, "RANK", 1); got != "Dia3 2" {
+		t.Errorf("your rank after the dodge: got %q, want the fresh Dia3 2", got)
+	}
+	if n := requestsExact(r, "/match-history/v1/history/"+ally1); n != 2 {
+		t.Errorf("ally one's history fetched %d times, want once per lobby", n)
+	}
+}

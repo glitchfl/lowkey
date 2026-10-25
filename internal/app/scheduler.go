@@ -167,8 +167,10 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 		s.mu.Unlock()
 		return
 	}
+	// only Riot's own limits pause everything - valorant-api.com is someone else's server
 	var se *remote.StatusError
-	if errors.As(err, &se) && se.Status == http.StatusTooManyRequests && j.tries < len(backoff) {
+	limited := errors.As(err, &se) && se.Status == http.StatusTooManyRequests && j.svc != remote.Static
+	if limited && j.tries < len(backoff) {
 		wait := backoff[j.tries]
 		if se.RetryAfter > 0 {
 			wait = se.RetryAfter
@@ -187,7 +189,7 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 	}
 	s.dispatch()
 	s.mu.Unlock()
-	if errors.As(err, &se) && se.Status == http.StatusTooManyRequests && s.rateLimited != nil {
+	if limited && s.rateLimited != nil {
 		s.rateLimited(false, true)
 	}
 	if err != nil {

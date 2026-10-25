@@ -117,3 +117,38 @@ func TestKnownIDsNeverTouchStaticData(t *testing.T) {
 		}
 	}
 }
+
+func TestAFailingStaticRefreshIsNotRetriedInALoop(t *testing.T) {
+	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) { w.Pregame.Players[0].Agent = newAgent })
+	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/agents", Status: 500, Body: `{"status":500}`})
+	r.live()
+	r.settled("waiting for the next match", "SESSION")
+	r.subscribed()
+	r.enterAgentSelect()
+	frame := r.settled("AGENT SELECT", "Dia1 50")
+	if got := cellIn(t, frame, "AGENT", 2); got != "?" {
+		t.Errorf("unknown agent after a failed refresh: got %q, want ?", got)
+	}
+	if n := staticRequests(r, "/v1/agents"); n != 1 {
+		t.Errorf("asked valorant-api.com %d times after it failed, want once", n)
+	}
+}
+
+func TestValorantAPIRateLimitsDontStopRiotLookups(t *testing.T) {
+	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) { w.Pregame.Players[0].Agent = newAgent })
+	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/agents", Status: 429, Body: `{"status":429}`})
+	r.live()
+	r.settled("waiting for the next match", "SESSION")
+	r.subscribed()
+	r.enterAgentSelect()
+	frame := r.settled("AGENT SELECT", "Dia1 50", "Plat1 30")
+	if strings.Contains(frame, "rate-limiting") {
+		t.Errorf("a 429 from valorant-api.com isn't Riot rate-limiting:\n%s", frame)
+	}
+	if n := staticRequests(r, "/v1/agents"); n != 1 {
+		t.Errorf("asked valorant-api.com %d times after a 429, want once", n)
+	}
+	if r.clock.Pending() != 0 {
+		t.Errorf("a 429 from valorant-api.com left %d timers - Riot lookups must not pause for it", r.clock.Pending())
+	}
+}

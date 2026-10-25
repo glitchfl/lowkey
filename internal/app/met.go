@@ -43,7 +43,7 @@ func (lv *live) remember(lob *lobby) {
 	lv.history = append(lv.history, past)
 }
 
-// metIndex keeps each player's most recent encounter from matches lowkey already has and earlier lobbies -
+// metIndex keeps each player's most recent encounter from your own fetched matches and earlier lobbies -
 // the match on screen never counts as meeting its own players
 func (lv *live) metIndex(shown string) map[string]encounter {
 	idx := map[string]encounter{}
@@ -55,9 +55,9 @@ func (lv *live) metIndex(shown string) map[string]encounter {
 			idx[puuid] = e
 		}
 	}
-	for _, m := range lv.eng.matches {
+	for id, m := range lv.eng.matches {
 		me := m.Players[lv.self]
-		if me == nil || m.ID == shown {
+		if me == nil || m.ID == shown || !lv.eng.mine[id] {
 			continue
 		}
 		res := resultFor(m, me.Team)

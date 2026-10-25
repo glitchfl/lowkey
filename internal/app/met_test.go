@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -139,5 +140,23 @@ func TestMetBeforeLivesInMemoryOnly(t *testing.T) {
 		if strings.HasPrefix(req.Path, "/match-details/v1/matches/"+coreGame) {
 			t.Errorf("met-before asked for a match: %s", req.Path)
 		}
+	}
+}
+
+func TestOnlyYourOwnMatchesCountAsMeetingSomeone(t *testing.T) {
+	r := fromAgentSelect(t, func(w *fakeriot.World) {
+		for i := 0; i < 13; i++ {
+			versus(w, fmt.Sprintf("cccc1111-0000-4000-8000-%012d", i), time.Duration(i+1)*time.Hour, enemy, false, true)
+		}
+		// your 20th most recent match - only enemy one's sample reaches back this far
+		versus(w, "cccc2222-0000-4000-8000-000000000001", 30*time.Hour, enemy1, false, true)
+	})
+	r.enterMatchLoad()
+	frame := r.settled("MATCH LOADING", "US - THEM", "Plat2 10")
+	if requestsExact(r, "/match-details/v1/matches/cccc2222-0000-4000-8000-000000000001") != 1 {
+		t.Fatal("enemy one's sample should have fetched the old match")
+	}
+	if got := cellIn(t, frame, "MET", 9); got != "" {
+		t.Errorf("a match fetched for someone else's sample marked enemy one as %q", got)
 	}
 }

@@ -21,7 +21,10 @@ type engine struct {
 	acts    *stats.Acts
 	actsErr error
 
-	matches   map[string]*stats.Match
+	matches map[string]*stats.Match
+	// mine marks matches lowkey wanted for you - met-before only looks at those
+	self      string
+	mine      map[string]bool
 	waiters   map[string][]func(*stats.Match, error)
 	ranks     map[string]stats.MMR
 	histories map[string][]string
@@ -65,6 +68,7 @@ func newEngine(sched *scheduler, post func(func())) *engine {
 		post:      post,
 		changed:   func() {},
 		matches:   map[string]*stats.Match{},
+		mine:      map[string]bool{},
 		waiters:   map[string][]func(*stats.Match, error){},
 		ranks:     map[string]stats.MMR{},
 		histories: map[string][]string{},
@@ -208,6 +212,9 @@ func (e *engine) gotHistory(p *player, ids []string) {
 
 // wantMatch fetches each match once no matter how many players or the session line want it
 func (e *engine) wantMatch(id, owner string, seq int, got func(*stats.Match, error)) {
+	if owner == e.self {
+		e.mine[id] = true
+	}
 	if m, ok := e.matches[id]; ok {
 		got(m, nil)
 		return

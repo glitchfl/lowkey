@@ -226,6 +226,10 @@ func (lv *live) stopRosterTimer() {
 }
 
 func (lv *live) applyRoster(lob *lobby, roster riot.Roster) {
+	lv.eng.batch(func() { lv.applyRosterBatch(lob, roster) })
+}
+
+func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 	if !lob.known {
 		queue, ok := roster.Queue, roster.HasQueue
 		if !ok || queue == "" && lob.kind == lobbyMatchLoad {
@@ -258,10 +262,10 @@ func (lv *live) applyRoster(lob *lobby, roster riot.Roster) {
 				lv.guard.Hide(m.puuid)
 			} else {
 				m.p = newPlayer(m.puuid, lob.mode.Queue, defaultMatches)
-				want := wantRank | wantTrend
+				want := wantRank | wantTrend | wantSample
 				if m.puuid == lv.self {
 					// your trend comes from the session's competitive updates
-					want = wantRank
+					want = wantRank | wantSample
 				}
 				lv.eng.lookUp(m.p, want)
 			}
@@ -387,13 +391,35 @@ type averages struct {
 	rank, peak, last int
 	wr, trend        int
 	hasWR, hasTrend  bool
+	kd               float64
+	hasKD            bool
+	hs, acs, adr, fb int
+	hasHS, hasRounds bool
 }
 
 func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 	var tiers, peaks, lasts, wins, trends []float64
+	var kds, hss, acss, adrs, fbs []float64
 	a := averages{size: len(members)}
 	for _, m := range members {
-		if m.hidden || !m.p.mmrDone || m.p.mmrErr != nil || lv.eng.acts == nil {
+		if m.hidden {
+			continue
+		}
+		if m.p.historyDone && m.p.historyErr == nil {
+			if s := stats.SampleOf(m.p.puuid, m.p.loaded()); s.N > 0 {
+				kds = append(kds, s.KD())
+				if v, ok := s.HSExact(); ok {
+					hss = append(hss, v)
+				}
+				if mode.Rounds {
+					acs, _ := s.ACSExact()
+					adr, _ := s.ADRExact()
+					fb, _ := s.FBExact()
+					acss, adrs, fbs = append(acss, acs), append(adrs, adr), append(fbs, fb)
+				}
+			}
+		}
+		if !m.p.mmrDone || m.p.mmrErr != nil || lv.eng.acts == nil {
 			continue
 		}
 		a.covered++
@@ -421,6 +447,13 @@ func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 	a.last, _ = roundedMean(lasts)
 	a.wr, a.hasWR = roundedMean(wins)
 	a.trend, a.hasTrend = roundedMean(trends)
+	if v, ok := mean(kds); ok {
+		a.kd, a.hasKD = math.Round(v*100)/100, true
+	}
+	a.hs, a.hasHS = roundedMean(hss)
+	a.acs, a.hasRounds = roundedMean(acss)
+	a.adr, _ = roundedMean(adrs)
+	a.fb, _ = roundedMean(fbs)
 	return a
 }
 
@@ -445,6 +478,17 @@ func (a averages) row(lv *live) render.Row {
 	if a.hasTrend {
 		row["rr_trend"] = render.Cell{Text: signed(a.trend)}
 	}
+	if a.hasKD {
+		row["kd"] = render.Cell{Text: fmt.Sprintf("%.2f", a.kd)}
+	}
+	if a.hasHS {
+		row["hs"] = render.Cell{Text: fmt.Sprintf("%d%%", a.hs)}
+	}
+	if a.hasRounds {
+		row["acs"] = render.Cell{Text: fmt.Sprint(a.acs)}
+		row["adr"] = render.Cell{Text: fmt.Sprint(a.adr)}
+		row["fb"] = render.Cell{Text: fmt.Sprintf("%d%%", a.fb)}
+	}
 	return row
 }
 
@@ -461,7 +505,25 @@ func diffRow(us, them averages) render.Row {
 	diff("last_act", us.last, them.last, us.last > 0 && them.last > 0)
 	diff("wr", us.wr, them.wr, us.hasWR && them.hasWR)
 	diff("rr_trend", us.trend, them.trend, us.hasTrend && them.hasTrend)
+	diff("hs", us.hs, them.hs, us.hasHS && them.hasHS)
+	diff("acs", us.acs, them.acs, us.hasRounds && them.hasRounds)
+	diff("adr", us.adr, them.adr, us.hasRounds && them.hasRounds)
+	diff("fb", us.fb, them.fb, us.hasRounds && them.hasRounds)
+	if us.hasKD && them.hasKD {
+		row["kd"] = render.Cell{Text: arrowKD(us.kd - them.kd)}
+	}
 	return row
+}
+
+func arrowKD(d float64) string {
+	d = math.Round(d*100) / 100
+	switch {
+	case d > 0:
+		return fmt.Sprintf("▲%.2f", d)
+	case d < 0:
+		return fmt.Sprintf("▼%.2f", -d)
+	}
+	return "0"
 }
 
 func arrow(d int) string {
@@ -474,7 +536,7 @@ func arrow(d int) string {
 	return "0"
 }
 
-func roundedMean(vs []float64) (int, bool) {
+func mean(vs []float64) (float64, bool) {
 	if len(vs) == 0 {
 		return 0, false
 	}
@@ -482,5 +544,10 @@ func roundedMean(vs []float64) (int, bool) {
 	for _, v := range vs {
 		sum += v
 	}
-	return int(math.Round(sum / float64(len(vs)))), true
+	return sum / float64(len(vs)), true
+}
+
+func roundedMean(vs []float64) (int, bool) {
+	v, ok := mean(vs)
+	return int(math.Round(v)), ok
 }

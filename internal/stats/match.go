@@ -201,14 +201,22 @@ func (s Sample) KD() float64 {
 	return float64(s.Kills) / math.Max(1, float64(s.Deaths))
 }
 
-func ratio(num, den int, scale float64) (int, bool) {
+func ratio(num, den int, scale float64) (float64, bool) {
 	if den == 0 {
 		return 0, false
 	}
-	return int(math.Round(float64(num) / float64(den) * scale)), true
+	return float64(num) / float64(den) * scale, true
 }
 
-func (s Sample) HS() (int, bool)  { return ratio(s.Head, s.Head+s.Body+s.Leg, 100) }
-func (s Sample) ACS() (int, bool) { return ratio(s.Score, s.Rounds, 1) }
-func (s Sample) ADR() (int, bool) { return ratio(s.Damage, s.Rounds, 1) }
-func (s Sample) FB() (int, bool)  { return ratio(s.FirstBlood, s.Rounds, 100) }
+func whole(v float64, ok bool) (int, bool) { return int(math.Round(v)), ok }
+
+// the exact values feed averages - the whole numbers are what a row shows
+func (s Sample) HSExact() (float64, bool)  { return ratio(s.Head, s.Head+s.Body+s.Leg, 100) }
+func (s Sample) ACSExact() (float64, bool) { return ratio(s.Score, s.Rounds, 1) }
+func (s Sample) ADRExact() (float64, bool) { return ratio(s.Damage, s.Rounds, 1) }
+func (s Sample) FBExact() (float64, bool)  { return ratio(s.FirstBlood, s.Rounds, 100) }
+
+func (s Sample) HS() (int, bool)  { return whole(s.HSExact()) }
+func (s Sample) ACS() (int, bool) { return whole(s.ACSExact()) }
+func (s Sample) ADR() (int, bool) { return whole(s.ADRExact()) }
+func (s Sample) FB() (int, bool)  { return whole(s.FBExact()) }

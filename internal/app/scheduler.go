@@ -57,6 +57,7 @@ type scheduler struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	paused    bool
+	batching  int
 }
 
 func newScheduler(client *remote.Client, clock Clock) *scheduler {
@@ -100,8 +101,22 @@ func (s *scheduler) close() {
 	s.queue = nil
 }
 
+// hold and release bracket a batch so a whole roster's lookups queue up before anything is picked
+func (s *scheduler) hold() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.batching++
+}
+
+func (s *scheduler) release() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.batching--
+	s.dispatch()
+}
+
 func (s *scheduler) dispatch() {
-	for s.inflight < s.limit && len(s.queue) > 0 && !s.paused {
+	for s.inflight < s.limit && len(s.queue) > 0 && !s.paused && s.batching == 0 {
 		j := s.pick()
 		s.inflight++
 		go s.run(j, s.ctx, s.gen)

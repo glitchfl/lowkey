@@ -96,8 +96,9 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 		t.Fatalf("want an ALLIES section before ENEMIES:\n%s", frame)
 	}
 	// header line, ALLIES, 5 allies, average, ENEMIES, then enemies from the 10th line under the header
+	// none of the enemies has matches in this fixture, so names show "-"
 	enemyRows := []struct{ agent, name, rank string }{
-		{"Raze", "", "Plat2 10"}, {"Breach", "", "Gold3 70"}, {"Viper", "hidden", ""}, {"Cypher", "", "Plat3 0"}, {"Skye", "", "-"},
+		{"Raze", "-", "Plat2 10"}, {"Breach", "-", "Gold3 70"}, {"Viper", "hidden", ""}, {"Cypher", "-", "Plat3 0"}, {"Skye", "-", "-"},
 	}
 	for i, want := range enemyRows {
 		n := 9 + i

@@ -91,6 +91,12 @@ func (e *engine) submit(j *job, handle func(body []byte, err error)) {
 	e.sched.submit(j)
 }
 
+func (e *engine) batch(f func()) {
+	e.sched.hold()
+	defer e.sched.release()
+	f()
+}
+
 // cancel drops every outstanding lookup - a dodge or the cutoff
 func (e *engine) cancel() {
 	e.sched.cancelAll()

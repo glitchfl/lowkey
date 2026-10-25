@@ -19,10 +19,6 @@ const (
 	OneShot // doctor and the own-stats printout
 )
 
-func (w Window) String() string {
-	return [...]string{"closed", "agent select", "match load", "session refresh", "one-shot"}[w]
-}
-
 type RefusedError struct {
 	Reason string
 }

@@ -74,7 +74,6 @@ func (s *Server) closeWS() {
 	}
 }
 
-// Subscribers counts connections subscribed to the event
 func (s *Server) Subscribers(event string) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()

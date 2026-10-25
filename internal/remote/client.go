@@ -80,9 +80,8 @@ type Config struct {
 	Transport http.RoundTripper
 	UserAgent string
 	Now       func() time.Time
-	// Tokens fetches fresh tokens from the Riot Client
-	Tokens func(ctx context.Context) (Tokens, error)
-	Guard  *Guard
+	Tokens    func(ctx context.Context) (Tokens, error)
+	Guard     *Guard
 	// Observe sees every answered request - record mode hooks in here
 	Observe func(svc Service, path, query string, status int, body []byte)
 }

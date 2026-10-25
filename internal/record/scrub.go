@@ -55,12 +55,6 @@ func NewScrubber(public func(string) bool) *Scrubber {
 	}
 }
 
-func (s *Scrubber) SetSelf(puuid string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.setSelf(puuid)
-}
-
 func (s *Scrubber) setSelf(puuid string) {
 	s.self = strings.ToLower(puuid)
 	if _, ok := s.fakes[s.self]; !ok {
@@ -94,9 +88,7 @@ func (s *Scrubber) text(v string) string {
 	for _, secret := range s.secrets {
 		v = strings.ReplaceAll(v, secret, "<scrubbed>")
 	}
-	v = jwtRE.ReplaceAllString(v, "<token>")
-	v = authTokenRE.ReplaceAllString(v, "${1}<scrubbed>")
-	return uuidRE.ReplaceAllStringFunc(v, s.uuid)
+	return uuidRE.ReplaceAllStringFunc(RedactTokens(v), s.uuid)
 }
 
 func (s *Scrubber) uuid(real string) string {

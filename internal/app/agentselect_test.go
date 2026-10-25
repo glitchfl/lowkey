@@ -246,7 +246,7 @@ func TestADodgeDropsCachedRankDataToo(t *testing.T) {
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
 	r.screen("waiting for the next match")
 
-	// a dodge costs RR, so the next lobby must not reuse the old rank data
+	// a dodge costs RR so the next lobby must not reuse the old rank data
 	r.fr.Update(func(w *fakeriot.World) {
 		w.Player(w.Self).SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 20, RR: 2, Wins: 12, WinsWithPlacements: 12, Games: 21})
 	})

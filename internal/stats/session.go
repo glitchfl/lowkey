@@ -29,24 +29,29 @@ func SessionOf(self string, updates []Update, since time.Time, matches map[strin
 		if m == nil || m.Players[self] == nil {
 			continue
 		}
-		team := m.Players[self].Team
-		won, otherWon := m.Won[team], false
-		for t, w := range m.Won {
-			if t != team && w {
-				otherWon = true
-			}
-		}
-		switch {
-		case won:
+		switch Result(m, m.Players[self].Team) {
+		case "W":
 			s.Wins++
-		case otherWon:
+		case "L":
 			s.Losses++
 		}
 	}
 	return s
 }
 
-// Trend is the net RR over the newest n updates
+// Result is the match from one team's side - W or L or D when nobody won
+func Result(m *Match, team string) string {
+	if m.Won[team] {
+		return "W"
+	}
+	for t, won := range m.Won {
+		if t != team && won {
+			return "L"
+		}
+	}
+	return "D"
+}
+
 func Trend(updates []Update, n int) (int, bool) {
 	if len(updates) == 0 {
 		return 0, false

@@ -60,7 +60,7 @@ func (lv *live) metIndex(shown string) map[string]encounter {
 		if me == nil || m.ID == shown || !lv.eng.mine[id] {
 			continue
 		}
-		res := resultFor(m, me.Team)
+		res := stats.Result(m, me.Team)
 		for puuid, p := range m.Players {
 			add(puuid, encounter{ally: p.Team == me.Team, result: res, at: m.Start})
 		}
@@ -71,25 +71,13 @@ func (lv *live) metIndex(shown string) map[string]encounter {
 		}
 		res := ""
 		if m, ok := lv.eng.matches[past.matchID]; ok && m.Players[lv.self] != nil {
-			res = resultFor(m, m.Players[lv.self].Team)
+			res = stats.Result(m, m.Players[lv.self].Team)
 		}
 		for _, p := range past.players {
 			add(p.puuid, encounter{ally: p.ally, result: res, at: past.at})
 		}
 	}
 	return idx
-}
-
-func resultFor(m *stats.Match, team string) string {
-	if m.Won[team] {
-		return "W"
-	}
-	for t, won := range m.Won {
-		if t != team && won {
-			return "L"
-		}
-	}
-	return "D"
 }
 
 func (e encounter) text(now time.Time) string {

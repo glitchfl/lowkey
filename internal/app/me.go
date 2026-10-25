@@ -73,8 +73,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 		}
 	}
 
-	// your trend comes from the session's competitive updates - no second request
-	me.updates, me.updatesDone, me.updatesErr = sess.updates, true, sess.err
+	me.useSession(sess)
 	row := playerRow(me, mode, eng.acts, data)
 	screen := render.Screen{
 		Header:   "YOU · " + mode.Name,

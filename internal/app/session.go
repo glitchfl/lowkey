@@ -82,6 +82,11 @@ func (e *engine) fetchUpdatesPage(s *session, start int) {
 		})
 }
 
+// useSession gives your row the session's competitive updates - no second request for your trend
+func (p *player) useSession(s *session) {
+	p.updates, p.updatesDone, p.updatesErr = s.updates, true, s.err
+}
+
 func (s *session) line() string {
 	switch {
 	case s == nil || !s.done:

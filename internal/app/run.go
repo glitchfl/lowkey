@@ -22,7 +22,6 @@ const usage = `usage: lowkey [doctor | me [--mode <mode>]] [--record]
   --record      also save every Riot response, scrubbed, into a folder next to the exe
 `
 
-// Run is lowkey's single entry point
 func Run(ctx context.Context, env Env, args []string) int {
 	env = env.withDefaults()
 	opts, err := parseArgs(args)

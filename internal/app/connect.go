@@ -42,11 +42,7 @@ func connect(ctx context.Context, env Env, rec *record.Recorder, region string) 
 		return nil, err
 	}
 	local := riot.NewLocal(lf, env.LocalRoots)
-	if rec != nil {
-		rec.Lockfile(string(raw), lf.Password)
-		local.Observe = rec.Local
-		local.Rejected = rec.Chain
-	}
+	hookRecorder(rec, local, raw, lf)
 	ent, err := local.Entitlements(ctx)
 	if err != nil {
 		local.Close()
@@ -74,15 +70,7 @@ func connect(ctx context.Context, env Env, rec *record.Recorder, region string) 
 	l.shard = shard
 	l.guard = remote.NewGuard()
 	l.guard.SetSelf(ent.Subject)
-	l.client = remote.New(remote.Config{
-		Endpoints: env.endpoints(),
-		Transport: env.Servers.Transport,
-		UserAgent: "lowkey/" + env.Version,
-		Now:       env.Clock.Now,
-		Tokens:    tokenSource(local),
-		Guard:     l.guard,
-		Observe:   remoteObserver(rec),
-	})
+	l.client = riotServers(env, local, l.guard, rec)
 	l.client.SetTarget(l.region, l.shard, "")
 	return l, nil
 }
@@ -102,6 +90,28 @@ func (l *link) ensureVersion(ctx context.Context) error {
 }
 
 func (l *link) close() { l.local.Close() }
+
+// riotServers is the client every request to Riot's servers and valorant-api.com goes through
+func riotServers(env Env, local *riot.Local, guard *remote.Guard, rec *record.Recorder) *remote.Client {
+	return remote.New(remote.Config{
+		Endpoints: env.endpoints(),
+		Transport: env.Servers.Transport,
+		UserAgent: "lowkey/" + env.Version,
+		Now:       env.Clock.Now,
+		Tokens:    tokenSource(local),
+		Guard:     guard,
+		Observe:   remoteObserver(rec),
+	})
+}
+
+func hookRecorder(rec *record.Recorder, local *riot.Local, lockfile []byte, lf riot.Lockfile) {
+	if rec == nil {
+		return
+	}
+	rec.Lockfile(string(lockfile), lf.Password)
+	local.Observe = rec.Local
+	local.Rejected = rec.Chain
+}
 
 func remoteObserver(rec *record.Recorder) func(remote.Service, string, string, int, []byte) {
 	if rec == nil {

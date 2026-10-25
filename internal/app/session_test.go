@@ -139,7 +139,7 @@ func TestTheLiveSessionLineStartsOverAtTheResetHourAcrossARestart(t *testing.T) 
 	r.live()
 	r.screen("SESSION · 1W 1L +2 RR since 06:00")
 
-	// after 6am a fresh start has to count from this morning, not yesterday
+	// after 6am a fresh start has to count from this morning and not yesterday
 	r.clock.Advance(20 * time.Minute)
 	r.restart()
 	r.screen("SESSION · 0W 0L +0 RR since 06:00")

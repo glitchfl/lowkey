@@ -59,10 +59,10 @@ func stateOf(text string) (screenState, string) {
 	return inLobby, ""
 }
 
-// grace covers a request already in flight when the screen changed, or sent just before its screen was drawn
+// grace covers a request already in flight when the screen changed or sent just before its screen was drawn
 const grace = 100 * time.Millisecond
 
-// QuietViolations lists requests sent while the screen said lowkey was idle, waiting, mid-round or untracked -
+// QuietViolations lists requests sent while the screen said lowkey was idle or waiting or mid-round or untracked -
 // in the menus only the session refresh may ask anything
 func (s *Server) QuietViolations(frames []Frame) []string {
 	self := s.Self()

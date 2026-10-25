@@ -12,9 +12,14 @@ type Private struct {
 	PartyClientVersion string
 	QueueID            string
 	HasQueueID         bool
-	ProvisioningFlow   string
 	Shape              string // flat / nested / hybrid
 }
+
+const (
+	LoopMenus   = "MENUS"
+	LoopPregame = "PREGAME"
+	LoopIngame  = "INGAME"
+)
 
 // fields moved under these objects in later presence versions - some clients mix both layouts
 var nestedPresence = []string{"matchPresenceData", "partyPresenceData", "playerPresenceData"}
@@ -62,7 +67,6 @@ func ParsePrivate(encoded string) (Private, error) {
 	p.PartyID, _ = find("partyId")
 	p.PartyClientVersion, _ = find("partyClientVersion")
 	p.QueueID, p.HasQueueID = find("queueId")
-	p.ProvisioningFlow, _ = find("provisioningFlow")
 	switch {
 	case nestedHits == 0:
 		p.Shape = "flat"

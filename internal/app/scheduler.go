@@ -36,17 +36,25 @@ type job struct {
 	tries int
 }
 
+// what a 429 did to the queue - the status line follows these
+type rateEvent int
+
+const (
+	paused rateEvent = iota
+	resumed
+	gaveUp
+)
+
 // backoff is how long to wait after each 429 before giving up on the item
 var backoff = []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second}
 
 // scheduler is the only path to Riot's servers - at most two requests in flight in priority order
 type scheduler struct {
-	client *remote.Client
-	clock  Clock
-	log    *errlog
-	limit  int
-	// rateLimited hears when a 429 pauses everything and when it resumes and when an item is given up
-	rateLimited func(paused, gaveUp bool)
+	client      *remote.Client
+	clock       Clock
+	log         *errlog
+	limit       int
+	rateLimited func(rateEvent)
 	// outcome hears how every request that wasn't cancelled ended
 	outcome func(err error)
 
@@ -183,14 +191,14 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 		s.pause(wait)
 		s.mu.Unlock()
 		if s.rateLimited != nil {
-			s.rateLimited(true, false)
+			s.rateLimited(paused)
 		}
 		return
 	}
 	s.dispatch()
 	s.mu.Unlock()
 	if limited && s.rateLimited != nil {
-		s.rateLimited(false, true)
+		s.rateLimited(gaveUp)
 	}
 	if err != nil {
 		s.log.printf("%s %s: %v", j.svc, j.path, err)
@@ -213,7 +221,7 @@ func (s *scheduler) pause(d time.Duration) {
 		s.dispatch()
 		s.mu.Unlock()
 		if s.rateLimited != nil {
-			s.rateLimited(false, false)
+			s.rateLimited(resumed)
 		}
 	})
 }

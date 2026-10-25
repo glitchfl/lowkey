@@ -19,16 +19,14 @@ type RosterPlayer struct {
 	PUUID     string
 	Team      string
 	Agent     string
-	State     string
 	Incognito bool
 }
 
 type rosterPlayer struct {
-	Subject                 string `json:"Subject"`
-	TeamID                  string `json:"TeamID"`
-	CharacterID             string `json:"CharacterID"`
-	CharacterSelectionState string `json:"CharacterSelectionState"`
-	PlayerIdentity          struct {
+	Subject        string `json:"Subject"`
+	TeamID         string `json:"TeamID"`
+	CharacterID    string `json:"CharacterID"`
+	PlayerIdentity struct {
 		Incognito bool `json:"Incognito"`
 	} `json:"PlayerIdentity"`
 }
@@ -39,7 +37,7 @@ func (p rosterPlayer) decode(team string) RosterPlayer {
 	}
 	return RosterPlayer{
 		PUUID: strings.ToLower(p.Subject), Team: team, Agent: strings.ToLower(p.CharacterID),
-		State: p.CharacterSelectionState, Incognito: p.PlayerIdentity.Incognito,
+		Incognito: p.PlayerIdentity.Incognito,
 	}
 }
 
@@ -115,7 +113,6 @@ func truncate(b []byte) string {
 	return string(b)
 }
 
-// DecodePartyID reads your party player entry
 func DecodePartyID(body []byte) (string, error) {
 	var v struct {
 		CurrentPartyID string `json:"CurrentPartyID"`

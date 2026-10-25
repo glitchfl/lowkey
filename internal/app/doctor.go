@@ -87,11 +87,7 @@ func (d *doctor) check(ctx context.Context) {
 
 	local := riot.NewLocal(lf, env.LocalRoots)
 	defer local.Close()
-	if d.rec != nil {
-		d.rec.Lockfile(string(raw), lf.Password)
-		local.Observe = d.rec.Local
-		local.Rejected = d.rec.Chain
-	}
+	hookRecorder(d.rec, local, raw, lf)
 	base := fmt.Sprintf("https://127.0.0.1:%d", lf.Port)
 	ent, err := local.Entitlements(ctx)
 	var se *riot.StatusError
@@ -133,7 +129,7 @@ func (d *doctor) check(ctx context.Context) {
 		d.report(true, "phase", fmt.Sprintf("%s (%s presence)", phaseFromLoop(priv.SessionLoopState), priv.Shape))
 	}
 
-	region, shard, ok := d.session(ctx, local)
+	region, shard, ok := d.region(ctx, local)
 	if !ok {
 		d.skip("a region", "client version", "rank data")
 		return
@@ -142,15 +138,7 @@ func (d *doctor) check(ctx context.Context) {
 	guard := remote.NewGuard()
 	guard.SetSelf(ent.Subject)
 	guard.SetWindow(remote.OneShot)
-	client := remote.New(remote.Config{
-		Endpoints: env.endpoints(),
-		Transport: env.Servers.Transport,
-		UserAgent: "lowkey/" + env.Version,
-		Now:       env.Clock.Now,
-		Tokens:    tokenSource(local),
-		Guard:     guard,
-		Observe:   remoteObserver(d.rec),
-	})
+	client := riotServers(env, local, guard, d.rec)
 	client.SetTarget(region, shard, "")
 
 	version, source := detectVersion(ctx, client, priv, env.GameLog)
@@ -220,7 +208,7 @@ func (d *doctor) windows() {
 	}
 }
 
-func (d *doctor) session(ctx context.Context, local *riot.Local) (region, shard string, ok bool) {
+func (d *doctor) region(ctx context.Context, local *riot.Local) (region, shard string, ok bool) {
 	if r := d.cfg.Settings().Region; r != "" {
 		shard, _ := riot.Shard(r)
 		d.report(true, "session", fmt.Sprintf("region %s from %s · shard %s", r, settings.FileName, shard))
@@ -297,11 +285,11 @@ func staticVersion(body []byte) (string, bool) {
 
 func phaseFromLoop(state string) string {
 	switch strings.ToUpper(state) {
-	case "MENUS":
+	case riot.LoopMenus:
 		return "Menus"
-	case "PREGAME":
+	case riot.LoopPregame:
 		return "Agent select"
-	case "INGAME":
+	case riot.LoopIngame:
 		return "In match"
 	}
 	return fmt.Sprintf("unknown session loop state %q", state)

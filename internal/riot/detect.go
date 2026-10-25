@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -38,6 +39,15 @@ var shards = map[string]string{
 func Shard(region string) (string, bool) {
 	s, ok := shards[region]
 	return s, ok
+}
+
+func Regions() []string {
+	out := make([]string, 0, len(shards))
+	for r := range shards {
+		out = append(out, r)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // Expiry reads a JWT's exp claim without checking the signature - lowkey only uses it to refresh early

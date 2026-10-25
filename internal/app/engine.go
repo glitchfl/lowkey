@@ -34,9 +34,9 @@ type engine struct {
 
 // player is everything known about one visible player so far
 type player struct {
-	puuid string
-	queue string
-	n     int
+	puuid      string
+	queue      string
+	sampleSize int
 
 	mmr     stats.MMR
 	mmrDone bool
@@ -50,8 +50,7 @@ type player struct {
 	historyDone bool
 	historyErr  error
 
-	sample    map[string]*stats.Match
-	detailErr int
+	sample map[string]*stats.Match
 }
 
 type parts int
@@ -75,8 +74,8 @@ func newEngine(sched *scheduler, post func(func())) *engine {
 	}
 }
 
-func newPlayer(puuid, queue string, n int) *player {
-	return &player{puuid: strings.ToLower(puuid), queue: queue, n: n, sample: map[string]*stats.Match{}}
+func newPlayer(puuid, queue string, sampleSize int) *player {
+	return &player{puuid: strings.ToLower(puuid), queue: queue, sampleSize: sampleSize, sample: map[string]*stats.Match{}}
 }
 
 // submit hands a job's result back on the loop - unless the work was cancelled meanwhile
@@ -178,7 +177,7 @@ func (e *engine) lookUpSample(p *player) {
 		e.gotHistory(p, ids)
 		return
 	}
-	q := url.Values{"queue": {p.queue}, "startIndex": {"0"}, "endIndex": {strconv.Itoa(p.n)}}
+	q := url.Values{"queue": {p.queue}, "startIndex": {"0"}, "endIndex": {strconv.Itoa(p.sampleSize)}}
 	e.submit(&job{prio: prioHistory, svc: remote.PD, path: "/match-history/v1/history/" + p.puuid, query: q},
 		func(body []byte, err error) {
 			var ids []string
@@ -195,17 +194,15 @@ func (e *engine) lookUpSample(p *player) {
 }
 
 func (e *engine) gotHistory(p *player, ids []string) {
-	if len(ids) > p.n {
-		ids = ids[:p.n]
+	if len(ids) > p.sampleSize {
+		ids = ids[:p.sampleSize]
 	}
 	p.history, p.historyDone = ids, true
 	for seq, id := range ids {
 		e.wantMatch(id, p.puuid, seq, func(m *stats.Match, err error) {
-			if err != nil {
-				p.detailErr++
-				return
+			if err == nil {
+				p.sample[id] = m
 			}
-			p.sample[id] = m
 		})
 	}
 }

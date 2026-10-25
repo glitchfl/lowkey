@@ -13,6 +13,7 @@ import (
 	"github.com/BurntSushi/toml"
 
 	"github.com/glitchfl/lowkey/internal/render"
+	"github.com/glitchfl/lowkey/internal/riot"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
@@ -77,8 +78,6 @@ enemy_lookups = true
 # auto reads the region from the game - na latam br eu ap kr or pbe overrides it
 region = "auto"
 `
-
-var regions = []string{"na", "latam", "br", "eu", "ap", "kr", "pbe"}
 
 type file struct {
 	Columns          *[]string `toml:"columns"`
@@ -157,12 +156,11 @@ func Parse(data []byte) (Settings, string, error) {
 	}
 	if f.Region != nil {
 		r := strings.ToLower(strings.TrimSpace(*f.Region))
-		switch {
-		case r == "auto":
-		case contains(regions, r):
+		if _, known := riot.Shard(r); r != "auto" && !known {
+			return Settings{}, "", fmt.Errorf("region %q isn't auto or one of %s", *f.Region, strings.Join(riot.Regions(), " "))
+		}
+		if r != "auto" {
 			s.Region = r
-		default:
-			return Settings{}, "", fmt.Errorf("region %q isn't auto or one of %s", *f.Region, strings.Join(regions, " "))
 		}
 	}
 	return s, note, nil
@@ -271,13 +269,4 @@ func firstLine(err error) string {
 		msg = msg[:i]
 	}
 	return msg
-}
-
-func contains(list []string, v string) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
 }

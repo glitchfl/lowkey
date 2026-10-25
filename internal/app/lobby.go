@@ -410,7 +410,7 @@ func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 		return render.Row{"agent": lv.agentCell(m.agent)}
 	}
 	if m.puuid == lv.self && lv.sess != nil && lv.sess.done {
-		m.p.updates, m.p.updatesDone, m.p.updatesErr = lv.sess.updates, true, lv.sess.err
+		m.p.useSession(lv.sess)
 	}
 	row := playerRow(m.p, mode, lv.eng.acts, lv.data)
 	row["agent"] = lv.agentCell(m.agent)

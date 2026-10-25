@@ -244,7 +244,7 @@ func TestARiotClientRestartMidMatchWaitsForTheMenus(t *testing.T) {
 	if err := r.fr.Restart(); err != nil {
 		t.Fatal(err)
 	}
-	// back on a new port, presence still says INGAME - lowkey can't tell how far the match is, so it waits
+	// back on a new port presence still says INGAME - lowkey can't tell how far the match is so it waits
 	r.screen("match in progress")
 	r.subscribed()
 	before := len(r.fr.RemoteRequests())

@@ -33,6 +33,8 @@ const (
 	redrawEvery  = 250 * time.Millisecond
 )
 
+var phaseTitles = map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}
+
 // live is lowkey's normal mode - everything in it runs on the loop goroutine
 type live struct {
 	ctx  context.Context
@@ -178,11 +180,7 @@ func (lv *live) connect(lf riot.Lockfile, raw []byte) {
 	ctx, cancel := context.WithCancel(lv.ctx)
 	local := riot.NewLocal(lf, lv.env.LocalRoots)
 	lv.log.secret(lf.Password)
-	if lv.rec != nil {
-		lv.rec.Lockfile(string(raw), lf.Password)
-		local.Observe = lv.rec.Local
-		local.Rejected = lv.rec.Chain
-	}
+	hookRecorder(lv.rec, local, raw, lf)
 	lv.conn = &connection{local: local, cancel: cancel}
 	go func() {
 		ent, err := local.Entitlements(ctx)
@@ -246,34 +244,27 @@ func (lv *live) connected(gen int, ent riot.Entitlements, events *riot.Events, l
 	lv.eng.self = lv.self
 	lv.guard = remote.NewGuard()
 	lv.guard.SetSelf(lv.self)
-	lv.client = remote.New(remote.Config{
-		Endpoints: lv.env.endpoints(),
-		Transport: lv.env.Servers.Transport,
-		UserAgent: "lowkey/" + lv.env.Version,
-		Now:       lv.env.Clock.Now,
-		Tokens:    tokenSource(lv.conn.local),
-		Guard:     lv.guard,
-		Observe:   remoteObserver(lv.rec),
-	})
-	lv.eng.sched = newScheduler(lv.client, lv.env.Clock, lv.log)
-	lv.eng.sched.rateLimited = func(paused, gaveUp bool) {
+	lv.client = riotServers(lv.env, lv.conn.local, lv.guard, lv.rec)
+	sched := newScheduler(lv.client, lv.env.Clock, lv.log)
+	sched.rateLimited = func(ev rateEvent) {
 		lv.loop.post(func() {
 			switch {
-			case gaveUp:
+			case ev == gaveUp:
 				lv.rateLimit = rateGaveUp
 			case lv.rateLimit == rateGaveUp:
-			case paused:
+			case ev == paused:
 				lv.rateLimit = rateBackingOff
 			default:
 				lv.rateLimit = rateFine
 			}
 		})
 	}
-	lv.eng.sched.outcome = func(err error) {
+	sched.outcome = func(err error) {
 		var ue *remote.UnreachableError
 		unreachable := errors.As(err, &ue)
 		lv.loop.post(func() { lv.unreachable = unreachable })
 	}
+	lv.eng.sched = sched
 	lv.region, lv.shard, lv.version = "", "", ""
 	priv, present := riot.OwnValorant(list, ent.Subject)
 	lv.applyPresence(priv, present, true)
@@ -337,13 +328,13 @@ func (lv *live) applyPresence(priv riot.Private, present, startup bool) {
 	}
 	lv.presence = priv
 	switch strings.ToUpper(priv.SessionLoopState) {
-	case "MENUS":
+	case riot.LoopMenus:
 		lv.toMenus()
-	case "PREGAME":
+	case riot.LoopPregame:
 		if startup || lv.phase == phaseMenus || lv.phase == phaseWaiting {
 			lv.onPregame("")
 		}
-	case "INGAME":
+	case riot.LoopIngame:
 		switch {
 		case startup || lv.phase == phaseWaiting || lv.phase == phaseIdle:
 			lv.midMatch = true
@@ -488,15 +479,10 @@ func (lv *live) screen() render.Screen {
 		lv.lobbyScreen(&s, lv.last, "LAST MATCH")
 		s.Session = lv.sess.line()
 	case lv.lobby != nil:
-		title := map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}[lv.phase]
-		lv.lobbyScreen(&s, lv.lobby, title)
+		lv.lobbyScreen(&s, lv.lobby, phaseTitles[lv.phase])
 		s.Session = lv.sess.line()
-	case lv.phase == phaseAgentSelect:
-		s.Header = "AGENT SELECT"
-	case lv.phase == phaseMatchLoad:
-		s.Header = "MATCH LOADING"
 	default:
-		s.Header = "IN MATCH"
+		s.Header = phaseTitles[lv.phase]
 	}
 	switch {
 	case lv.unreachable:

@@ -141,17 +141,6 @@ func (d *Data) TierColor(tier int) string {
 	return t.Color[:6]
 }
 
-// MaxTier is radiant in the current set
-func (d *Data) MaxTier() int {
-	top := 0
-	for t := range d.tier {
-		if t > top {
-			top = t
-		}
-	}
-	return top
-}
-
 var divisions = map[string]string{
 	"IRON": "Iron", "BRONZE": "Brnz", "SILVER": "Silv", "GOLD": "Gold", "PLATINUM": "Plat",
 	"DIAMOND": "Dia", "ASCENDANT": "Asc", "IMMORTAL": "Imm", "RADIANT": "Rad",

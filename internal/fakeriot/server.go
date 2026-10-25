@@ -212,7 +212,6 @@ func (s *Server) Hidden() []string {
 	return out
 }
 
-// Self is your own PUUID
 func (s *Server) Self() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()

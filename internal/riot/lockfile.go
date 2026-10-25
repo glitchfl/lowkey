@@ -3,7 +3,6 @@ package riot
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -14,14 +13,6 @@ type Lockfile struct {
 	Port     int
 	Password string
 	Protocol string
-}
-
-func ReadLockfile(path string) (Lockfile, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return Lockfile{}, err
-	}
-	return ParseLockfile(data)
 }
 
 // ParseLockfile reads name:pid:port:password:protocol and never puts the password in an error

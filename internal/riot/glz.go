@@ -48,8 +48,8 @@ func DecodeMatchID(body []byte) (string, error) {
 	var v struct {
 		MatchID string `json:"MatchID"`
 	}
-	if err := json.Unmarshal(body, &v); err != nil || v.MatchID == "" {
-		return "", fmt.Errorf("no match ID in %q", truncate(body))
+	if err := json.Unmarshal(body, &v); err != nil || !IsUUID(v.MatchID) {
+		return "", fmt.Errorf("no valid match ID in %q", truncate(body))
 	}
 	return strings.ToLower(v.MatchID), nil
 }
@@ -75,7 +75,9 @@ func DecodePregame(body []byte) (Roster, error) {
 	}
 	if v.AllyTeam != nil {
 		for _, p := range v.AllyTeam.Players {
-			r.Players = append(r.Players, p.decode(v.AllyTeam.TeamID))
+			if IsUUID(p.Subject) {
+				r.Players = append(r.Players, p.decode(v.AllyTeam.TeamID))
+			}
 		}
 	}
 	return r, nil
@@ -99,7 +101,9 @@ func DecodeCoreGame(body []byte) (Roster, error) {
 		r.Queue, r.HasQueue = v.MatchmakingData.QueueID, true
 	}
 	for _, p := range v.Players {
-		r.Players = append(r.Players, p.decode(""))
+		if IsUUID(p.Subject) {
+			r.Players = append(r.Players, p.decode(""))
+		}
 	}
 	return r, nil
 }

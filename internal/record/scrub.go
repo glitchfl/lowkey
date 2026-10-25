@@ -78,6 +78,12 @@ func (s *Scrubber) Secret(v string) {
 	s.secrets = append(s.secrets, v)
 }
 
+// RedactTokens removes JWTs and the Riot Client auth token argument from free text
+func RedactTokens(v string) string {
+	v = jwtRE.ReplaceAllString(v, "<token>")
+	return authTokenRE.ReplaceAllString(v, "${1}<scrubbed>")
+}
+
 func (s *Scrubber) Text(v string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -252,15 +252,17 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		if rp.PUUID == lv.self {
 			lob.ownTeam = rp.Team
 		}
+		// the guard learns streamer mode straight from Riot's data, whatever the rows decide
+		if rp.Incognito {
+			lv.guard.Hide(rp.PUUID)
+		}
 	}
 	var members []*member
 	add := func(rp riot.RosterPlayer) {
 		m := lob.member(rp.PUUID)
 		if m == nil {
 			m = &member{puuid: rp.PUUID, hidden: rp.Incognito && rp.PUUID != lv.self}
-			if m.hidden {
-				lv.guard.Hide(m.puuid)
-			} else {
+			if !m.hidden {
 				m.p = newPlayer(m.puuid, lob.mode.Queue, defaultMatches)
 				want := wantRank | wantTrend | wantSample
 				if m.puuid == lv.self {

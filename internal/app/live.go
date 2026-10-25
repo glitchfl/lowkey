@@ -39,6 +39,7 @@ type live struct {
 	loop *loop
 	data *static.Data
 	rec  *record.Recorder
+	log  *errlog
 	eng  *engine
 
 	lock    riot.Lockfile
@@ -79,7 +80,7 @@ type connection struct {
 }
 
 func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) int {
-	lv := &live{ctx: ctx, env: env, loop: newLoop(), data: static.Embedded()}
+	lv := &live{ctx: ctx, env: env, loop: newLoop(), data: static.Embedded(), log: newErrlog(env.Dir, env.Clock.Now)}
 	lv.eng = newEngine(nil, lv.loop.post)
 	if opts.record {
 		rec, err := startRecording(env, lv.data)
@@ -144,6 +145,7 @@ func (lv *live) connect(lf riot.Lockfile, raw []byte) {
 	gen := lv.gen
 	ctx, cancel := context.WithCancel(lv.ctx)
 	local := riot.NewLocal(lf, lv.env.LocalRoots)
+	lv.log.secret(lf.Password)
 	if lv.rec != nil {
 		lv.rec.Lockfile(string(raw), lf.Password)
 		local.Observe = lv.rec.Local
@@ -220,7 +222,7 @@ func (lv *live) connected(gen int, ent riot.Entitlements, events *riot.Events, l
 		Guard:     lv.guard,
 		Observe:   remoteObserver(lv.rec),
 	})
-	lv.eng.sched = newScheduler(lv.client, lv.env.Clock)
+	lv.eng.sched = newScheduler(lv.client, lv.env.Clock, lv.log)
 	lv.region, lv.shard, lv.version = "", "", ""
 	priv, present := riot.OwnValorant(list, ent.Subject)
 	lv.applyPresence(priv, present, true)

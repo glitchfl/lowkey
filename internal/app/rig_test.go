@@ -81,8 +81,11 @@ func newRigAt(t *testing.T, start time.Time, opts fakeriot.Options, setup ...fun
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(fr.Close)
 	r := &rig{t: t, fr: fr, clock: clock, con: &console{width: 120}, dir: t.TempDir()}
+	t.Cleanup(func() {
+		r.checkPolicy()
+		fr.Close()
+	})
 	urls := fr.URLs()
 	r.env = app.Env{
 		Lockfile:   fr.Lockfile(),
@@ -240,4 +243,31 @@ func (r *rig) settled(texts ...string) string {
 		return r.fr.InFlight() == 0 && r.con.last() == frame
 	})
 	return frame
+}
+
+// checkPolicy runs after every test: whatever happened, Riot must never have seen a forbidden request
+func (r *rig) checkPolicy() {
+	t := r.t
+	hidden := r.fr.Hidden()
+	self := r.fr.Self()
+	for _, req := range r.fr.RemoteRequests() {
+		where := req.Path + "?" + req.Query.Encode()
+		low := strings.ToLower(where)
+		for _, h := range hidden {
+			if strings.Contains(low, strings.ToLower(h)) {
+				t.Errorf("policy: a request referenced the hidden player %s: %s", h, where)
+			}
+		}
+		parts := strings.Split(strings.Trim(req.Path, "/"), "/")
+		switch {
+		case req.Method != "GET":
+			t.Errorf("policy: a %s request was sent: %s", req.Method, where)
+		case strings.Contains(low, "name-service"):
+			t.Errorf("policy: the name service was called: %s", where)
+		case strings.Contains(low, "/pregame/") && (strings.Contains(low, "/select/") || strings.Contains(low, "/lock/")):
+			t.Errorf("policy: an agent select action was sent: %s", where)
+		case len(parts) >= 4 && parts[0] == "parties" && parts[2] == "players" && parts[3] != self:
+			t.Errorf("policy: party data was asked for someone else: %s", where)
+		}
+	}
 }

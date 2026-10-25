@@ -53,7 +53,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 	}
 
 	lp := newLoop()
-	sched := newScheduler(l.client, env.Clock)
+	sched := newScheduler(l.client, env.Clock, newErrlog(env.Dir, env.Clock.Now))
 	defer sched.close()
 	eng := newEngine(sched, lp.post)
 	eng.fetchActs()

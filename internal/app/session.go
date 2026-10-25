@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/glitchfl/lowkey/internal/remote"
+	"github.com/glitchfl/lowkey/internal/riot"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
@@ -59,7 +60,7 @@ func (e *engine) fetchUpdatesPage(s *session, start int) {
 			}
 			s.updates = append(s.updates, page...)
 			for i, u := range page {
-				if u.Start.Before(s.since) {
+				if u.Start.Before(s.since) || !riot.IsUUID(u.MatchID) {
 					continue
 				}
 				id := u.MatchID

@@ -43,6 +43,7 @@ var backoff = []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Secon
 type scheduler struct {
 	client *remote.Client
 	clock  Clock
+	log    *errlog
 	limit  int
 	// rateLimited hears when a 429 pauses everything and when an item is given up
 	rateLimited func(retryIn time.Duration, gaveUp bool)
@@ -60,10 +61,10 @@ type scheduler struct {
 	batching  int
 }
 
-func newScheduler(client *remote.Client, clock Clock) *scheduler {
+func newScheduler(client *remote.Client, clock Clock, log *errlog) *scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &scheduler{
-		client: client, clock: clock, limit: 2,
+		client: client, clock: clock, log: log, limit: 2,
 		perPlayer: map[string]int{}, firstSeen: map[string]int{},
 		ctx: ctx, cancel: cancel,
 	}
@@ -186,6 +187,10 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 	s.mu.Unlock()
 	if errors.As(err, &se) && se.Status == http.StatusTooManyRequests && s.rateLimited != nil {
 		s.rateLimited(0, true)
+	}
+	var refused *remote.RefusedError
+	if errors.As(err, &refused) {
+		s.log.printf("%s %s: %v", j.svc, j.path, err)
 	}
 	j.done(body, err)
 }

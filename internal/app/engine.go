@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/glitchfl/lowkey/internal/remote"
+	"github.com/glitchfl/lowkey/internal/riot"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
@@ -255,7 +256,9 @@ func decodeHistory(body []byte) ([]string, error) {
 	}
 	ids := make([]string, 0, len(v.History))
 	for _, h := range v.History {
-		ids = append(ids, strings.ToLower(h.MatchID))
+		if riot.IsUUID(h.MatchID) {
+			ids = append(ids, strings.ToLower(h.MatchID))
+		}
 	}
 	return ids, nil
 }

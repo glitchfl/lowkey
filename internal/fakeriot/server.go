@@ -197,6 +197,26 @@ func (s *Server) Requests() []Request {
 	return out
 }
 
+// Hidden lists the players in streamer mode - your own PUUID never counts as hidden
+func (s *Server) Hidden() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []string
+	for puuid, p := range s.world.Players {
+		if p.Incognito && puuid != s.world.Self {
+			out = append(out, puuid)
+		}
+	}
+	return out
+}
+
+// Self is your own PUUID
+func (s *Server) Self() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.world.Self
+}
+
 // RemoteRequests leaves out the local API, which never leaves the PC
 func (s *Server) RemoteRequests() []Request {
 	var out []Request

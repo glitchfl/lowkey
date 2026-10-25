@@ -10,7 +10,13 @@ import (
 	"time"
 )
 
-var versionPattern = regexp.MustCompile(`^release-\d{2}\.\d{2}-shipping-\d+-\d+$`)
+var (
+	versionPattern = regexp.MustCompile(`^release-\d{2}\.\d{2}-shipping-\d+-\d+$`)
+	uuidPattern    = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+)
+
+// IsUUID guards every ID lowkey copies from a response into a request path
+func IsUUID(s string) bool { return uuidPattern.MatchString(s) }
 
 // ValidVersion rejects lookalikes such as the external-sessions manifest version
 func ValidVersion(v string) bool { return versionPattern.MatchString(v) }

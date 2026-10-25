@@ -2,7 +2,9 @@
 package record
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"os"
 	"path/filepath"
 	"sync"
@@ -77,6 +79,15 @@ func (r *Recorder) Remote(service, path, query string, status int, body []byte) 
 
 func (r *Recorder) Event(name string, frame []byte) {
 	r.write(entry{Kind: "event", Event: name, Body: r.sc.JSON(frame)})
+}
+
+// Chain saves a local API certificate chain that lowkey refused - certificates are public
+func (r *Recorder) Chain(chain []*x509.Certificate) {
+	var out []byte
+	for _, c := range chain {
+		out = append(out, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: c.Raw})...)
+	}
+	os.WriteFile(filepath.Join(r.Dir, "local-api-chain.pem"), out, 0o644)
 }
 
 func (r *Recorder) Close() error {

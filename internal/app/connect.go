@@ -44,6 +44,7 @@ func connect(ctx context.Context, env Env, rec *record.Recorder) (*link, error) 
 	if rec != nil {
 		rec.Lockfile(string(raw), lf.Password)
 		local.Observe = rec.Local
+		local.Rejected = rec.Chain
 	}
 	ent, err := local.Entitlements(ctx)
 	if err != nil {

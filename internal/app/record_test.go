@@ -208,3 +208,18 @@ func TestNothingIsWrittenWithoutRecord(t *testing.T) {
 		t.Errorf("doctor wrote %d files without --record", len(files))
 	}
 }
+
+func TestARejectedLocalCertificateIsSavedWithTheRecording(t *testing.T) {
+	r := newRig(t)
+	r.env.LocalRoots = nil
+	if out, code := r.run("doctor", "--record"); code == 0 {
+		t.Fatalf("doctor passed with an untrusted certificate:\n%s", out)
+	}
+	pem, err := os.ReadFile(filepath.Join(recordingDir(t, r.dir), "local-api-chain.pem"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(pem), "-----BEGIN CERTIFICATE-----") {
+		t.Errorf("local-api-chain.pem holds no certificate:\n%s", pem)
+	}
+}

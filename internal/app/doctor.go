@@ -88,6 +88,7 @@ func (d *doctor) check(ctx context.Context) {
 	if d.rec != nil {
 		d.rec.Lockfile(string(raw), lf.Password)
 		local.Observe = d.rec.Local
+		local.Rejected = d.rec.Chain
 	}
 	base := fmt.Sprintf("https://127.0.0.1:%d", lf.Port)
 	ent, err := local.Entitlements(ctx)

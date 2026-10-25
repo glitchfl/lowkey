@@ -43,16 +43,28 @@ type Local struct {
 	base string
 	auth string
 	http *http.Client
-	tls  *tls.Config
 	// Observe sees every response - record mode hooks in here
 	Observe func(path string, status int, body []byte)
+	// Rejected gets a certificate chain that failed the check so the right root can be pinned later
+	Rejected func(chain []*x509.Certificate)
 }
 
 func NewLocal(lf Lockfile, roots *x509.CertPool) *Local {
+	l := &Local{
+		base: "https://127.0.0.1:" + strconv.Itoa(lf.Port),
+		auth: "Basic " + base64.StdEncoding.EncodeToString([]byte("riot:"+lf.Password)),
+	}
+	check := verifyLocal(roots)
 	conf := &tls.Config{
 		// hostname checks can't work for Riot's 127.0.0.1 certificate - verifyLocal checks the chain instead
 		InsecureSkipVerify: true,
-		VerifyConnection:   verifyLocal(roots),
+		VerifyConnection: func(cs tls.ConnectionState) error {
+			err := check(cs)
+			if err != nil && l.Rejected != nil {
+				l.Rejected(cs.PeerCertificates)
+			}
+			return err
+		},
 	}
 	tr := &http.Transport{
 		Proxy:               nil,
@@ -62,18 +74,14 @@ func NewLocal(lf Lockfile, roots *x509.CertPool) *Local {
 		MaxIdleConns:        2,
 		IdleConnTimeout:     30 * time.Second,
 	}
-	return &Local{
-		base: "https://127.0.0.1:" + strconv.Itoa(lf.Port),
-		auth: "Basic " + base64.StdEncoding.EncodeToString([]byte("riot:"+lf.Password)),
-		http: &http.Client{
-			Transport: tr,
-			Timeout:   10 * time.Second,
-			CheckRedirect: func(*http.Request, []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
+	l.http = &http.Client{
+		Transport: tr,
+		Timeout:   10 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
-		tls: conf,
 	}
+	return l
 }
 
 func verifyLocal(roots *x509.CertPool) func(tls.ConnectionState) error {

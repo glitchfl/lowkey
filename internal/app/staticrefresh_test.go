@@ -107,6 +107,31 @@ func TestStaticRefreshesOnlyHappenInsideAWindow(t *testing.T) {
 	}
 }
 
+func TestARefreshCutShortByADodgeGoesAgainInTheNextLobby(t *testing.T) {
+	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) {
+		w.StaticAgents[newAgent] = "Nova"
+		w.Pregame.Players[0].Agent = newAgent
+	})
+	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/agents", Hold: true, Times: 1})
+	r.live()
+	r.settled("waiting for the next match", "SESSION")
+	r.subscribed()
+	r.enterAgentSelect()
+	waitHeld(t, r.fr, 1)
+	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
+	r.screen("waiting for the next match")
+	eventually(t, "the dodge to cancel the refresh", func() bool { return len(r.fr.Held()) == 0 })
+
+	r.enterAgentSelect()
+	frame := r.settled("AGENT SELECT", "Nova")
+	if got := cellIn(t, frame, "AGENT", 2); got != "Nova" {
+		t.Errorf("the next lobby after a cancelled refresh: got %q, want Nova", got)
+	}
+	if n := staticRequests(r, "/v1/agents"); n != 2 {
+		t.Errorf("asked for agents %d times, want the cancelled one and one more", n)
+	}
+}
+
 func TestKnownIDsNeverTouchStaticData(t *testing.T) {
 	r := fromAgentSelect(t, lobbySamples)
 	r.enterMatchLoad()

@@ -72,11 +72,12 @@ func (g *Guard) Hide(puuids ...string) {
 	}
 }
 
-func (g *Guard) Check(method string, svc Service, u *url.URL) error {
+// Check judges the endpoint path - the full URL only matters for spotting a hidden player anywhere in it
+func (g *Guard) Check(method string, svc Service, endpoint string, u *url.URL) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	path := strings.ToLower(u.EscapedPath())
-	full := path + "?" + strings.ToLower(u.RawQuery)
+	path := strings.ToLower(endpoint)
+	full := strings.ToLower(u.EscapedPath() + "?" + u.RawQuery)
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	switch {
 	case method != http.MethodGet:

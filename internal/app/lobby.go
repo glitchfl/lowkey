@@ -26,6 +26,7 @@ type lobby struct {
 	mapURL  string
 	ownTeam string
 	members []*member
+	party   *party
 }
 
 type member struct {
@@ -58,13 +59,14 @@ func (lv *live) startAgentSelect(matchID string) {
 		lv.untrackedMode(q)
 		return
 	}
-	lob := &lobby{kind: lobbyAgentSelect, matchID: matchID}
+	lob := &lobby{kind: lobbyAgentSelect, matchID: matchID, party: &party{}}
 	lv.lobby = lob
 	lv.guard.SetWindow(remote.AgentSelect)
 	lv.ensureTarget(func() {
 		if lob != lv.lobby {
 			return
 		}
+		lv.fetchParty(lob.party)
 		if lob.matchID == "" {
 			lv.findMatchID(lob, "/pregame/v1/players/")
 			return
@@ -91,7 +93,7 @@ func (lv *live) startMatchLoad(matchID string) {
 	}
 	if prev != nil {
 		lob.mode, lob.known, lob.mapURL, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.ownTeam
-		lob.members = prev.members
+		lob.members, lob.party = prev.members, prev.party
 	}
 	lv.lobby = lob
 	lv.guard.SetWindow(remote.MatchLoad)
@@ -101,6 +103,10 @@ func (lv *live) startMatchLoad(matchID string) {
 	lv.ensureTarget(func() {
 		if lob != lv.lobby {
 			return
+		}
+		if lob.party == nil {
+			lob.party = &party{}
+			lv.fetchParty(lob.party)
 		}
 		if lob.matchID == "" {
 			lv.findMatchID(lob, "/core-game/v1/players/")
@@ -340,9 +346,10 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	if len(lob.members) == 0 {
 		return
 	}
+	marks := lv.markers(lob)
 	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
 	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
-		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode)}
+		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks)}
 		return
 	}
 	var allies, enemies []*member
@@ -355,16 +362,20 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	}
 	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
 	s.Sections = []render.Section{
-		lv.teamSection("ALLIES", allies, lob.mode),
-		lv.teamSection("ENEMIES", enemies, lob.mode),
+		lv.teamSection("ALLIES", allies, lob.mode, marks),
+		lv.teamSection("ENEMIES", enemies, lob.mode, marks),
 		{Rows: []render.Row{diffRow(us, them)}},
 	}
 }
 
-func (lv *live) teamSection(title string, members []*member, mode stats.Mode) render.Section {
+func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string) render.Section {
 	sec := render.Section{Title: title}
 	for _, m := range members {
-		sec.Rows = append(sec.Rows, lv.memberRow(m, mode))
+		row := lv.memberRow(m, mode)
+		if mark, ok := marks[m.puuid]; ok {
+			row["party"] = render.Cell{Text: mark}
+		}
+		sec.Rows = append(sec.Rows, row)
 	}
 	sec.Rows = append(sec.Rows, lv.teamAverages(members, mode).row(lv))
 	return sec

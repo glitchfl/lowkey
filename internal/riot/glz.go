@@ -114,3 +114,32 @@ func truncate(b []byte) string {
 	}
 	return string(b)
 }
+
+// DecodePartyID reads your party player entry
+func DecodePartyID(body []byte) (string, error) {
+	var v struct {
+		CurrentPartyID string `json:"CurrentPartyID"`
+	}
+	if err := json.Unmarshal(body, &v); err != nil || !IsUUID(v.CurrentPartyID) {
+		return "", fmt.Errorf("no valid party ID in %q", truncate(body))
+	}
+	return strings.ToLower(v.CurrentPartyID), nil
+}
+
+func DecodePartyMembers(body []byte) ([]string, error) {
+	var v struct {
+		Members []struct {
+			Subject string `json:"Subject"`
+		} `json:"Members"`
+	}
+	if err := json.Unmarshal(body, &v); err != nil {
+		return nil, fmt.Errorf("party isn't JSON: %w", err)
+	}
+	var out []string
+	for _, m := range v.Members {
+		if IsUUID(m.Subject) {
+			out = append(out, strings.ToLower(m.Subject))
+		}
+	}
+	return out, nil
+}

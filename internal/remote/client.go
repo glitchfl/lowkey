@@ -156,7 +156,7 @@ func (c *Client) Get(ctx context.Context, svc Service, path string, query url.Va
 		return nil, err
 	}
 	if c.cfg.Guard != nil {
-		if err := c.cfg.Guard.Check(http.MethodGet, svc, u); err != nil {
+		if err := c.cfg.Guard.Check(http.MethodGet, svc, path, u); err != nil {
 			return nil, err
 		}
 	}

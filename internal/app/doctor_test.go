@@ -243,3 +243,68 @@ func TestDoctorReportsTheStaticDataSnapshotAgeEvenWithoutARiotClient(t *testing.
 		t.Errorf("got %q", l)
 	}
 }
+
+func gameLog(t *testing.T, version string) string {
+	t.Helper()
+	path := t.TempDir() + "/ShooterGame.log"
+	content := "[2026.10.25-17.58.01:120][  0]LogInit: Display: Running engine for game: ShooterGame\n" +
+		"[2026.10.25-17.58.01:204][  0]LogShooter: Display: CI server version: " + version + "\n" +
+		"[2026.10.25-17.58.02:001][  0]LogShooter: Display: Branch: release-13.08\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestClientVersionFallsBackToShooterGameLogBeforeValorantAPI(t *testing.T) {
+	const fromLog = "release-13.08-shipping-20-5715961"
+	cases := []struct {
+		name, presence, logged string
+		want                   string
+	}{
+		{"presence wins", fakeriot.DefaultClientVersion, fromLog, fakeriot.DefaultClientVersion + " (from presence)"},
+		{"log before valorant-api.com", "", fromLog, fromLog + " (from ShooterGame.log)"},
+		{"invalid log line", "", "13.8.0.5715960", fakeriot.DefaultClientVersion + " (from valorant-api.com)"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := newRig(t, func(w *fakeriot.World) { w.PresenceVersion = c.presence })
+			r.env.GameLog = gameLog(t, c.logged)
+			out, code := r.run("doctor")
+			if code != 0 {
+				t.Fatalf("doctor failed:\n%s", out)
+			}
+			if l := line(t, out, "client version"); !strings.HasSuffix(l, c.want) {
+				t.Errorf("got %q, want it to end in %q", l, c.want)
+			}
+			for _, req := range r.fr.RemoteRequests() {
+				if req.Service == "static" && !strings.HasSuffix(c.want, "(from valorant-api.com)") {
+					t.Errorf("asked valorant-api.com although an earlier source had the version")
+				}
+			}
+		})
+	}
+}
+
+func TestDoctorReportsTheConsole(t *testing.T) {
+	r := newRig(t)
+	r.con.setWidth(100)
+	r.env.Console.Terminal = true
+	out, _ := r.run("doctor")
+	if l := line(t, out, "console"); !strings.HasPrefix(l, "PASS") || !strings.Contains(l, "width 100") || !strings.Contains(l, "ANSI on") {
+		t.Errorf("got %q", l)
+	}
+}
+
+func TestDoctorReportsPriorityAndEfficiencyMode(t *testing.T) {
+	r := newRig(t)
+	out, code := r.run("doctor")
+	if code != 0 {
+		t.Fatalf("doctor failed:\n%s", out)
+	}
+	for _, item := range []string{"priority", "efficiency"} {
+		if l := line(t, out, item); !strings.HasPrefix(l, "PASS") {
+			t.Errorf("got %q", l)
+		}
+	}
+}

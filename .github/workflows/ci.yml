@@ -52,7 +52,20 @@ jobs:
             Set-Item "env:$k" $v
           }
           $env:LOWKEY_DIR = $dir
-          .\lowkey.exe doctor
+          $lines = .\lowkey.exe doctor
           $code = $LASTEXITCODE
           Stop-Process -Id $fr.Id -ErrorAction SilentlyContinue
-          exit $code
+          $lines
+          if ($code -ne 0) { exit $code }
+          if (-not ($lines -match '^PASS  priority\s+below normal')) { throw "priority isn't below normal" }
+          if (-not ($lines -match '^PASS  efficiency\s+on')) { throw "Efficiency mode isn't on" }
+          if (-not ($lines -match '^PASS  console')) { throw "doctor didn't report the console" }
+          exit 0
+      - name: lowkey looks for the Riot Client's own lockfile without overrides
+        shell: pwsh
+        run: |
+          $lines = .\lowkey.exe doctor
+          $lines
+          $want = Join-Path $env:LOCALAPPDATA "Riot Games\Riot Client\Config\lockfile"
+          if (-not ($lines -match [regex]::Escape($want))) { throw "doctor didn't look for $want" }
+          exit 0

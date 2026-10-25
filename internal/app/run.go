@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/glitchfl/lowkey/internal/platform"
 )
 
 type options struct {
@@ -28,6 +30,7 @@ func Run(ctx context.Context, env Env, args []string) int {
 		fmt.Fprintf(env.Console.Out, "%v\n\n%s", err, usage)
 		return 2
 	}
+	setup := platform.Prepare()
 	switch opts.command {
 	case "help":
 		fmt.Fprint(env.Console.Out, usage)
@@ -36,7 +39,7 @@ func Run(ctx context.Context, env Env, args []string) int {
 		fmt.Fprintf(env.Console.Out, "lowkey %s\n", env.Version)
 		return 0
 	case "doctor":
-		return runDoctor(ctx, env, opts)
+		return runDoctor(ctx, env, opts, setup)
 	case "me":
 		return runMe(ctx, env, opts)
 	}

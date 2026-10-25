@@ -1,8 +1,10 @@
 package riot
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/json"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -49,4 +51,27 @@ func Expiry(token string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return time.Unix(claims.Exp, 0), true
+}
+
+// VersionFromLog reads the "CI server version:" line Valorant writes near the top of ShooterGame.log
+func VersionFromLog(path string) (string, bool) {
+	if path == "" {
+		return "", false
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return "", false
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 64<<10), 1<<20)
+	for sc.Scan() {
+		_, v, ok := strings.Cut(sc.Text(), "CI server version:")
+		if !ok {
+			continue
+		}
+		v = strings.TrimSpace(v)
+		return v, ValidVersion(v)
+	}
+	return "", false
 }

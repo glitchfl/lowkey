@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/platform"
 	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
@@ -19,6 +20,7 @@ import (
 
 type doctor struct {
 	env    Env
+	setup  platform.Setup
 	rec    *record.Recorder
 	failed bool
 }
@@ -38,8 +40,8 @@ func (d *doctor) skip(needs string, items ...string) {
 	}
 }
 
-func runDoctor(ctx context.Context, env Env, opts options) int {
-	d := &doctor{env: env}
+func runDoctor(ctx context.Context, env Env, opts options, setup platform.Setup) int {
+	d := &doctor{env: env, setup: setup}
 	if opts.record {
 		rec, err := startRecording(env, static.Embedded())
 		if err != nil {
@@ -148,9 +150,9 @@ func (d *doctor) check(ctx context.Context) {
 	})
 	client.SetTarget(region, shard, "")
 
-	version, source := detectVersion(ctx, client, priv)
+	version, source := detectVersion(ctx, client, priv, env.GameLog)
 	if version == "" {
-		d.report(false, "client version", "no valid release-NN.NN-shipping-N-N version from presence or valorant-api.com")
+		d.report(false, "client version", "no valid release-NN.NN-shipping-N-N version from presence, ShooterGame.log or valorant-api.com")
 		d.skip("a client version", "rank data")
 		return
 	}
@@ -169,6 +171,39 @@ func (d *doctor) offline() {
 	generated := static.Embedded().Generated()
 	days := int(d.env.Clock.Now().Sub(generated).Hours() / 24)
 	d.report(true, "static data", fmt.Sprintf("snapshot from %s (%d days old)", generated.Format("2006-01-02"), days))
+
+	if !platform.Windows {
+		d.report(true, "priority", "not Windows - nothing to lower")
+		d.report(true, "efficiency", "not Windows - no EcoQoS")
+	} else {
+		d.windows()
+	}
+	ansi := "ANSI off - plain output"
+	if d.env.Console.Terminal {
+		ansi = "ANSI on"
+	}
+	d.report(true, "console", fmt.Sprintf("width %d · %s", d.env.Console.Width(), ansi))
+}
+
+func (d *doctor) windows() {
+	switch class, err := platform.Priority(); {
+	case err != nil:
+		d.report(false, "priority", fmt.Sprintf("can't read the priority class: %v", err))
+	case class != "below normal":
+		d.report(false, "priority", fmt.Sprintf("%s, want below normal (setting it said: %v)", class, d.setup.PriorityErr))
+	default:
+		d.report(true, "priority", "below normal")
+	}
+	switch on, err := platform.EfficiencyMode(); {
+	case errors.Is(err, platform.ErrCantReadBack) && d.setup.EcoErr == nil:
+		d.report(true, "efficiency", "on - EcoQoS was accepted at startup (this Windows can't read it back)")
+	case err != nil || d.setup.EcoErr != nil:
+		d.report(false, "efficiency", fmt.Sprintf("EcoQoS didn't take: %v", errors.Join(err, d.setup.EcoErr)))
+	case !on:
+		d.report(false, "efficiency", "off")
+	default:
+		d.report(true, "efficiency", "on (EcoQoS)")
+	}
 }
 
 func (d *doctor) session(ctx context.Context, local *riot.Local) (region, shard string, ok bool) {
@@ -208,9 +243,12 @@ func tokenSource(local *riot.Local) func(ctx context.Context) (remote.Tokens, er
 }
 
 // detectVersion never trusts external-sessions - its version is a manifest ID
-func detectVersion(ctx context.Context, client *remote.Client, priv riot.Private) (version, source string) {
+func detectVersion(ctx context.Context, client *remote.Client, priv riot.Private, gameLog string) (version, source string) {
 	if riot.ValidVersion(priv.PartyClientVersion) {
 		return priv.PartyClientVersion, "presence"
+	}
+	if v, ok := riot.VersionFromLog(gameLog); ok {
+		return v, "ShooterGame.log"
 	}
 	body, err := client.Get(ctx, remote.Static, "/v1/version", nil)
 	if err != nil {

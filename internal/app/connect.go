@@ -22,6 +22,7 @@ type link struct {
 	self        string
 	presence    riot.Private
 	hasPresence bool
+	gameLog     string
 	region      string
 	shard       string
 	version     string
@@ -49,7 +50,7 @@ func connect(ctx context.Context, env Env, rec *record.Recorder) (*link, error) 
 		local.Close()
 		return nil, fmt.Errorf("riot client entitlements: %w", err)
 	}
-	l := &link{local: local, self: strings.ToLower(ent.Subject)}
+	l := &link{local: local, self: strings.ToLower(ent.Subject), gameLog: env.GameLog}
 	if list, err := local.Presences(ctx); err == nil {
 		l.presence, l.hasPresence = riot.OwnValorant(list, ent.Subject)
 	}
@@ -88,9 +89,9 @@ func (l *link) ensureVersion(ctx context.Context) error {
 	if l.version != "" {
 		return nil
 	}
-	v, _ := detectVersion(ctx, l.client, l.presence)
+	v, _ := detectVersion(ctx, l.client, l.presence, l.gameLog)
 	if v == "" {
-		return errors.New("no valid client version from presence or valorant-api.com")
+		return errors.New("no valid client version from presence, ShooterGame.log or valorant-api.com")
 	}
 	l.version = v
 	l.client.SetTarget(l.region, l.shard, v)

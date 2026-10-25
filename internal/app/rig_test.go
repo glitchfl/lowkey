@@ -21,6 +21,7 @@ var testStart = time.Date(2026, 10, 25, 20, 0, 0, 0, testZone)
 type console struct {
 	mu       sync.Mutex
 	frames   []string
+	written  []time.Time
 	width    int
 	terminal bool
 }
@@ -29,7 +30,24 @@ func (c *console) Write(p []byte) (int, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.frames = append(c.frames, string(p))
+	c.written = append(c.written, time.Now())
 	return len(p), nil
+}
+
+func (c *console) timedFrames() []fakeriot.Frame {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make([]fakeriot.Frame, len(c.frames))
+	for i := range c.frames {
+		out[i] = fakeriot.Frame{At: c.written[i], Text: c.frames[i]}
+	}
+	return out
+}
+
+func (c *console) writeTimes() []time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]time.Time(nil), c.written...)
 }
 
 func (c *console) Width() int {
@@ -265,28 +283,15 @@ func (r *rig) settledWith(held int, texts ...string) string {
 }
 
 // checkPolicy runs after every test - whatever happened Riot must never have seen a forbidden request
+// and a live run must have stayed quiet whenever its screen said so
 func (r *rig) checkPolicy() {
-	t := r.t
-	hidden := r.fr.Hidden()
-	self := r.fr.Self()
-	for _, req := range r.fr.RemoteRequests() {
-		where := req.Path + "?" + req.Query.Encode()
-		low := strings.ToLower(where)
-		for _, h := range hidden {
-			if strings.Contains(low, strings.ToLower(h)) {
-				t.Errorf("policy: a request referenced the hidden player %s: %s", h, where)
-			}
-		}
-		parts := strings.Split(strings.Trim(req.Path, "/"), "/")
-		switch {
-		case req.Method != "GET":
-			t.Errorf("policy: a %s request was sent: %s", req.Method, where)
-		case strings.Contains(low, "name-service"):
-			t.Errorf("policy: the name service was called: %s", where)
-		case strings.Contains(low, "/pregame/") && (strings.Contains(low, "/select/") || strings.Contains(low, "/lock/")):
-			t.Errorf("policy: an agent select action was sent: %s", where)
-		case len(parts) >= 4 && parts[0] == "parties" && parts[2] == "players" && parts[3] != self:
-			t.Errorf("policy: party data was asked for someone else: %s", where)
-		}
+	for _, v := range r.fr.Violations() {
+		r.t.Errorf("policy: %s", v)
+	}
+	if r.stop == nil {
+		return
+	}
+	for _, v := range r.fr.QuietViolations(r.con.timedFrames()) {
+		r.t.Errorf("policy: %s", v)
 	}
 }

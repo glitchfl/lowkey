@@ -24,6 +24,7 @@ type lowkey struct {
 	dir    string
 	mu     sync.Mutex
 	frames []string
+	timed  []fakeriot.Frame
 	exited chan struct{}
 }
 
@@ -72,7 +73,12 @@ func startLowkey(t *testing.T, fr *fakeriot.Server, settings string, args ...str
 		"LOWKEY_LOCKFILE="+fr.Lockfile(), "LOWKEY_LOCAL_CA="+ca, "LOWKEY_DIR="+dir,
 		"LOWKEY_PD_URL="+urls.PD, "LOWKEY_GLZ_URL="+urls.GLZ, "LOWKEY_SHARED_URL="+urls.Shared, "LOWKEY_STATIC_URL="+urls.Static,
 	)
-	return run(t, cmd, dir)
+	l := run(t, cmd, dir)
+	t.Cleanup(func() {
+		l.stop()
+		l.checkQuiet(fr)
+	})
+	return l
 }
 
 func run(t *testing.T, cmd *exec.Cmd, dir string) *lowkey {
@@ -95,8 +101,10 @@ func run(t *testing.T, cmd *exec.Cmd, dir string) *lowkey {
 			chunk, err := r.ReadString('\f')
 			b.WriteString(chunk)
 			if strings.HasSuffix(chunk, "\f") {
+				frame := strings.TrimSuffix(b.String(), "\f")
 				l.mu.Lock()
-				l.frames = append(l.frames, strings.TrimSuffix(b.String(), "\f"))
+				l.frames = append(l.frames, frame)
+				l.timed = append(l.timed, fakeriot.Frame{At: time.Now(), Text: frame})
 				l.mu.Unlock()
 				b.Reset()
 			}
@@ -180,28 +188,19 @@ func subscribed(t *testing.T, fr *fakeriot.Server) {
 	}
 }
 
-// checkPolicy is the same rule set the in-process suite runs after every test
 func checkPolicy(t *testing.T, fr *fakeriot.Server) {
-	hidden := fr.Hidden()
-	self := fr.Self()
-	for _, req := range fr.RemoteRequests() {
-		where := strings.ToLower(req.Path + "?" + req.Query.Encode())
-		for _, h := range hidden {
-			if strings.Contains(where, strings.ToLower(h)) {
-				t.Errorf("policy: a request referenced the hidden player %s: %s", h, where)
-			}
-		}
-		parts := strings.Split(strings.Trim(req.Path, "/"), "/")
-		switch {
-		case req.Method != "GET":
-			t.Errorf("policy: a %s request was sent: %s", req.Method, where)
-		case strings.Contains(where, "name-service"):
-			t.Errorf("policy: the name service was called: %s", where)
-		case strings.Contains(where, "/pregame/") && (strings.Contains(where, "/select/") || strings.Contains(where, "/lock/")):
-			t.Errorf("policy: an agent select action was sent: %s", where)
-		case len(parts) >= 4 && parts[0] == "parties" && parts[2] == "players" && parts[3] != self:
-			t.Errorf("policy: party data was asked for someone else: %s", where)
-		}
+	for _, v := range fr.Violations() {
+		t.Errorf("policy: %s", v)
+	}
+}
+
+// checkQuiet holds the real exe to the screen it showed - no requests while it said it was idle or mid-round
+func (l *lowkey) checkQuiet(fr *fakeriot.Server) {
+	l.mu.Lock()
+	frames := append([]fakeriot.Frame(nil), l.timed...)
+	l.mu.Unlock()
+	for _, v := range fr.QuietViolations(frames) {
+		l.t.Errorf("policy: %s", v)
 	}
 }
 

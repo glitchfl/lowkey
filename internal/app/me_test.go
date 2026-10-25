@@ -218,7 +218,7 @@ func TestWinRateNeedsGamesInTheQueue(t *testing.T) {
 	}
 }
 
-func TestMeAsksRiotForRankDataAndContentOnly(t *testing.T) {
+func TestMeAsksRiotOnlyForWhatYourRowNeeds(t *testing.T) {
 	r := newRig(t, ranked)
 	if out, code := r.run("me"); code != 0 {
 		t.Fatalf("me failed:\n%s", out)
@@ -228,8 +228,9 @@ func TestMeAsksRiotForRankDataAndContentOnly(t *testing.T) {
 		got = append(got, req.Service+" "+req.Path)
 	}
 	want := map[string]bool{
-		"pd /mmr/v1/players/" + fakeriot.DefaultSelf: true,
-		"shared /content-service/v3/content":         true,
+		"pd /mmr/v1/players/" + fakeriot.DefaultSelf:           true,
+		"pd /match-history/v1/history/" + fakeriot.DefaultSelf: true,
+		"shared /content-service/v3/content":                   true,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got requests %v, want exactly %v", got, want)

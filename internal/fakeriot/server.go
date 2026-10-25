@@ -51,7 +51,7 @@ type Server struct {
 	faults      []*Fault
 	inflight    int
 	maxInflight int
-	held        chan struct{}
+	held        []*heldRequest
 	ws          map[*wsConn]bool
 
 	local     *http.Server
@@ -84,8 +84,13 @@ type Fault struct {
 	Header  map[string]string
 	Times   int // 0 keeps the fault until RemoveFaults
 	Delay   time.Duration
-	Hold    bool // wait for ReleaseHeld or the client giving up
+	Hold    bool // wait for Release, ReleaseHeld or the client giving up
 	Drop    bool // close the connection without answering
+}
+
+type heldRequest struct {
+	req     *Request
+	release chan struct{}
 }
 
 type URLs struct {
@@ -100,7 +105,7 @@ func Start(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{now: time.Now, sha1: opts.SHA1Cert, certs: c, ws: map[*wsConn]bool{}, held: make(chan struct{})}
+	s := &Server{now: time.Now, sha1: opts.SHA1Cert, certs: c, ws: map[*wsConn]bool{}}
 	if opts.Clock != nil {
 		s.now = opts.Clock.Now
 	}
@@ -227,12 +232,39 @@ func (s *Server) RemoveFaults() {
 	s.faults = nil
 }
 
+// Held lists the requests waiting on a Hold fault, oldest first
+func (s *Server) Held() []Request {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]Request, len(s.held))
+	for i, h := range s.held {
+		out[i] = *h.req
+	}
+	return out
+}
+
+// Release lets the oldest held request for path answer
+func (s *Server) Release(path string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, h := range s.held {
+		if h.req.Path == path {
+			close(h.release)
+			s.held = append(s.held[:i:i], s.held[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 // ReleaseHeld lets every held response go and stops holding new ones until the next Hold fault
 func (s *Server) ReleaseHeld() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	close(s.held)
-	s.held = make(chan struct{})
+	for _, h := range s.held {
+		close(h.release)
+	}
+	s.held = nil
 	kept := s.faults[:0]
 	for _, f := range s.faults {
 		if !f.Hold {
@@ -417,7 +449,7 @@ func (s *Server) matchFault(service, path string) *Fault {
 }
 
 // applyFault reports whether the fault already answered the request
-func (s *Server) applyFault(f *Fault, w http.ResponseWriter, r *http.Request) bool {
+func (s *Server) applyFault(f *Fault, req *Request, w http.ResponseWriter, r *http.Request) bool {
 	if f.Delay > 0 {
 		select {
 		case <-time.After(f.Delay):
@@ -426,12 +458,21 @@ func (s *Server) applyFault(f *Fault, w http.ResponseWriter, r *http.Request) bo
 		}
 	}
 	if f.Hold {
+		h := &heldRequest{req: req, release: make(chan struct{})}
 		s.mu.Lock()
-		held := s.held
+		s.held = append(s.held, h)
 		s.mu.Unlock()
 		select {
-		case <-held:
+		case <-h.release:
 		case <-r.Context().Done():
+			s.mu.Lock()
+			for i, other := range s.held {
+				if other == h {
+					s.held = append(s.held[:i:i], s.held[i+1:]...)
+					break
+				}
+			}
+			s.mu.Unlock()
 			return true
 		}
 	}
@@ -475,7 +516,7 @@ func (s *Server) serveLocal(rw http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, errorBody(401, "RPC_ERROR", "invalid credentials"))
 		return
 	}
-	if f := s.matchFault("local", r.URL.Path); f != nil && s.applyFault(f, w, r) {
+	if f := s.matchFault("local", r.URL.Path); f != nil && s.applyFault(f, req, w, r) {
 		return
 	}
 	if r.URL.Path == "/" {
@@ -545,7 +586,7 @@ func (s *Server) serveRemote(rw http.ResponseWriter, r *http.Request) {
 	req := s.begin(service, region, shard, path, r)
 	defer func() { s.end(req, w.status, r.Context()) }()
 
-	if f := s.matchFault(service, path); f != nil && s.applyFault(f, w, r) {
+	if f := s.matchFault(service, path); f != nil && s.applyFault(f, req, w, r) {
 		return
 	}
 	if service != "static" {

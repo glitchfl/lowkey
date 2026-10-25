@@ -12,7 +12,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-var meColumns = []string{"name", "rank", "peak", "last_act", "wr", "wl"}
+var meColumns = []string{"name", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains"}
 
 func runMe(ctx context.Context, env Env, opts options) int {
 	out := env.Console.Out
@@ -50,29 +50,25 @@ func runMe(ctx context.Context, env Env, opts options) int {
 		return 1
 	}
 
-	body, err := l.client.Get(ctx, remote.Shared, "/content-service/v3/content", nil)
-	if err != nil {
-		fmt.Fprintf(out, "lowkey me: content: %v\n", err)
-		return 1
-	}
-	acts, err := stats.DecodeContent(body)
-	if err != nil {
+	lp := newLoop()
+	sched := newScheduler(l.client, env.Clock)
+	defer sched.close()
+	eng := newEngine(sched, lp.post)
+	eng.fetchActs()
+	me := newPlayer(l.self, mode.Queue, 13)
+	eng.lookUp(me, wantRank|wantSample)
+	if err := lp.run(ctx, func() bool { return eng.busy == 0 }, nil); err != nil {
 		fmt.Fprintf(out, "lowkey me: %v\n", err)
 		return 1
 	}
-	body, err = l.client.Get(ctx, remote.PD, "/mmr/v1/players/"+l.self, nil)
-	if err != nil {
-		fmt.Fprintf(out, "lowkey me: rank data: %v\n", err)
-		return 1
-	}
-	mmr, err := stats.DecodeMMR(body)
-	if err != nil {
-		fmt.Fprintf(out, "lowkey me: %v\n", err)
-		return 1
+	for what, err := range map[string]error{"content": eng.actsErr, "rank data": me.mmrErr, "match history": me.historyErr} {
+		if err != nil {
+			fmt.Fprintf(out, "lowkey me: %s: %v\n", what, err)
+			return 1
+		}
 	}
 
-	row := render.Row{}
-	rankCells(row, stats.RankOf(mmr, acts, mode.Queue, data.CurrentTier), data, mode)
+	row := playerRow(me, mode, eng.acts, data)
 	screen := render.Screen{
 		Header:   "YOU · " + mode.Name,
 		Sections: []render.Section{{Rows: []render.Row{row}}},

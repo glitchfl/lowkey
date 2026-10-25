@@ -2,6 +2,8 @@ package app_test
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -108,4 +110,46 @@ func line(t *testing.T, out, item string) string {
 	}
 	t.Fatalf("no doctor line for %q in:\n%s", item, out)
 	return ""
+}
+
+// eventually polls a condition the way a person watching the screen would
+func eventually(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+}
+
+// waitHeld waits until n requests are parked on a Hold fault and returns their paths
+func waitHeld(t *testing.T, fr *fakeriot.Server, n int) []string {
+	t.Helper()
+	var paths []string
+	eventually(t, fmt.Sprintf("%d held requests", n), func() bool {
+		held := fr.Held()
+		if len(held) != n {
+			return false
+		}
+		paths = paths[:0]
+		for _, h := range held {
+			paths = append(paths, h.Path)
+		}
+		return true
+	})
+	sort.Strings(paths)
+	return paths
+}
+
+// start runs a command in the background so the test can step fakeriot meanwhile
+func (r *rig) start(args ...string) <-chan int {
+	done := make(chan int, 1)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		done <- app.Run(ctx, r.env, args)
+	}()
+	return done
 }

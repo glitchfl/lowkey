@@ -133,3 +133,27 @@ func (r Rank) WinRate() int {
 	}
 	return int(float64(r.Wins)/float64(games)*100 + 0.5)
 }
+
+type Update struct {
+	MatchID string
+	Start   time.Time
+	Earned  int
+}
+
+func DecodeUpdates(body []byte) ([]Update, error) {
+	var v struct {
+		Matches []struct {
+			MatchID            string `json:"MatchID"`
+			MatchStartTime     int64  `json:"MatchStartTime"`
+			RankedRatingEarned int    `json:"RankedRatingEarned"`
+		} `json:"Matches"`
+	}
+	if err := json.Unmarshal(body, &v); err != nil {
+		return nil, fmt.Errorf("competitive updates aren't JSON: %w", err)
+	}
+	out := make([]Update, 0, len(v.Matches))
+	for _, m := range v.Matches {
+		out = append(out, Update{MatchID: strings.ToLower(m.MatchID), Start: time.UnixMilli(m.MatchStartTime), Earned: m.RankedRatingEarned})
+	}
+	return out, nil
+}

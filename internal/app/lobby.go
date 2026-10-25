@@ -40,7 +40,6 @@ type member struct {
 
 const (
 	rosterEvery    = 3 * time.Second
-	defaultCutoff  = 40 * time.Second
 	sessionRefresh = 15 * time.Second
 )
 
@@ -56,7 +55,7 @@ func (l *lobby) member(puuid string) *member {
 func (lv *live) startAgentSelect(matchID string) {
 	lv.setPhase(phaseAgentSelect)
 	lv.rateLimit, lv.problem = rateFine, ""
-	if q, ok := lv.presenceQueue(); ok && !tracked(q) {
+	if q, ok := lv.presenceQueue(); ok && !lv.tracked(q) {
 		lv.untrackedMode(q)
 		return
 	}
@@ -84,7 +83,7 @@ func (lv *live) startMatchLoad(matchID string) {
 	if lv.untracked != "" {
 		return
 	}
-	if q, ok := lv.presenceQueue(); ok && !tracked(q) && (prev == nil || !prev.known) {
+	if q, ok := lv.presenceQueue(); ok && !lv.tracked(q) && (prev == nil || !prev.known) {
 		lv.untrackedMode(q)
 		return
 	}
@@ -98,7 +97,7 @@ func (lv *live) startMatchLoad(matchID string) {
 	}
 	lv.lobby = lob
 	lv.guard.SetWindow(remote.MatchLoad)
-	lv.cutoffStop = lv.env.Clock.AfterFunc(defaultCutoff, func() {
+	lv.cutoffStop = lv.env.Clock.AfterFunc(lv.cfg.Settings().Cutoff, func() {
 		lv.loop.post(func() { lv.onCutoff(lob) })
 	})
 	lv.ensureTarget(func() {
@@ -155,7 +154,7 @@ func (lv *live) refreshSessionInMenus() {
 		return
 	}
 	lv.guard.SetWindow(remote.SessionRefresh)
-	sess := newSession(lv.self, lv.env.Clock.Now(), defaultResetHour)
+	sess := newSession(lv.self, lv.env.Clock.Now(), lv.cfg.Settings().SessionResetHour)
 	lv.ensureTarget(func() {
 		lv.eng.refreshSession(sess, func() {
 			if lv.phase == phaseMenus {
@@ -247,25 +246,30 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		if !ok || queue == "" && lob.kind == lobbyMatchLoad {
 			queue, ok = lv.presenceQueue()
 		}
-		mode, tracked := stats.ModeByQueue(queue)
-		if !tracked {
+		mode, known := stats.ModeByQueue(queue)
+		if !known || !lv.tracked(queue) {
 			lv.untrackedMode(queue)
 			return
 		}
 		lob.mode, lob.mapURL, lob.known = mode, roster.Map, true
 		lv.eng.fetchActs()
 		if lob.kind == lobbyAgentSelect {
-			sess := newSession(lv.self, lv.env.Clock.Now(), defaultResetHour)
+			sess := newSession(lv.self, lv.env.Clock.Now(), lv.cfg.Settings().SessionResetHour)
 			lv.eng.refreshSession(sess, nil)
 			lv.sess = sess
 		}
 	}
+	cfg := lv.cfg.Settings()
 	for _, rp := range roster.Players {
 		if rp.PUUID == lv.self {
 			lob.ownTeam = rp.Team
 		}
-		// the guard learns streamer mode straight from Riot's data, whatever the rows decide
-		if rp.Incognito {
+	}
+	for _, rp := range roster.Players {
+		// the guard learns streamer mode straight from Riot's data, whatever the rows decide - and with
+		// enemy lookups off it refuses anything about an enemy too
+		offLimits := !cfg.EnemyLookups && lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
+		if rp.Incognito || offLimits {
 			lv.guard.Hide(rp.PUUID)
 		}
 	}
@@ -274,8 +278,9 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		m := lob.member(rp.PUUID)
 		if m == nil {
 			m = &member{puuid: rp.PUUID, hidden: rp.Incognito && rp.PUUID != lv.self}
-			if !m.hidden {
-				m.p = newPlayer(m.puuid, lob.mode.Queue, defaultMatches)
+			enemy := lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
+			if !m.hidden && (cfg.EnemyLookups || !enemy) {
+				m.p = newPlayer(m.puuid, lob.mode.Queue, cfg.Matches)
 				want := wantRank | wantTrend | wantSample
 				if m.puuid == lv.self {
 					// your trend comes from the session's competitive updates
@@ -308,7 +313,10 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 }
 
 func (lv *live) untrackedMode(queue string) {
-	if queue == "" {
+	switch m, ok := stats.ModeByQueue(queue); {
+	case ok:
+		queue = m.Key
+	case queue == "":
 		queue = "custom games"
 	}
 	lv.untracked = queue
@@ -331,9 +339,8 @@ func (lv *live) presenceQueue() (string, bool) {
 	return lv.presence.QueueID, lv.presence.HasQueueID
 }
 
-func tracked(queue string) bool {
-	_, ok := stats.ModeByQueue(queue)
-	return ok
+func (lv *live) tracked(queue string) bool {
+	return lv.cfg.Settings().Tracks(queue)
 }
 
 func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
@@ -378,7 +385,7 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 		if mark, ok := marks[m.puuid]; ok {
 			row["party"] = render.Cell{Text: mark}
 		}
-		if e, ok := met[m.puuid]; ok && !m.hidden {
+		if e, ok := met[m.puuid]; ok && !m.hidden && m.p != nil {
 			row["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
 		}
 		sec.Rows = append(sec.Rows, row)
@@ -390,6 +397,9 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 	if m.hidden {
 		return render.Row{"name": {Text: "hidden"}, "agent": lv.agentCell(m.agent)}
+	}
+	if m.p == nil {
+		return render.Row{"agent": lv.agentCell(m.agent)}
 	}
 	if m.puuid == lv.self && lv.sess != nil && lv.sess.done {
 		m.p.updates, m.p.updatesDone, m.p.updatesErr = lv.sess.updates, true, lv.sess.err
@@ -426,7 +436,7 @@ func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 	var kds, hss, acss, adrs, fbs []float64
 	a := averages{size: len(members)}
 	for _, m := range members {
-		if m.hidden {
+		if m.hidden || m.p == nil {
 			continue
 		}
 		if m.p.historyDone && m.p.historyErr == nil {

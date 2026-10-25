@@ -8,13 +8,13 @@ import (
 	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/render"
+	"github.com/glitchfl/lowkey/internal/settings"
 	"github.com/glitchfl/lowkey/internal/static"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-var meColumns = []string{"name", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend"}
-
-const defaultResetHour = 6
+// party, agent and met only mean something in a lobby
+var lobbyOnly = map[string]bool{"party": true, "agent": true, "met": true}
 
 func runMe(ctx context.Context, env Env, opts options) int {
 	out := env.Console.Out
@@ -28,6 +28,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 		return 2
 	}
 	data := static.Embedded()
+	cfg := settings.Open(env.Dir).Settings()
 	var rec *record.Recorder
 	if opts.record {
 		var err error
@@ -40,7 +41,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 			fmt.Fprintf(out, "recording saved in %s\n", rec.Dir)
 		}()
 	}
-	l, err := connect(ctx, env, rec)
+	l, err := connect(ctx, env, rec, cfg.Region)
 	if err != nil {
 		fmt.Fprintf(out, "lowkey me: %v\n", err)
 		return 1
@@ -57,9 +58,9 @@ func runMe(ctx context.Context, env Env, opts options) int {
 	defer sched.close()
 	eng := newEngine(sched, lp.post)
 	eng.fetchActs()
-	me := newPlayer(l.self, mode.Queue, defaultMatches)
+	me := newPlayer(l.self, mode.Queue, cfg.Matches)
 	eng.lookUp(me, wantRank|wantSample)
-	sess := newSession(l.self, env.Clock.Now(), defaultResetHour)
+	sess := newSession(l.self, env.Clock.Now(), cfg.SessionResetHour)
 	eng.refreshSession(sess, nil)
 	if err := lp.run(ctx, func() bool { return eng.busy == 0 }, nil); err != nil {
 		fmt.Fprintf(out, "lowkey me: %v\n", err)
@@ -80,7 +81,13 @@ func runMe(ctx context.Context, env Env, opts options) int {
 		Sections: []render.Section{{Rows: []render.Row{row}}},
 		Session:  sess.line(),
 	}
-	for _, line := range screen.Lines(render.Columns(meColumns), env.Console.Width(), env.Console.Terminal) {
+	var columns []string
+	for _, c := range cfg.Columns {
+		if !lobbyOnly[c] {
+			columns = append(columns, c)
+		}
+	}
+	for _, line := range screen.Lines(render.Columns(columns), env.Console.Width(), env.Console.Terminal) {
 		fmt.Fprintln(out, line)
 	}
 	return 0

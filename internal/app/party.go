@@ -63,7 +63,7 @@ func (lv *live) markers(lob *lobby) map[string]string {
 	var candidates []*member
 	for _, m := range lob.members {
 		inParty := lob.party != nil && lob.party.members[m.puuid]
-		if !m.hidden && !inParty && m.puuid != lv.self {
+		if !m.hidden && m.p != nil && !inParty && m.puuid != lv.self {
 			candidates = append(candidates, m)
 		}
 	}

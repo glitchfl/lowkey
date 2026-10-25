@@ -15,6 +15,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
+	"github.com/glitchfl/lowkey/internal/settings"
 	"github.com/glitchfl/lowkey/internal/static"
 )
 
@@ -22,6 +23,7 @@ type doctor struct {
 	env    Env
 	setup  platform.Setup
 	rec    *record.Recorder
+	cfg    *settings.File
 	failed bool
 }
 
@@ -41,7 +43,7 @@ func (d *doctor) skip(needs string, items ...string) {
 }
 
 func runDoctor(ctx context.Context, env Env, opts options, setup platform.Setup) int {
-	d := &doctor{env: env, setup: setup}
+	d := &doctor{env: env, setup: setup, cfg: settings.Open(env.Dir)}
 	if opts.record {
 		rec, err := startRecording(env, static.Embedded())
 		if err != nil {
@@ -184,6 +186,17 @@ func (d *doctor) offline() {
 		ansi = "ANSI on"
 	}
 	d.report(true, "console", fmt.Sprintf("width %d · %s", d.env.Console.Width(), ansi))
+
+	switch {
+	case !d.cfg.Exists():
+		d.report(true, "settings", fmt.Sprintf("no %s yet - defaults in use (the first normal run creates it)", settings.FileName))
+	case d.cfg.Invalid():
+		d.report(false, "settings", d.cfg.Warning())
+	case d.cfg.Warning() != "":
+		d.report(true, "settings", d.cfg.Warning())
+	default:
+		d.report(true, "settings", d.cfg.Path()+" ok")
+	}
 }
 
 func (d *doctor) windows() {
@@ -208,6 +221,11 @@ func (d *doctor) windows() {
 }
 
 func (d *doctor) session(ctx context.Context, local *riot.Local) (region, shard string, ok bool) {
+	if r := d.cfg.Settings().Region; r != "" {
+		shard, _ := riot.Shard(r)
+		d.report(true, "session", fmt.Sprintf("region %s from %s · shard %s", r, settings.FileName, shard))
+		return r, shard, true
+	}
 	sessions, err := local.Sessions(ctx)
 	if err != nil {
 		d.report(false, "session", fmt.Sprintf("external sessions: %v", err))

@@ -117,8 +117,11 @@ func TestMetBeforeLivesInMemoryOnly(t *testing.T) {
 	r.settled("waiting for the next match", "SESSION")
 	r.subscribed()
 	playLobby(t, r)
-	if files, _ := os.ReadDir(r.dir); len(files) != 0 {
-		t.Errorf("lowkey wrote %d files during a clean session", len(files))
+	files, _ := os.ReadDir(r.dir)
+	for _, f := range files {
+		if f.Name() != "lowkey.toml" {
+			t.Errorf("lowkey wrote %s during a clean session", f.Name())
+		}
 	}
 	requests := len(r.fr.RemoteRequests())
 

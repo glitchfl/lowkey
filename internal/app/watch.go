@@ -8,9 +8,9 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// watchLockfile hears about changes through filesystem notifications - it watches the nearest
+// watchFile hears about changes through filesystem notifications - it watches the nearest
 // folder that exists so a Riot Client installed later is still noticed
-func watchLockfile(ctx context.Context, path string, changed func()) error {
+func watchFile(ctx context.Context, path string, changed func()) error {
 	if path == "" {
 		return nil
 	}

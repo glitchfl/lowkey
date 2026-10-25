@@ -28,7 +28,8 @@ type link struct {
 	version     string
 }
 
-func connect(ctx context.Context, env Env, rec *record.Recorder) (*link, error) {
+// connect sets up a one-shot command - a region from lowkey.toml beats the launch arguments
+func connect(ctx context.Context, env Env, rec *record.Recorder, region string) (*link, error) {
 	raw, err := os.ReadFile(env.Lockfile)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("no lockfile at %s - is the Riot Client running?", env.Lockfile)
@@ -55,7 +56,8 @@ func connect(ctx context.Context, env Env, rec *record.Recorder) (*link, error) 
 	if list, err := local.Presences(ctx); err == nil {
 		l.presence, l.hasPresence = riot.OwnValorant(list, ent.Subject)
 	}
-	if sessions, err := local.Sessions(ctx); err == nil {
+	l.region = region
+	if sessions, err := local.Sessions(ctx); err == nil && l.region == "" {
 		if args, ok := riot.ValorantArgs(sessions); ok {
 			l.region = riot.RegionFromArgs(args)
 		}

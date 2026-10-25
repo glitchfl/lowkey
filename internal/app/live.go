@@ -13,6 +13,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/render"
 	"github.com/glitchfl/lowkey/internal/riot"
+	"github.com/glitchfl/lowkey/internal/settings"
 	"github.com/glitchfl/lowkey/internal/static"
 )
 
@@ -27,10 +28,7 @@ const (
 	phaseInRound
 )
 
-const (
-	defaultMatches = 13
-	recentEvents   = 32
-)
+const recentEvents = 32
 
 // live is lowkey's normal mode - everything in it runs on the loop goroutine
 type live struct {
@@ -41,6 +39,7 @@ type live struct {
 	rec  *record.Recorder
 	log  *errlog
 	eng  *engine
+	cfg  *settings.File
 
 	lock    riot.Lockfile
 	conn    *connection
@@ -93,7 +92,10 @@ type connection struct {
 
 func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) int {
 	lv := &live{ctx: ctx, env: env, loop: newLoop(), data: static.Embedded(), log: newErrlog(env.Dir, env.Clock.Now),
-		everHidden: map[string]bool{}}
+		everHidden: map[string]bool{}, cfg: settings.Open(env.Dir)}
+	if err := lv.cfg.Create(); err != nil {
+		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
+	}
 	lv.eng = newEngine(nil, lv.loop.post)
 	if opts.record {
 		rec, err := startRecording(env, lv.data)
@@ -104,9 +106,13 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		defer rec.Close()
 		lv.rec = rec
 	}
-	if err := watchLockfile(ctx, env.Lockfile, func() { lv.loop.post(lv.checkLockfile) }); err != nil {
+	if err := watchFile(ctx, env.Lockfile, func() { lv.loop.post(lv.checkLockfile) }); err != nil {
 		fmt.Fprintf(env.Console.Out, "can't watch for the Riot Client: %v\n", err)
 		return 1
+	}
+	// an edit to lowkey.toml only needs a redraw - the redraw re-reads it
+	if err := watchFile(ctx, lv.cfg.Path(), func() { lv.loop.post(func() {}) }); err != nil {
+		lv.log.printf("can't watch %s: %v", lv.cfg.Path(), err)
 	}
 	lv.loop.post(lv.checkLockfile)
 	lv.loop.run(ctx, func() bool { return false }, lv.redraw)
@@ -391,6 +397,10 @@ func (lv *live) setPhase(p phase) {
 
 // ensureTarget makes sure lowkey knows the region, shard and client version before it asks Riot anything
 func (lv *live) ensureTarget(then func()) {
+	if r := lv.cfg.Settings().Region; r != "" && r != lv.region {
+		lv.region = r
+		lv.shard, _ = riot.Shard(r)
+	}
 	if lv.region == "" {
 		gen, local := lv.gen, lv.conn.local
 		go func() {
@@ -485,12 +495,16 @@ func (lv *live) screen() render.Screen {
 	case rateGaveUp:
 		s.Status = append(s.Status, "Riot is rate-limiting - some stats are missing")
 	}
+	if w := lv.cfg.Warning(); w != "" {
+		s.Status = append([]string{w}, s.Status...)
+	}
 	return s
 }
 
-// redraw writes the whole screen as one write, in place on a terminal
+// redraw writes the whole screen as one write, in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
-	lines := lv.screen().Lines(render.Columns(render.Keys()), lv.env.Console.Width(), lv.env.Console.Terminal)
+	lv.cfg.Refresh()
+	lines := lv.screen().Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), lv.env.Console.Terminal)
 	var frame string
 	if lv.env.Console.Terminal {
 		var b strings.Builder

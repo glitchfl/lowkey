@@ -734,8 +734,13 @@ func (s *Server) route(service, path string, q url.Values) (int, []byte) {
 			return http.StatusOK, w.content()
 		}
 	case "static":
-		if is("v1", "version") {
+		switch {
+		case is("v1", "version"):
 			return http.StatusOK, w.staticVersion()
+		case is("v1", "agents"):
+			return http.StatusOK, w.staticAgents()
+		case is("v1", "maps"):
+			return http.StatusOK, w.staticMaps()
 		}
 	}
 	return notFound()

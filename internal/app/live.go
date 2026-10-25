@@ -41,6 +41,8 @@ type live struct {
 	eng  *engine
 	cfg  *settings.File
 
+	static staticRefresh
+
 	lock    riot.Lockfile
 	conn    *connection
 	gen     int
@@ -97,6 +99,8 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
 	lv.eng = newEngine(nil, lv.loop.post)
+	lv.eng.changed = lv.refreshStatic
+	lv.static.asked = map[string]bool{}
 	if opts.record {
 		rec, err := startRecording(env, lv.data)
 		if err != nil {

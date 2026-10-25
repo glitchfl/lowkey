@@ -3,6 +3,7 @@ package fakeriot
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -481,6 +482,22 @@ func (w *World) staticVersion() []byte {
 		"buildVersion": "20", "engineVersion": "5.3.2.0", "riotClientVersion": w.StaticVersion,
 		"riotClientBuild": "111.0.0.3261.5663", "buildDate": "2026-10-15T22:27:44Z",
 	}})
+}
+
+func (w *World) staticAgents() []byte {
+	list := []obj{}
+	for id, name := range w.StaticAgents {
+		list = append(list, obj{"uuid": id, "displayName": name, "isPlayableCharacter": true})
+	}
+	return mustJSON(obj{"status": 200, "data": list})
+}
+
+func (w *World) staticMaps() []byte {
+	list := []obj{}
+	for url, name := range w.StaticMaps {
+		list = append(list, obj{"uuid": "00000000-0000-4000-8000-" + fmt.Sprintf("%012d", len(list)), "displayName": name, "mapUrl": url})
+	}
+	return mustJSON(obj{"status": 200, "data": list})
 }
 
 func errorBody(status int, code, msg string) []byte {

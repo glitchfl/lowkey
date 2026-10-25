@@ -237,7 +237,10 @@ func (lv *live) stopRosterTimer() {
 }
 
 func (lv *live) applyRoster(lob *lobby, roster riot.Roster) {
-	lv.eng.batch(func() { lv.applyRosterBatch(lob, roster) })
+	lv.eng.batch(func() {
+		lv.applyRosterBatch(lob, roster)
+		lv.refreshStatic()
+	})
 }
 
 func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {

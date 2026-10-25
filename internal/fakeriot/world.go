@@ -98,6 +98,10 @@ type World struct {
 
 	TokenLifetime time.Duration
 	TokenNotReady int // entitlements answers "not ready" this many more times
+
+	// what valorant-api.com knows beyond lowkey's snapshot - agent UUID or map URL to name
+	StaticAgents map[string]string
+	StaticMaps   map[string]string
 }
 
 type RawResponse struct {
@@ -223,6 +227,8 @@ func NewWorld(now time.Time) *World {
 		Shape:           Nested,
 		Raw:             map[string]RawResponse{},
 		TokenLifetime:   time.Hour,
+		StaticAgents:    map[string]string{Jett: "Jett", Sova: "Sova", Omen: "Omen"},
+		StaticMaps:      map[string]string{MapAscent: "Ascent"},
 	}
 	w.PartyMembers = []string{w.Self}
 	w.Players[w.Self] = &Player{PUUID: w.Self, Name: "Kestrel", Tag: "EUW"}

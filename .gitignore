@@ -1,0 +1,9 @@
+CLAUDE.md
+AGENTS.md
+.claude/
+docs/agents/
+.scratch/
+GLOSSARY.md
+docs/adr/
+gemini-deep-research.md
+bin/

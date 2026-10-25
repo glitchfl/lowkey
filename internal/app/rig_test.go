@@ -1,0 +1,111 @@
+package app_test
+
+import (
+	"context"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/glitchfl/lowkey/internal/app"
+	"github.com/glitchfl/lowkey/internal/fakeriot"
+)
+
+var testZone = time.FixedZone("UTC+2", 2*60*60)
+
+// 20:00 local on 2026-10-25, well past the 6am session reset
+var testStart = time.Date(2026, 10, 25, 20, 0, 0, 0, testZone)
+
+type console struct {
+	mu       sync.Mutex
+	frames   []string
+	width    int
+	terminal bool
+}
+
+func (c *console) Write(p []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.frames = append(c.frames, string(p))
+	return len(p), nil
+}
+
+func (c *console) Width() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.width
+}
+
+func (c *console) setWidth(w int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.width = w
+}
+
+func (c *console) output() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return strings.Join(c.frames, "")
+}
+
+type rig struct {
+	t     *testing.T
+	fr    *fakeriot.Server
+	clock *fakeriot.Clock
+	con   *console
+	dir   string
+	env   app.Env
+}
+
+func newRig(t *testing.T, setup ...func(w *fakeriot.World)) *rig {
+	t.Helper()
+	return newRigWith(t, fakeriot.Options{}, setup...)
+}
+
+func newRigWith(t *testing.T, opts fakeriot.Options, setup ...func(w *fakeriot.World)) *rig {
+	t.Helper()
+	clock := fakeriot.NewClock(testStart)
+	world := fakeriot.NewWorld(clock.Now())
+	for _, f := range setup {
+		f(world)
+	}
+	opts.Clock, opts.World = clock, world
+	fr, err := fakeriot.Start(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(fr.Close)
+	r := &rig{t: t, fr: fr, clock: clock, con: &console{width: 120}, dir: t.TempDir()}
+	urls := fr.URLs()
+	r.env = app.Env{
+		Lockfile:   fr.Lockfile(),
+		LocalRoots: fr.Roots(),
+		Servers:    app.Servers{PD: urls.PD, GLZ: urls.GLZ, Shared: urls.Shared, Static: urls.Static},
+		Clock:      clock,
+		Console:    app.Console{Out: r.con, Width: r.con.Width},
+		Dir:        r.dir,
+	}
+	return r
+}
+
+// run executes a one-shot command and returns everything it printed
+func (r *rig) run(args ...string) (string, int) {
+	r.t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	code := app.Run(ctx, r.env, args)
+	return r.con.output(), code
+}
+
+// line finds the output line for a doctor item
+func line(t *testing.T, out, item string) string {
+	t.Helper()
+	for _, l := range strings.Split(out, "\n") {
+		f := strings.Fields(l)
+		if len(f) >= 2 && (f[0] == "PASS" || f[0] == "FAIL") && strings.HasPrefix(strings.TrimSpace(l[4:]), item) {
+			return l
+		}
+	}
+	t.Fatalf("no doctor line for %q in:\n%s", item, out)
+	return ""
+}

@@ -9,11 +9,12 @@ import (
 )
 
 // staticRefresh remembers which unknown IDs a finished refresh already looked for - once per run each
-// whether it worked or not - a refresh the cutoff cancelled never finished so it can go again
+// whether it worked or not - a refresh a dodge or the cutoff cancelled never finished so it can go again
 type staticRefresh struct {
 	asked      map[string]bool
 	agentsBusy bool
 	mapsBusy   bool
+	gen        int
 }
 
 // refreshStatic asks valorant-api.com about agents or maps the snapshot doesn't know - only inside a window
@@ -23,6 +24,10 @@ func (lv *live) refreshStatic() {
 	}
 	if w := lv.guard.Window(); w != remote.AgentSelect && w != remote.MatchLoad {
 		return
+	}
+	// a cancelled refresh never replies - its busy flags belong to the generation it died with
+	if lv.static.gen != lv.eng.gen {
+		lv.static.gen, lv.static.agentsBusy, lv.static.mapsBusy = lv.eng.gen, false, false
 	}
 	var agents []string
 	unknown := func(id string) {

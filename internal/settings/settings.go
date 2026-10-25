@@ -218,8 +218,12 @@ func (f *File) Refresh() bool {
 	if f.exists && fi.ModTime().Equal(f.mtime) {
 		return false
 	}
-	f.exists, f.mtime = true, fi.ModTime()
 	data, err := os.ReadFile(f.path)
+	if err == nil && len(strings.TrimSpace(string(data))) == 0 {
+		// editors truncate before they write - an empty read is a save in progress, so look again next time
+		return false
+	}
+	f.exists, f.mtime = true, fi.ModTime()
 	if err == nil {
 		var s Settings
 		var note string

@@ -42,6 +42,9 @@ type live struct {
 	cfg  *settings.File
 
 	static staticRefresh
+	// alias swaps Riot IDs for the recording's fakes while a frame is rendered for screens.txt
+	alias      func(string) string
+	lastScreen string
 
 	lock    riot.Lockfile
 	conn    *connection
@@ -527,4 +530,19 @@ func (lv *live) redraw() {
 	}
 	lv.frame = frame
 	lv.env.Console.Out.Write([]byte(frame))
+	if lv.rec != nil {
+		lv.recordScreen()
+	}
+}
+
+// recordScreen keeps an anonymized plain copy of each new frame with the recording
+func (lv *live) recordScreen() {
+	lv.alias = lv.rec.Scrubber().Alias
+	lines := lv.screen().Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), false)
+	lv.alias = nil
+	text := strings.Join(lines, "\n")
+	if text != lv.lastScreen {
+		lv.lastScreen = text
+		lv.rec.Screen(lines)
+	}
 }

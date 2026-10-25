@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/glitchfl/lowkey/internal/app"
 	"github.com/glitchfl/lowkey/internal/fakeriot"
 )
 
@@ -221,5 +223,47 @@ func TestARejectedLocalCertificateIsSavedWithTheRecording(t *testing.T) {
 	}
 	if !strings.Contains(string(pem), "-----BEGIN CERTIFICATE-----") {
 		t.Errorf("local-api-chain.pem holds no certificate:\n%s", pem)
+	}
+}
+
+func TestLiveRecordingsKeepAnonymizedScreens(t *testing.T) {
+	r := newRig(t, matchLobby, lobbySamples)
+	r.env.Console.Terminal = true
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	go func() { done <- app.Run(ctx, r.env, []string{"--record"}) }()
+	stopped := false
+	defer func() {
+		if !stopped {
+			cancel()
+			<-done
+		}
+	}()
+	r.screen("waiting for the next match")
+	r.subscribed()
+	r.enterAgentSelect()
+	r.settled("AGENT SELECT", "AllyOne#A1", "AllyTwo#A2")
+	cancel()
+	<-done
+	stopped = true
+
+	raw, err := os.ReadFile(filepath.Join(recordingDir(t, r.dir), "screens.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	screens := string(raw)
+	if !strings.Contains(screens, "AGENT SELECT · Ascent · Competitive") || !strings.Contains(screens, "Dia1 50") {
+		t.Errorf("screens.txt doesn't hold the agent select table:\n%s", screens)
+	}
+	for _, real := range []string{"Kestrel", "AllyOne", "AllyTwo", "EUW"} {
+		if strings.Contains(screens, real) {
+			t.Errorf("screens.txt shows the real name %q", real)
+		}
+	}
+	if !strings.Contains(screens, "self#self") {
+		t.Errorf("your own row should show the self fake:\n%s", screens)
+	}
+	if strings.Contains(screens, "\x1b") {
+		t.Error("screens.txt holds escape codes")
 	}
 }

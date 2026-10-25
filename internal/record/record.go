@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -79,6 +80,18 @@ func (r *Recorder) Remote(service, path, query string, status int, body []byte) 
 
 func (r *Recorder) Event(name string, frame []byte) {
 	r.write(entry{Kind: "event", Event: name, Body: r.sc.JSON(frame)})
+}
+
+// Screen appends a frame as plain text to screens.txt - names must already be aliased
+func (r *Recorder) Screen(lines []string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	f, err := os.OpenFile(filepath.Join(r.Dir, "screens.txt"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	f.WriteString("--- " + r.now().Format(time.RFC3339) + "\n" + strings.Join(lines, "\n") + "\n\n")
 }
 
 // Chain saves a local API certificate chain that lowkey refused - certificates are public

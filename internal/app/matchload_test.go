@@ -180,7 +180,8 @@ func TestTheCutoffStopsEveryLookup(t *testing.T) {
 func TestBackInTheMenusShowsTheLastMatchAndRefreshesTheSession(t *testing.T) {
 	r := fromAgentSelect(t)
 	r.enterMatchLoad()
-	r.screen("MATCH LOADING", "Plat2 10", "US - THEM")
+	// everything, the session refresh included, has to land before the cutoff cancels what's left
+	r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
 	r.clock.Advance(40 * time.Second)
 	r.screen("IN MATCH")
 
@@ -223,7 +224,7 @@ func TestAMatchWithoutAgentSelectLooksEveryoneUp(t *testing.T) {
 	r.screen("waiting for the next match")
 	r.subscribed()
 	r.enterMatchLoad()
-	r.screen("MATCH LOADING", "Dia3 12", "Dia1 50", "Plat2 10", "Gold3 70")
+	r.settled("MATCH LOADING", "Dia3 12", "Dia1 50", "Plat2 10", "Gold3 70")
 	for _, p := range []string{fakeriot.DefaultSelf, ally1, ally2, ally4, enemy1, enemy2, enemy4, enemy5} {
 		if requestsExact(r, "/mmr/v1/players/"+p) != 1 {
 			t.Errorf("%s wasn't looked up once", p)

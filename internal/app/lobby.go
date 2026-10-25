@@ -414,6 +414,11 @@ func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 	}
 	row := playerRow(m.p, mode, lv.eng.acts, lv.data)
 	row["agent"] = lv.agentCell(m.agent)
+	if lv.alias != nil && m.p.historyDone {
+		if name := stats.SampleOf(m.p.puuid, m.p.loaded()).Name; name != "" {
+			row["name"] = render.Cell{Text: cut(lv.alias(name), 16)}
+		}
+	}
 	return row
 }
 

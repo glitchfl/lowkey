@@ -213,6 +213,16 @@ func (s *Scrubber) fake(table map[string]string, v any, self bool, selfFake, pre
 	return fake
 }
 
+// Alias is the fake for a "name#tag" as it appears on screen - the same fakes the JSON got
+func (s *Scrubber) Alias(riotID string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	name, tag, _ := strings.Cut(riotID, "#")
+	fakeName, _ := s.fake(s.names, name, false, SelfName, "player").(string)
+	fakeTag, _ := s.fake(s.tags, tag, false, SelfTag, "t").(string)
+	return fakeName + "#" + fakeTag
+}
+
 // private presence is base64 JSON
 func (s *Scrubber) private(v any) any {
 	enc, ok := v.(string)

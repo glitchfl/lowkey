@@ -27,6 +27,7 @@ type lobby struct {
 	ownTeam string
 	members []*member
 	party   *party
+	started time.Time
 }
 
 type member struct {
@@ -59,7 +60,7 @@ func (lv *live) startAgentSelect(matchID string) {
 		lv.untrackedMode(q)
 		return
 	}
-	lob := &lobby{kind: lobbyAgentSelect, matchID: matchID, party: &party{}}
+	lob := &lobby{kind: lobbyAgentSelect, matchID: matchID, party: &party{}, started: lv.env.Clock.Now()}
 	lv.lobby = lob
 	lv.guard.SetWindow(remote.AgentSelect)
 	lv.ensureTarget(func() {
@@ -87,7 +88,7 @@ func (lv *live) startMatchLoad(matchID string) {
 		lv.untrackedMode(q)
 		return
 	}
-	lob := &lobby{kind: lobbyMatchLoad, matchID: matchID}
+	lob := &lobby{kind: lobbyMatchLoad, matchID: matchID, started: lv.env.Clock.Now()}
 	if prev == nil {
 		lv.rateLimit, lv.problem = rateFine, ""
 	}
@@ -138,6 +139,7 @@ func (lv *live) stopCutoff() {
 func (lv *live) matchEnded() {
 	if lv.lobby != nil && lv.lobby.kind == lobbyMatchLoad && lv.lobby.known {
 		lv.last = lv.lobby
+		lv.remember(lv.lobby)
 	}
 	lv.cancelLobby()
 	lv.stopCutoff()
@@ -347,9 +349,10 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 		return
 	}
 	marks := lv.markers(lob)
+	met := lv.metIndex()
 	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
 	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
-		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks)}
+		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met)}
 		return
 	}
 	var allies, enemies []*member
@@ -362,18 +365,21 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	}
 	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
 	s.Sections = []render.Section{
-		lv.teamSection("ALLIES", allies, lob.mode, marks),
-		lv.teamSection("ENEMIES", enemies, lob.mode, marks),
+		lv.teamSection("ALLIES", allies, lob.mode, marks, met),
+		lv.teamSection("ENEMIES", enemies, lob.mode, marks, met),
 		{Rows: []render.Row{diffRow(us, them)}},
 	}
 }
 
-func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string) render.Section {
+func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter) render.Section {
 	sec := render.Section{Title: title}
 	for _, m := range members {
 		row := lv.memberRow(m, mode)
 		if mark, ok := marks[m.puuid]; ok {
 			row["party"] = render.Cell{Text: mark}
+		}
+		if e, ok := met[m.puuid]; ok && !m.hidden {
+			row["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
 		}
 		sec.Rows = append(sec.Rows, row)
 	}

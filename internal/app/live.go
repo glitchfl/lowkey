@@ -67,6 +67,8 @@ type live struct {
 
 	lobby      *lobby
 	last       *lobby
+	history    []pastLobby
+	everHidden map[string]bool
 	sess       *session
 	rosterAt   time.Time
 	rosterStop func() bool
@@ -90,7 +92,8 @@ type connection struct {
 }
 
 func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) int {
-	lv := &live{ctx: ctx, env: env, loop: newLoop(), data: static.Embedded(), log: newErrlog(env.Dir, env.Clock.Now)}
+	lv := &live{ctx: ctx, env: env, loop: newLoop(), data: static.Embedded(), log: newErrlog(env.Dir, env.Clock.Now),
+		everHidden: map[string]bool{}}
 	lv.eng = newEngine(nil, lv.loop.post)
 	if opts.record {
 		rec, err := startRecording(env, lv.data)
@@ -344,6 +347,7 @@ func (lv *live) toMenus() {
 	from := lv.phase
 	switch from {
 	case phaseAgentSelect:
+		lv.remember(lv.lobby)
 		lv.cancelLobby()
 	case phaseMatchLoad, phaseInRound:
 		lv.matchEnded()

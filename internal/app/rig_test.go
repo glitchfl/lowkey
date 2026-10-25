@@ -57,6 +57,7 @@ type rig struct {
 	con   *console
 	dir   string
 	env   app.Env
+	stop  func()
 }
 
 func newRig(t *testing.T, setup ...func(w *fakeriot.World)) *rig {
@@ -183,14 +184,26 @@ func (r *rig) live() {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan int, 1)
 	go func() { done <- app.Run(ctx, r.env, nil) }()
-	r.t.Cleanup(func() {
-		cancel()
-		select {
-		case <-done:
-		case <-time.After(5 * time.Second):
-			r.t.Error("lowkey didn't stop when its window closed")
-		}
-	})
+	var once sync.Once
+	r.stop = func() {
+		once.Do(func() {
+			cancel()
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				r.t.Error("lowkey didn't stop when its window closed")
+			}
+		})
+	}
+	r.t.Cleanup(r.stop)
+}
+
+// restart closes lowkey's window and opens it again against the same Riot Client
+func (r *rig) restart() *rig {
+	r.t.Helper()
+	r.stop()
+	r.live()
+	return r
 }
 
 // screen waits until the latest frame shows every piece of text and returns that frame

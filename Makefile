@@ -18,7 +18,7 @@ doctor-e2e: build
 	scripts/doctor-e2e.sh bin/lowkey bin/fakeriot
 
 e2e: build
-	LOWKEY_EXE=$(CURDIR)/bin/lowkey go test ./tests/e2e -count=1 -v
+	LOWKEY_EXE="$(CURDIR)/bin/lowkey" go test ./tests/e2e -count=1 -v
 
 clean:
 	rm -rf bin

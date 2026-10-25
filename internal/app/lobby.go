@@ -334,7 +334,8 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	if len(lob.members) == 0 {
 		return
 	}
-	if lob.kind == lobbyAgentSelect {
+	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
+	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
 		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode)}
 		return
 	}

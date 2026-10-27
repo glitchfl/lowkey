@@ -2,7 +2,9 @@ CLAUDE.md
 AGENTS.md
 .claude/
 docs/agents/
-.scratch/
+!.scratch/
+.scratch/*
+!.scratch/data-discovery/
 GLOSSARY.md
 docs/adr/
 gemini-deep-research.md

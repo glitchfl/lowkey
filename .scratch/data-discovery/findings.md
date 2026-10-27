@@ -74,7 +74,7 @@ Live events show services lowkey has never called. Their endpoints are unknown:
 - `ares-region-index/region-index/v1/players/<id>` from a service called `map-rating`, fired after each competitive game
 - `ares-accolades/accolades/v1/players/<id>` and `ares-mastery/bloomline/v0/players/<id>/matches`
 
-`windows-brief.md` covers these (Windows test items 11–13).
+`windows-brief.md` covers these (its Windows test items are in `windows-tests/`).
 
 ## Side findings
 

@@ -9,7 +9,7 @@ This session is about finding data, not testing lowkey. The Mac found services i
 
 This brief lives on the `data-discovery` branch, at `.scratch/data-discovery/windows-brief.md`, next to the Mac's `findings.md`. Read the findings only if a step leaves you unsure what to look for.
 
-The numbers in parentheses, like (item 11), are the test queue's item numbers. Use them in your report.
+The numbers in parentheses, like (item 01), are this feature's Windows test items, in `windows-tests/` next to this brief. Use them in your report.
 
 ## Running the session
 
@@ -65,8 +65,8 @@ Riot is actively banning tools that reveal hidden players or automate agent sele
 
 Everything goes back through the repo: one folder, `sessions/<YYYY-MM-DD>-discovery/` on the `data-discovery` branch, using the session's date. Nothing from this session goes on `main`. Build it in `%USERPROFILE%\lowkey\for-the-mac` first. By the end it holds exactly:
 - `report.md`, kept up to date as you go
-- `endpoints.md` (item 11)
-- `local-api-help.json` (item 11)
+- `endpoints.md` (item 01)
+- `local-api-help.json` (item 01)
 - `recordings.zip`, made in phase 3
 
 In `report.md`, give each item a section with its number and title, a status (done, partial or skipped, with the reason), your findings as short bullets, and any values or shapes the step asks for.
@@ -75,8 +75,8 @@ In `report.md`, give each item a section with its number and title, a status (do
 
 | When | What | Items |
 |---|---|---|
-| 0:00–0:15 | Setup, local `/help`, a tour of client screens, the first census, own-data probes | 11, 12 |
-| 0:15–1:00 | One Competitive match, then the post-match questions and a second census | 13, 11, 12 |
+| 0:00–0:15 | Setup, local `/help`, a tour of client screens, the first census, own-data probes | 01, 02 |
+| 0:15–1:00 | One Competitive match, then the post-match questions and a second census | 03, 01, 02 |
 | 1:00–1:05 | Wrap-up: scrub, zip, push | |
 
 ## Phase 1 · Setup and the census (about 15 minutes)
@@ -90,13 +90,13 @@ In `report.md`, give each item a section with its number and title, a status (do
    ```powershell
    Start-Process -FilePath "$env:USERPROFILE\lowkey\lowkey.exe" -ArgumentList "--record" -WorkingDirectory "$env:USERPROFILE\lowkey"
    ```
-3. Tell the user a lowkey window opened, and to leave it open on the second monitor for the whole session. Its recording saves every response lowkey gets, including the match details the Mac needs for item 13.
+3. Tell the user a lowkey window opened, and to leave it open on the second monitor for the whole session. Its recording saves every response lowkey gets, including the match details the Mac needs for item 03.
 
-### 2. The local API's own list (item 11)
+### 2. The local API's own list (item 01)
 
 `GET https://127.0.0.1:<port>/help`. Save the response as `for-the-mac\local-api-help.json`, after checking it holds no IDs, names or tokens.
 
-### 3. A tour of the client (item 11)
+### 3. A tour of the client (item 01)
 
 Ask the user to go through these screens in order, staying about 5 s on each, then tell you they're done:
 1. Career → Match History, then open one recent competitive match and click through every tab it has
@@ -107,7 +107,7 @@ Ask the user to go through these screens in order, staying about 5 s on each, th
 
 Note the time they start and finish.
 
-### 4. The census (item 11)
+### 4. The census (item 01)
 
 The game logs its own HTTP requests in `%LOCALAPPDATA%\VALORANT\Saved\Logs\ShooterGame.log`. Its bracket timestamps are UTC.
 
@@ -156,7 +156,7 @@ The game logs its own HTTP requests in `%LOCALAPPDATA%\VALORANT\Saved\Logs\Shoot
 3. Before saving, read the table for anything private that slipped through: Riot IDs in a path, tokens, signatures or long random strings. Replace each with a placeholder.
 4. At the top of your report, call out the shapes that look like lifetime stats, map rating (the service is called `map-rating`, under `region-index`), accolades or mastery (`bloomline`).
 
-### 5. Own-data probes (item 12)
+### 5. Own-data probes (item 02)
 
 1. From `endpoints.md` and `local-api-help.json`, pick every endpoint about player stats, ratings, accolades or mastery that lowkey doesn't already call. lowkey already calls `mmr/v1/players`, `mmr/v1/players/.../competitiveupdates`, `match-history/v1/history`, `match-details/v1/matches`, `pregame`, `core-game`, the user's own two `parties` reads and `content-service/v3/content`. Anything on the "never use" list stays out, even if the game calls it.
 2. Get what you need from the local API:
@@ -183,7 +183,7 @@ The game logs its own HTTP requests in `%LOCALAPPDATA%\VALORANT\Saved\Logs\Shoot
 
 **Phase 1 is done when** `local-api-help.json` and `endpoints.md` are saved, the probes are in your report, and the user is queueing for Competitive.
 
-## Phase 2 · The match (item 13, then 11 and 12 again)
+## Phase 2 · The match (item 03, then 01 and 02 again)
 
 1. During agent select and the match, stay quiet.
 2. When the user is back in the menus, ask in one message:

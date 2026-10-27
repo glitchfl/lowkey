@@ -17,6 +17,16 @@ type Roster struct {
 	Players []RosterPlayer
 }
 
+// Has says whether a player is in the roster - a match you left goes on without you
+func (r Roster) Has(puuid string) bool {
+	for _, p := range r.Players {
+		if p.PUUID == puuid {
+			return true
+		}
+	}
+	return false
+}
+
 type RosterPlayer struct {
 	PUUID     string
 	Team      string

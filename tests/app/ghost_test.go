@@ -57,6 +57,32 @@ func TestAnEventAboutAnEndedMatchLeavesAgentSelectAlone(t *testing.T) {
 	r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
 }
 
+func TestAnEventAboutAMatchYouLeftIsDropped(t *testing.T) {
+	const left = "c9000000-0000-4000-8000-0000000000ff"
+	r := newRig(t, matchLobby, func(w *fakeriot.World) {
+		w.Raw["glz /core-game/v1/matches/"+left] = fakeriot.RawResponse{Status: 200, Body: []byte(
+			`{"MatchID":"` + left + `","State":"IN_PROGRESS","MapID":"/Game/Maps/Jam/Jam","Players":[{"Subject":"` + enemy1 +
+				`","TeamID":"Blue","CharacterID":"` + fakeriot.Raze + `","PlayerIdentity":{"Incognito":false}}],"MatchmakingData":{"QueueID":"competitive"}}`)}
+	})
+	r.live()
+	r.screen("waiting for the next match")
+	r.subscribed()
+	r.fr.EmitCoreGame(left, false)
+	eventually(t, "the match you left checked", func() bool { return requestsExact(r, "/core-game/v1/matches/"+left) == 1 })
+	r.clock.Advance(time.Minute)
+	settle()
+	frame := r.screen("waiting for the next match")
+	if strings.Contains(frame, "MATCH LOADING") || strings.Contains(frame, "IN MATCH") {
+		t.Fatalf("a match you left started a match load:\n%s", frame)
+	}
+	if n := requestsExact(r, "/mmr/v1/players/"+enemy1); n != 0 {
+		t.Errorf("a player from the match you left was looked up %d times", n)
+	}
+
+	r.enterMatchLoad()
+	r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
+}
+
 func TestAnEventAboutAnUnknownEndedMatchIsDroppedInTheMenus(t *testing.T) {
 	r := newRig(t, matchLobby, endedMatchServed)
 	r.live()

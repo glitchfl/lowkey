@@ -209,7 +209,8 @@ func (lv *live) fetchRoster(lob *lobby) {
 			lv.problem = fmt.Sprintf("can't load the roster: %v", err)
 			return
 		}
-		if roster.Over {
+		// a match that ended or one you're not in is a leftover - Riot keeps sending events about both
+		if roster.Over || lob.kind == lobbyMatchLoad && !roster.Has(lv.self) {
 			lv.matchOver(lob)
 			return
 		}

@@ -178,6 +178,11 @@ func (lv *live) findMatchID(lob *lobby, path string) {
 			lv.problem = fmt.Sprintf("can't find your match: %v", err)
 			return
 		}
+		if lv.ended(lob.matchID) {
+			// Riot still points at the match that just ended - the next lifecycle event names the new one
+			lob.matchID = ""
+			return
+		}
 		lv.fetchRoster(lob)
 	})
 }
@@ -204,8 +209,22 @@ func (lv *live) fetchRoster(lob *lobby) {
 			lv.problem = fmt.Sprintf("can't load the roster: %v", err)
 			return
 		}
+		if roster.Over {
+			lv.matchOver(lob)
+			return
+		}
 		lv.applyRoster(lob, roster)
 	})
+}
+
+// matchOver drops a match load for a match that already ended - a late event about it started the
+// load - and lets your presence say where you really are
+func (lv *live) matchOver(lob *lobby) {
+	lv.finish(lob.matchID)
+	lv.cancelLobby()
+	lv.stopCutoff()
+	lv.setPhase(phaseMenus)
+	lv.applyPresence(lv.presence, true, false)
 }
 
 // refreshRoster re-fetches the roster at most every 3 s however many hover and lock events arrive

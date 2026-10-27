@@ -29,8 +29,9 @@ const (
 )
 
 const (
-	recentEvents = 32
-	redrawEvery  = 250 * time.Millisecond
+	recentEvents    = 32
+	finishedMatches = 8
+	redrawEvery     = 250 * time.Millisecond
 )
 
 var phaseTitles = map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}
@@ -71,6 +72,8 @@ type live struct {
 	untracked   string
 	problem     string
 	recent      []string
+	matchID     string   // the match your presence is in - learned from lifecycle events
+	finished    []string // matches that ended - late lifecycle events about them are ignored
 	rateLimit   rateState
 	unreachable bool
 
@@ -293,8 +296,12 @@ func (lv *live) event(gen int, ev riot.Event) {
 		}
 	case riot.EventMessaging:
 		lc, ok := riot.ParseLifecycle(ev)
-		if !ok || lv.duplicate(ev.DedupeKey()) {
+		if !ok || lv.duplicate(ev.DedupeKey()) || lv.ended(lc.MatchID) {
 			return
+		}
+		// only an event while your presence is in a match names your match - so a late one can't
+		if lv.presenceInMatch() {
+			lv.matchID = lc.MatchID
 		}
 		if lc.Pregame {
 			lv.onPregame(lc.MatchID)
@@ -313,6 +320,34 @@ func (lv *live) duplicate(key string) bool {
 	lv.recent = append(lv.recent, key)
 	if len(lv.recent) > recentEvents {
 		lv.recent = lv.recent[1:]
+	}
+	return false
+}
+
+// finish remembers a match that's over - Riot keeps sending events about it for minutes after
+func (lv *live) finish(matchID string) {
+	if matchID == "" || lv.ended(matchID) {
+		return
+	}
+	lv.finished = append(lv.finished, matchID)
+	if len(lv.finished) > finishedMatches {
+		lv.finished = lv.finished[1:]
+	}
+}
+
+func (lv *live) ended(matchID string) bool {
+	for _, id := range lv.finished {
+		if id == matchID {
+			return true
+		}
+	}
+	return false
+}
+
+func (lv *live) presenceInMatch() bool {
+	switch strings.ToUpper(lv.presence.SessionLoopState) {
+	case riot.LoopPregame, riot.LoopIngame:
+		return true
 	}
 	return false
 }
@@ -356,6 +391,8 @@ func (lv *live) toIdle() {
 
 func (lv *live) toMenus() {
 	from := lv.phase
+	lv.finish(lv.matchID)
+	lv.matchID = ""
 	switch from {
 	case phaseAgentSelect:
 		lv.remember(lv.lobby)

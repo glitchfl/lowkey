@@ -12,7 +12,19 @@ type Roster struct {
 	HasQueue bool
 	Map      string
 	Mode     string
-	Players  []RosterPlayer
+	// Over is a core-game match that already ended - Riot keeps answering for it after the end
+	Over    bool
+	Players []RosterPlayer
+}
+
+// Has says whether a player is in the roster - a match you left goes on without you
+func (r Roster) Has(puuid string) bool {
+	for _, p := range r.Players {
+		if p.PUUID == puuid {
+			return true
+		}
+	}
+	return false
 }
 
 type RosterPlayer struct {
@@ -84,6 +96,7 @@ func DecodePregame(body []byte) (Roster, error) {
 func DecodeCoreGame(body []byte) (Roster, error) {
 	var v struct {
 		MatchID         string         `json:"MatchID"`
+		State           string         `json:"State"`
 		MapID           string         `json:"MapID"`
 		ModeID          string         `json:"ModeID"`
 		Players         []rosterPlayer `json:"Players"`
@@ -94,7 +107,7 @@ func DecodeCoreGame(body []byte) (Roster, error) {
 	if err := json.Unmarshal(body, &v); err != nil {
 		return Roster{}, fmt.Errorf("core-game match isn't JSON: %w", err)
 	}
-	r := Roster{MatchID: strings.ToLower(v.MatchID), Map: v.MapID, Mode: v.ModeID}
+	r := Roster{MatchID: strings.ToLower(v.MatchID), Map: v.MapID, Mode: v.ModeID, Over: v.State == "CLOSED" || v.State == "POST_GAME"}
 	if v.MatchmakingData != nil {
 		r.Queue, r.HasQueue = v.MatchmakingData.QueueID, true
 	}

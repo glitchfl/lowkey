@@ -1,0 +1,15 @@
+lowkey v0.1.0 doctor
+PASS  lockfile        C:\Users\itayf\AppData\Local\Riot Games\Riot Client\Config\lockfile (port 49884)
+PASS  local API       https://127.0.0.1:49884 answers with the lockfile password
+PASS  entitlements    tokens obtained - expires in 57m
+PASS  phase           Menus (hybrid presence)
+PASS  session         region eu · shard eu
+PASS  client version  release-13.08-shipping-22-5760300 (from presence)
+PASS  rank data       your rank data came back from pd (shard eu)
+PASS  static data     snapshot from 2026-10-25 (1 days old)
+PASS  priority        below normal
+PASS  efficiency      on (EcoQoS)
+PASS  console         width 120 · ANSI off - plain output
+PASS  settings        no lowkey.toml yet - defaults in use (the first normal run creates it)
+recording saved in C:\Users\itayf\lowkey\lowkey-record-20261027-124517
+all checks passed

@@ -2,7 +2,7 @@
 
 - operator: Claude Code (Opus 5.5) on the Windows PC, working from the 2026-10-25 brief
 - session start: 12:33:27 local (UTC+02:00), so every time below is local unless it says UTC
-- planned end: about 13:33
+- planned end: about 13:33. In practice the user kept playing until 17:04 (four competitive games on the patched build), and the wrap-up below was written at 18:10
 
 ## 01 · Environment basics
 - status: done
@@ -14,7 +14,7 @@
 - GitHub CLI 2.103.2 (2026-10-23), logged in as the repo owner's account (keyring, scopes `gist`, `read:org`, `repo`). The repo is private and this account is ADMIN on it
 - Go: not installed (not on PATH, no `C:\Program Files\Go`)
 - Valorant: installed in the default location, `C:\Riot Games\VALORANT\live\VALORANT.exe`, with the Riot Client at `C:\Riot Games\Riot Client\RiotClientServices.exe`. `RiotClientInstalls.json` and the product settings agree
-- side note: the Desktop is redirected to OneDrive (`C:\Users\itayf\OneDrive\Desktop`), so the final zip goes there rather than `%USERPROFILE%\Desktop`
+- side note: the Desktop is redirected to OneDrive (`C:\Users\itayf\OneDrive\Desktop`), so `%USERPROFILE%\Desktop` is the wrong place for a hand-over zip. The user asked for the hand-over to go through the repo instead, so everything is in `sessions/2026-10-27-windows/` on `main`
 
 ## 08 · Get lowkey, doctor and the first recording
 - status: done
@@ -37,7 +37,8 @@
   - console `width 120 · ANSI off - plain output` and settings `no lowkey.toml yet`, the two expected lines
 
 ## 09 · The user's own row
-- status: partial. Both rows are saved; the SESSION check against the user's real record comes in phase 3
+- status: partial. Both rows are saved. `me-after.txt` was skipped: by wrap-up (18:08) Valorant had been closed since 17:04 and the Riot Client was logged out, so `lowkey me` had nothing to connect to. The user didn't give their real W-L and RR for the SESSION check
+- SESSION line over the day (live frames, v0.1.2): `0W 0L +0` → after Bind `0W 1L -18` → after Sunset `1W 1L +2` → after Corrode `2W 1L +20` → after Summit **`3W 1L +38 RR since 06:00`** (17:04:19). Each step matches one result in order (L −18, W +20, W +18, W +18), but none of it is checked against the client
 - `me --record` at 12:45:56, finished in about 3 s, exit 0. Saved as `me-competitive.txt`, recording `lowkey-record-20261027-124556`:
   - `RANK Asc1 44 · PEAK Asc3 · LAST Dia3 · WR 58% · W-L 11-8 · K/D 1.16 · HS% 30% · ACS 236 · ADR 160 · FB% 6% · N 13 · MAINS Vyse Clov · TREND +23`
   - `SESSION · 0W 0L +0 RR since 06:00`
@@ -51,13 +52,13 @@
 - `players[]` keys seen in real match details (union): `accountLevel, behaviorFactors, bonsaiBloomline, characterId, competitiveTier, gameName, isObserver, newPlayerExperienceDetails, participationPeriods, partyId, platformInfo, playerCard, playerTitle, preferredLevelBorder, premierPrestige, roundDamage, scores, sessionPlaytimeMinutes, stats, subject, tagLine, teamId, teamNumber, xpModifications`. Some entries lack `preferredLevelBorder`, `sessionPlaytimeMinutes` or `xpModifications`
 
 ## 07 · Display and comfort
-- status: in progress (the first two answers are in, the comfort questions come after match 1)
+- status: partial. The first two answers are in. The comfort questions (window visible and readable, alt-tabbing in agent select) and the FPS/stutter/input question were never answered, because the user went straight from match to match
 - monitors: 2, both 2560×1440 side by side. The primary is `\\.\DISPLAY2` at (0,0), running 164 Hz per the GPU (RTX 4060 Ti). `\\.\DISPLAY1` sits to its right at (2560,0). Device Manager names them Odyssey G5 and GM2711S. The user asked me to look these up rather than report them
 - Valorant display mode: Windowed Fullscreen
 - the user plays **true stretched**, and for that keeps both monitor devices disabled in Device Manager. Both show as `Generic Monitor (…)`, status Error, `CM_PROB_DISABLED`, still present, so Windows reports no monitor info through WMI. With Valorant closed, the desktop is at the native 2560×1440
 
 ## 10 · Games
-- status: in progress
+- status: done. 11 lobbies over 4 h 16 m: the Range ×2, Deathmatch ×3, TDM, Glitch and Competitive ×4. Two Deathmatches were missed on v0.1.0 by the ghost bug, which v0.1.2 fixes, and every match after the swap was caught
 - lowkey started at 12:48:11 with `Start-Process … --record`. It opened in a Windows Terminal window titled `lowkey` and created `lowkey.toml`. Recording: `lowkey-record-20261027-124811`
 - first frame at 12:48:12: `waiting for the next match`, then `SESSION · 0W 0L +0 RR since 06:00`
 - the user's true-stretch launch moved things: once Valorant was up, `\\.\DISPLAY1` became the primary at **1280×880** (the stretched resolution) and `\\.\DISPLAY2` (2560×1440) became the second monitor at x=1280. lowkey is meant to sit on DISPLAY2
@@ -116,11 +117,11 @@
   - `AVERAGE 4/5  Plat1  Plat2  Plat3  18%  1.30  35%  +40`
   - ACS, ADR and FB% are `-` in TDM, as the mode rules say
 - frames: AGENT SELECT 13:04:22 · MATCH LOADING 13:05:30 · IN MATCH 13:06:10 · LAST MATCH 13:12:27
-- gameplay start: 13:06:06.4 (`Gameplay started` in ShooterGame.log, see Loading times below), **36 s after MATCH LOADING**. TDM has no buy phase. The game state went `TransitionToInGame` 13:05:30.6 → `InGame` 13:05:46.7, then about 20 s of pre-round
+- gameplay start: 13:06:06.4 (`Gameplay started` in ShooterGame.log, see Loading times below), **36 s after MATCH LOADING, so combat began 4 s before lowkey's 40 s cutoff**. TDM has no buy phase. The game state went `TransitionToInGame` 13:05:30.6 → `InGame` 13:05:46.7, then about 20 s of pre-round
 - requests: agent select made 60 requests (13:04:22.0–13:05:27.3): pregame ×11, mmr ×9, match-history ×4, match-details ×34, own party ×2. Match load made 60 more (13:05:30.7–13:05:38.6): core-game ×1, mmr ×8, match-history ×4, match-details ×47. **All 200, no rate limiting.** The last request went out 28 s before gameplay started, and nothing during play
 - core-game at match load: `State: IN_PROGRESS`, 10 players, map `HURM_Yard`, queue `hurm`. `PregameState` went `character_select_active` → `character_select_finished` at 13:05:27
 - **the ghost wiped the real LAST MATCH table.** The match ended (RMS burst 13:12:24.0–13:12:26.7, presence MENUS 13:12:27.1) and the real `LAST MATCH · Piazza · TDM` appeared at 13:12:27. Then the late RMS `matches/<tdm>` arrived at 13:12:56.3 (32 s after the burst), lowkey fetched it (`State: CLOSED`, **0 players**), and drew a ghost `MATCH LOADING · Piazza · TDM`. When the user's queue started at 13:13:05, `toMenus()` filed that empty ghost as the last match, so from 13:13:05 the screen showed `LAST MATCH · Piazza · TDM` with **no rows at all**. The last-match view only lasts about 30 s after each match
-- table against the game: (user's answers pending)
+- table against the game: not checked, the user never answered the after-match questions
 - status lines: none
 - dodge: no
 - reading at 13:13:35: CPU 3.63 s · 27 MB (peak 31 MB) · BelowNormal. Agent select plus match load for TDM cost about 3.3 s of CPU
@@ -156,7 +157,7 @@
 
 ## Patched build for the competitive game (v0.1.1 → v0.1.2)
 - the user asked for the ghost bug to be fixed before a competitive game, and for a release. Go 1.26.10 was fetched as a portable zip into a temp folder (checksum verified against go.dev), with nothing installed system-wide
-- code, on branch `fix/ghost-match-load` (not merged into `main`):
+- code, on branch `fix/ghost-match-load`. The user squash-merged it as PR #1 into `main` (`07604e8`) at 17:22:
   - `7e789b9` fixed late events about a finished match starting a ghost match load that hid the next match:
     - `riot.Roster.Over`: core-game `State` is `CLOSED` or `POST_GAME`
     - `live.matchID`: the match ID from lifecycle events, taken only while presence is PREGAME or INGAME, so a late event can't claim it. `toMenus` moves it to `live.finished`, the last 8 matches
@@ -166,7 +167,7 @@
   - tests (`tests/app/ghost_test.go`): a late event about the last match; an event about an ended match during agent select; an event about a match you left (`IN_PROGRESS`, without you); an event about an unknown ended match in the menus. **All four fail on v0.1.0 and pass on the fix**
 - test suite on this PC: everything passes except `TestGoldenScreens`, `TestGoldenStatusLines` and `TestTheFullDefaultColumnSetFitsIn120Columns`. Those three fail identically on unmodified v0.1.0 because the Windows checkout gives the golden files CRLF endings (`git ls-files --eol`: `i/lf w/crlf`). `TestLowkeyWaitsForTheTokenToBeReady` failed once in a full run, then passed 3 of 3 alone, so it's a timing flake
 - tried and reverted: ignoring core-game events for any other match ID during agent select. The real game reuses the pregame match ID for core-game (TDM: same UUID), but fakeriot uses different IDs (`coreGame` versus the pregame ID), so 20 tests broke. Worth aligning fakeriot with the real game, and then this rule becomes the cheapest guard
-- releases: v0.1.1 and v0.1.2 were first published at 13:57:49 and 14:00:51 from commits `f61a878` and `d5c0f48`. At 15:3x the user asked for the `Co-Authored-By: Claude` trailer to come off those two commits. They were rewritten as `7e789b9` and `1c95117` (messages only, identical trees), the branch was force-pushed, both tags moved, and both releases deleted so CI could republish them from the rewritten commits. **v0.1.1 lacks the roster rule, so v0.1.2 supersedes it**
+- releases: v0.1.1 and v0.1.2 were first published at 13:57:49 and 14:00:51 from commits `f61a878` and `d5c0f48`. At 15:3x the user asked for the `Co-Authored-By: Claude` trailer to come off those two commits. They were rewritten as `7e789b9` and `1c95117` (messages only, identical trees), the branch was force-pushed, both tags moved, and both releases deleted so CI could republish them from the rewritten commits. CI republished v0.1.2 at 15:35:29 (`lowkey.exe` 7,624,704 bytes, `sha256:14edab963d07022239d948d5dccaf48f4971fe8c312f4bc2c8675712a3f2d467`) and v0.1.1 at 15:35:42 (`sha256:bf4ff758d17de287b51b32e414f093ab8a62a317a7853fe78fc84b88eb474e05`). Because v0.1.1 finished last, GitHub marked it "Latest", and that was put back on v0.1.2 at wrap-up. **v0.1.1 lacks the roster rule, so v0.1.2 supersedes it**
 - the local build used for the game: `lowkey v0.1.2`, SHA256 `46444E3C6EFD78DAF4431ED0B6C0A2CB6ECBE23179EEE01F41836F9C9EBC64F3`, built here with Go 1.26.10 and `-trimpath -ldflags "-s -w -X main.version=v0.1.2"`. The CI release exe may differ byte-for-byte (different Go patch version)
 - swap at 13:57:26–28: v0.1.0 stopped, renamed to `lowkey-v0.1.0.exe`, the new build copied in as `lowkey.exe`, started with `--record` (recording `lowkey-record-20261027-135729`). First frame at 13:57:29: `waiting for the next match`, `SESSION · 0W 0L +0 RR since 06:00`. Reading: CPU 0.14 s · 21 MB (peak 21 MB) · BelowNormal
 
@@ -184,20 +185,47 @@
 - core-game at load: `IN_PROGRESS`, 10 players, map `Juliett`, queue `competitive`
 - win: the final frame (15:12:42) shows `LAST MATCH · Sunset · Competitive`, two `AVERAGE` rows (3/5 and 4/5, both `Asc1 · Asc3 · Asc1 · 51%`), a `US - THEM` row, and **`SESSION · 1W 1L +2 RR since 06:00`**
 - **no ghost:** a core-game message for the finished match at 15:12:28 started nothing. The only requests afterwards were the session refresh (`competitiveupdates`, plus `match-details` for that match). No frames after 15:12:42
-- requests across the whole v0.1.2 run: no 429 or 5xx
-- user's answers (dodge, table against the game, SESSION check, FPS impact): pending at wrap-up
+
+### Match 8 · Competitive (Corrode, v0.1.2)
+- frames: AGENT SELECT 15:36:42 · MATCH LOADING 15:38:18 · IN MATCH 15:38:58 · LAST MATCH 16:20:51
+- win: `SESSION · 2W 1L +20 RR` at the next agent select
+- **no ghost:** the next agent select was picked up at 16:24:22
+
+### Match 9 · Competitive (Summit, v0.1.2)
+- frames: AGENT SELECT 16:24:22 · MATCH LOADING 16:26:04 · IN MATCH 16:26:44 · LAST MATCH 17:04:04, then `SESSION · 3W 1L +38 RR since 06:00` after the refresh at 17:04:19
+- then Valorant closed: `waiting for Valorant` 17:04:43, `waiting for the Riot Client` 17:04:49, `waiting for the Riot Client to log in` 17:04:51
+
+### Competitive on v0.1.2, all four games
+| game | agent select requests (of which pregame roster refreshes) | match-load requests | last match-load request after MATCH LOADING |
+|---|---|---|---|
+| Bind | 53 (16) | 57 | +10.1 s |
+| Sunset | 45 (21) | 52 | +8.8 s |
+| Corrode | 42 (18) | 65 | +11.7 s |
+| Summit | 50 (13) | 17 | +3.2 s |
+- all **410** remote requests in the v0.1.2 run returned 200: no 429, no 5xx, no rate-limit or unreachable status line all day
+- no ghost match loads after any of the four games, so v0.1.2 fixes the bug in real play
+- the user's after-match answers (dodges, table against the game, markers) were never given
 
 ### Loading times (ShooterGame.log)
 - the log's bracket timestamps are **UTC**: lowkey's 13:05:30 MATCH LOADING matches `[2026.10.27-11.05.30:634]` `Broadcasting state changed to TransitionToInGame`, and the local zone is UTC+02:00
-- no `BuyPhase` or round lines in these modes. The line that marks play starting, present once per match in the Range, Deathmatch and TDM:
+- no `BuyPhase` or `Round` lines. The marker is this line, which never holds names or IDs:
   - `[YYYY.MM.DD-HH.MM.SS:mmm][frame]LogShooterGameState: Warning: Gameplay started at local time <seconds> (server time <seconds>)`
-  - nearby, `LogGameFlowStateManager: [PlatformTime: <s>] Broadcasting state changed to <Pregame|TransitionToInGame|InGame|TransitionToMainMenu|MainMenu>`. None of these lines hold names or IDs
-- per match, from lowkey's first MATCH LOADING frame to `Gameplay started`:
-  - the Range: 12:50:28 → 12:50:43.3 = **15 s**
-  - Deathmatch 1: lowkey missed it. From the real match's first RMS (12:55:56.7) it's 12:56:17.9 = **21 s**
-  - TDM: 13:05:30 → 13:06:06.4 = **36 s**
-  - Deathmatch 2: (pending)
-- round-based modes (Swiftplay, Unrated, Competitive), where round 1's buy phase starts later, weren't played. So the 40 s cutoff held for these modes (TDM has 4 s to spare), but nothing here confirms it for round-based modes
+  - nearby, `LogGameFlowStateManager: [PlatformTime: <s>] Broadcasting state changed to <Pregame|TransitionToInGame|InGame|TransitionToMainMenu|MainMenu>`. `TransitionToInGame` lines up with lowkey's MATCH LOADING to the second
+- how to read it, from the competitive games: each round logs it twice. Once at **server time 0** (that round's buy phase starts), and once at **server time 30**, or **45** in the pistol rounds 1 and 13 (combat starts). Round 1 has no server-time-0 line, so **round 1's buy phase starts at the combat line's time minus its server time**. The `PreRoundShopContainer` screen opening and closing confirms the buy phases
+- per match, from lowkey's first MATCH LOADING frame:
+
+| match | round 1 buy phase (or pre-round) starts | combat starts | lowkey's 40 s cutoff |
+|---|---|---|---|
+| the Range | – | +15 s | after combat |
+| Deathmatch 1 (from the real match's first RMS, 12:55:56.7) | +11 s | +21 s | after combat |
+| TDM | +16 s | **+36 s** | 4 s after combat |
+| Deathmatch 2 and the missed Plummet Deathmatch | no `Gameplay started` line, probably joined in progress. `InGame` at +18 s | – | – |
+| Competitive · Bind | +17 s | +63 s | in the buy phase, 23 s before combat |
+| Competitive · Sunset | +17 s | +63 s | same |
+| Competitive · Corrode | +16 s | +62 s | same |
+| Competitive · Summit | +17 s | +63 s | same |
+- verdict on the 40 s cutoff: **right for round-based modes**. In competitive it lands inside the 45 s pistol-round buy phase, about 23 s before combat, and the lookups had finished by +3 to +12 s anyway. **Too late for Deathmatch and TDM**, where combat starts at about +21 s and +36 s. No requests actually went out during play (the last match-load request in TDM was at +8 s, in Deathmatch 2 at +14 s), but the guard window was still open. Options: per-mode cutoffs (about 15 s for Deathmatch, 30 s for TDM), or close the window as soon as the match-load lookups finish
+- the "local time" in the line is seconds since the client entered the game state, not a wall-clock time
 
 ## Appendix probes
 
@@ -232,3 +260,35 @@
 ### 03 and 06 · local API shapes and live events (probes C and F)
 - status: skipped. No doctor line failed, and lowkey reacted to agent select and match load when no ghost was in the way. lowkey's recordings already hold the presences, external-sessions, pregame, core-game and RMS traffic these probes would have produced
 - one observation from the recordings for 06: all 207 RMS events in the live recording (up to 13:29) came under `/riot-messaging-service/v1/message/…`, and none under `/messages/`, so there were no `/message/`+`/messages/` pairs
+
+## Wrap-up (18:08–18:15)
+- last reading of the v0.1.2 run, at 18:08:35 after 4 h 11 m: **CPU 24 s · 35 MB (peak 67 MB) · BelowNormal**. That's about 0.16% of one core averaged over the run, mostly in agent select and match load, and the peak is two-thirds of the 100 MB budget. The v0.1.0 run peaked at 51 MB. lowkey was still open, showing `waiting for the Riot Client to log in`
+- `lowkey.log` and `lowkey.log.old`: neither exists. No request failed all day, so there was nothing to scrub
+- `recordings.zip` (19.2 MB, from 208.5 MB raw) holds all five recordings: doctor `124517`, me `124556` and `124727`, live v0.1.0 `124811` and live v0.1.2 `135729`. The v0.1.2 one was still being written, so it's a snapshot from 18:11 cut at the last complete line
+- `me-after.txt` was skipped, and the FPS/stutter/input question wasn't answered (see items 07 and 09)
+- privacy check before the push: no UUIDs, Riot ID, PUUID, lockfile password or JWTs in the report or the `.txt` files, and no real Riot ID, PUUID, password or tokens in any recording. The user's Riot name matches their GitHub account name, so the account name is left out of item 01
+- hand-over: by the user's request, everything for the Mac is committed to `sessions/2026-10-27-windows/` on `main` instead of a Desktop zip
+
+## Summary
+**Worked**
+- `doctor` passed every check against the real Riot Client, and `me` worked for competitive and unrated
+- once the ghost was fixed, live mode followed every phase: agent select (your team plus the roster refresh every 3 s), match load (both teams, averages, US - THEM), the cutoff, LAST MATCH, and the SESSION refresh. That held for 4 competitive games, TDM and Deathmatch
+- streamer-mode players showed as `hidden` and were never looked up. The user is in streamer mode themselves and was still shown and looked up correctly
+- 667 requests to Riot's servers over the day (doctor 1, me 17 + 4, live v0.1.0 235, live v0.1.2 410), every one a 200, with no rate limiting at all. None went out more than 45 s after the client went in-game. In competitive everything finished before combat. A Deathmatch joined in progress, like Deathmatch 2, may overlap its lookups (+0 to +14 s) with live play
+- light on the machine: below-normal priority, EcoQoS on, 24 s of CPU in 4 h, peak 67 MB
+
+**Failed or needs work** (most important first)
+1. **ghost match loads** after a match ended, or after leaving one early, hid the next match: 2 Deathmatches missed and LAST MATCH wiped. **Fixed in v0.1.2** (PR #1, merged), with 4 regression tests and confirmed in 4 real competitive games
+2. **Riot's match details now come with empty `gameName`/`tagLine`**, so every PLAYER cell is blank (or `-`), which makes the rows hard to tie to people. fakeriot still sends names, so the tests miss it
+3. **the 40 s cutoff runs past combat start in Deathmatch (+21 s) and TDM (+36 s)**. It's fine for competitive (+63 s)
+4. **the Range is treated as a match** (`ProvisioningFlow: ShootingRange`, no `MatchmakingData`) and runs lookups
+5. the untracked status shows the raw queue ID (`not tracking abilitydraftarena`) rather than "Glitch"
+6. the guard's `ownPartyRead` allows any party ID, and the brief's "never calls party endpoints" doesn't match lowkey's two own-party reads
+7. a stale lockfile gives a `connectex … refused` FAIL with no hint. `static data … (1 days old)` grammar
+8. on a Windows checkout three golden tests fail on CRLF line endings (a `.gitattributes` with `testdata/** -text` would fix it), and `TestLowkeyWaitsForTheTokenToBeReady` is timing-flaky
+9. valorant-api.com's version lagged the live client by two shipping builds. It's only a fallback, but it would send a stale client version
+
+**Surprises**
+- Riot sends a lone late core-game message 30–38 s after every match, and for a match you left early, the real end arrives minutes later while you're queueing for the next one
+- the real game reuses the pregame match ID as the core-game match ID. fakeriot doesn't, which blocked the simplest guard
+- the user plays true stretched at 1280×880 with both monitors disabled in Device Manager. Windows still showed two screens and lowkey's window stayed usable on the second one

@@ -57,6 +57,18 @@ func TestAnEventAboutAnEndedMatchLeavesAgentSelectAlone(t *testing.T) {
 	r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
 }
 
+// leftoverInMenus sends an event about a match you're not in and waits until lowkey drops it - Riot's
+// answer is held so match load gets drawn first and the clock can't jump past its cutoff mid-check
+func (r *rig) leftoverInMenus(matchID string) {
+	r.t.Helper()
+	r.fr.AddFault(fakeriot.Fault{Service: "glz", Path: "/core-game/v1/matches/" + matchID, Exact: true, Hold: true})
+	r.fr.EmitCoreGame(matchID, false)
+	waitHeld(r.t, r.fr, 1)
+	r.screen("MATCH LOADING")
+	r.fr.ReleaseHeld()
+	r.screen("waiting for the next match")
+}
+
 func TestAnEventAboutAMatchYouLeftIsDropped(t *testing.T) {
 	const left = "c9000000-0000-4000-8000-0000000000ff"
 	r := newRig(t, matchLobby, func(w *fakeriot.World) {
@@ -67,8 +79,7 @@ func TestAnEventAboutAMatchYouLeftIsDropped(t *testing.T) {
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
-	r.fr.EmitCoreGame(left, false)
-	eventually(t, "the match you left checked", func() bool { return requestsExact(r, "/core-game/v1/matches/"+left) == 1 })
+	r.leftoverInMenus(left)
 	r.clock.Advance(time.Minute)
 	settle()
 	frame := r.screen("waiting for the next match")
@@ -88,8 +99,7 @@ func TestAnEventAboutAnUnknownEndedMatchIsDroppedInTheMenus(t *testing.T) {
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
-	r.fr.EmitCoreGame(endedMatch, false)
-	eventually(t, "the ended match checked", func() bool { return requestsExact(r, "/core-game/v1/matches/"+endedMatch) == 1 })
+	r.leftoverInMenus(endedMatch)
 	r.clock.Advance(time.Minute)
 	settle()
 	frame := r.screen("waiting for the next match")

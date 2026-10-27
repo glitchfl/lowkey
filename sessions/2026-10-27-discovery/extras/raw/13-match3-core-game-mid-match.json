@@ -1,0 +1,363 @@
+{
+    "MatchID":  "7f33dce1-ca4e-4d30-bd6c-2a99047a0cf7",
+    "Version":  1793123029124,
+    "State":  "IN_PROGRESS",
+    "MapID":  "/Game/Maps/Juliett/Juliett",
+    "ModeID":  "/Game/GameModes/_Development/Swiftplay_EndOfRoundCredits/Swiftplay_EoRCredits_GameMode.Swiftplay_EoRCredits_GameMode_C",
+    "ProvisioningFlow":  "Matchmaking",
+    "GamePodID":  "aresriot.aws-euc1-prod.eu-gp-frankfurt-1",
+    "AllMUCName":  "7f33dce1-ca4e-4d30-bd6c-2a99047a0cf7-all@ares-coregame.eu2.pvp.net",
+    "TeamMUCName":  "7f33dce1-ca4e-4d30-bd6c-2a99047a0cf7-blue@ares-coregame.eu2.pvp.net",
+    "TeamVoiceID":  "7f33dce1-ca4e-4d30-bd6c-2a99047a0cf7-tm1",
+    "TeamMatchToken":  "\u003cscrubbed\u003e",
+    "IsReconnectable":  true,
+    "ConnectionDetails":  {
+                              "GameServerHosts":  [
+                                                      "162.249.72.1",
+                                                      "185.40.64.1",
+                                                      "162.249.75.1"
+                                                  ],
+                              "GameServerHost":  "185.40.64.1",
+                              "GameServerPort":  7173,
+                              "GameServerObfuscatedIP":  1177745672,
+                              "GameClientHash":  139128221,
+                              "PlayerKey":  "\u003cscrubbed\u003e"
+                          },
+    "PostGameDetails":  null,
+    "Players":  [
+                    {
+                        "Subject":  "3ca64129-12a9-5a0a-bf3d-033c73b11015",
+                        "TeamID":  "Blue",
+                        "TeamNumber":  1,
+                        "CharacterID":  "a3bfb853-43b2-7238-a4f1-ad90e9e46bcc",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "00000000-0000-0000-0000-000000000000",
+                                                "bloomlineShortLevel":  1,
+                                                "bloomlineHypeID":  "00000000-0000-0000-0000-000000000000"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "3ca64129-12a9-5a0a-bf3d-033c73b11015",
+                                               "PlayerCardID":  "d839e6e0-48fe-602b-cdf5-d4b3fb91618f",
+                                               "PlayerTitleID":  "254021ec-426c-85de-3eba-faaeff17a5f5",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "547ac9dd-495d-f11d-d921-3fbd14604ae0",
+                                               "Incognito":  true,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "1bb4fcf3-8280-59e6-a202-0db3ebeb09d7",
+                        "TeamID":  "Blue",
+                        "TeamNumber":  1,
+                        "CharacterID":  "add6443a-41bd-e414-f6ad-e58d267f4e95",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "40683016-4a5f-cbac-3129-5d9405717399",
+                                                "bloomlineShortLevel":  4,
+                                                "bloomlineHypeID":  "00000000-0000-0000-0000-000000000000"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "1bb4fcf3-8280-59e6-a202-0db3ebeb09d7",
+                                               "PlayerCardID":  "09051d24-41c2-966a-447e-c09dc4e9d5c2",
+                                               "PlayerTitleID":  "db75b6ef-4a26-55c0-587a-0dbf65a52040",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "9c4afb15-40d7-3557-062a-4bb198cb9958",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "a246bc8e-5819-565d-9a9a-3e9a217a7faa",
+                        "TeamID":  "Blue",
+                        "TeamNumber":  1,
+                        "CharacterID":  "7c8a4701-4de6-9355-b254-e09bc2a34b72",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "00000000-0000-0000-0000-000000000000",
+                                                "bloomlineShortLevel":  1,
+                                                "bloomlineHypeID":  "00000000-0000-0000-0000-000000000000"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "a246bc8e-5819-565d-9a9a-3e9a217a7faa",
+                                               "PlayerCardID":  "5def384f-47ce-ee1e-8a4c-d1a394fef0b5",
+                                               "PlayerTitleID":  "faa51024-4bc3-3cdb-6d15-31990f4b01e1",
+                                               "AccountLevel":  127,
+                                               "PreferredLevelBorderID":  "e05371e3-4ec4-a53e-168a-c49346a75c19",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  false
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "bf798514-2756-5f44-a6da-a20b5264e05a",
+                        "TeamID":  "Blue",
+                        "TeamNumber":  1,
+                        "CharacterID":  "1dbf2edd-4729-0984-3115-daa5eed44993",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "f252a49c-4f32-0848-ec73-2c84018c2b82",
+                                                "bloomlineShortLevel":  5,
+                                                "bloomlineHypeID":  "b4841a65-43ee-df81-f76d-7d8400b4caf1"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "bf798514-2756-5f44-a6da-a20b5264e05a",
+                                               "PlayerCardID":  "23d25d01-42e2-e0f3-97b6-888408eccc16",
+                                               "PlayerTitleID":  "d200078b-477c-bfb6-af5c-16b19cdfd801",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "53d4ed03-4b29-5913-aeda-80a41afcef3a",
+                                               "Incognito":  true,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "921d0e61-d102-5040-9d31-c67533f019ef",
+                        "TeamID":  "Blue",
+                        "TeamNumber":  1,
+                        "CharacterID":  "22697a3d-45bf-8dd7-4fec-84a9e28c69d7",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "00000000-0000-0000-0000-000000000000",
+                                                "bloomlineShortLevel":  1,
+                                                "bloomlineHypeID":  "cc2b2431-47b5-3cfb-4651-9393f71d7360"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "921d0e61-d102-5040-9d31-c67533f019ef",
+                                               "PlayerCardID":  "b4ccb9df-4731-dfc6-a878-44a6860115f4",
+                                               "PlayerTitleID":  "22478fe7-4724-da26-cbbc-1d96134d2e93",
+                                               "AccountLevel":  74,
+                                               "PreferredLevelBorderID":  "e6238102-425c-a647-6685-e6af7f8982d9",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  false
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "55b012e6-326b-5652-9dc8-391d4114c4df",
+                        "TeamID":  "Red",
+                        "TeamNumber":  2,
+                        "CharacterID":  "320b2a48-4d9b-a075-30f1-1f93a9b638fa",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "50209ebe-44e1-6555-644a-f58b2d3bb713",
+                                                "bloomlineShortLevel":  9,
+                                                "bloomlineHypeID":  "7bc1ba17-44bc-adaf-7ae8-07a54bbb5a71"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "55b012e6-326b-5652-9dc8-391d4114c4df",
+                                               "PlayerCardID":  "7fb96942-4e17-f92d-7bdb-f6ab40170df0",
+                                               "PlayerTitleID":  "19b138cf-4137-692c-c6ec-be9da98109be",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "49413ac2-4ed5-6953-5791-db838ccb58f3",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "d184e600-97ba-5922-b814-5f1627f52b7d",
+                        "TeamID":  "Red",
+                        "TeamNumber":  2,
+                        "CharacterID":  "a3bfb853-43b2-7238-a4f1-ad90e9e46bcc",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "00000000-0000-0000-0000-000000000000",
+                                                "bloomlineShortLevel":  2,
+                                                "bloomlineHypeID":  "00000000-0000-0000-0000-000000000000"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "d184e600-97ba-5922-b814-5f1627f52b7d",
+                                               "PlayerCardID":  "07d52a52-4569-054b-11d6-f2ac39a519ee",
+                                               "PlayerTitleID":  "06e06afa-4dff-40c2-3705-7e922057bc83",
+                                               "AccountLevel":  224,
+                                               "PreferredLevelBorderID":  "bd1082ab-462c-3fb8-e049-28a9750acf0f",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  false
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "4eaaa746-d100-530b-8d73-949af6fcc418",
+                        "TeamID":  "Red",
+                        "TeamNumber":  2,
+                        "CharacterID":  "117ed9e3-49f3-6512-3ccf-0cada7e3823b",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "f4b2b991-4954-184c-18b5-95812f8d3a6f",
+                                                "bloomlineShortLevel":  8,
+                                                "bloomlineHypeID":  "ccecbf27-4752-3940-51da-538df07636f8"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "4eaaa746-d100-530b-8d73-949af6fcc418",
+                                               "PlayerCardID":  "c06e6a9b-4ba2-bbfd-b150-0c8a2a9dbc1e",
+                                               "PlayerTitleID":  "1b4e3bf6-4850-3d9b-a02e-8182caf29b76",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "37a36996-41f3-6e26-c00b-46bf7c037482",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "570bbeb5-478b-5314-9699-8ff74807b8d1",
+                        "TeamID":  "Red",
+                        "TeamNumber":  2,
+                        "CharacterID":  "92eeef5d-43b5-1d4a-8d03-b3927a09034b",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "8146dd57-482e-7fc4-4435-0d8c721c13e8",
+                                                "bloomlineShortLevel":  5,
+                                                "bloomlineHypeID":  "00000000-0000-0000-0000-000000000000"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "570bbeb5-478b-5314-9699-8ff74807b8d1",
+                                               "PlayerCardID":  "aa7261e8-49b3-a489-d23f-39b935122f09",
+                                               "PlayerTitleID":  "d13e579c-435e-44d4-cec2-6eae5a3c5ed4",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "e6238102-425c-a647-6685-e6af7f8982d9",
+                                               "Incognito":  true,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    },
+                    {
+                        "Subject":  "7c37c7d8-3dc5-5be3-8999-bd651af8d947",
+                        "TeamID":  "Red",
+                        "TeamNumber":  2,
+                        "CharacterID":  "eb93336a-449b-9c1b-0a54-a891f7921d69",
+                        "bonsaiBloomline":  {
+                                                "bloomlineFlourishID":  "91c679bc-4198-70e8-09ed-2e8ee54afc9a",
+                                                "bloomlineShortLevel":  7,
+                                                "bloomlineHypeID":  "d4e2951d-46c4-e887-6a0e-52b34e37f322"
+                                            },
+                        "PlayerIdentity":  {
+                                               "Subject":  "7c37c7d8-3dc5-5be3-8999-bd651af8d947",
+                                               "PlayerCardID":  "05b8fdd3-4c8e-ba77-ccce-3fa98a8e4067",
+                                               "PlayerTitleID":  "42e2f97d-4e69-274c-589c-0fbdeb397df9",
+                                               "AccountLevel":  0,
+                                               "PreferredLevelBorderID":  "49413ac2-4ed5-6953-5791-db838ccb58f3",
+                                               "Incognito":  false,
+                                               "HideAccountLevel":  true
+                                           },
+                        "SeasonalBadgeInfo":  {
+                                                  "SeasonID":  "",
+                                                  "NumberOfWins":  0,
+                                                  "WinsByTier":  null,
+                                                  "Rank":  0,
+                                                  "LeaderboardRank":  0
+                                              },
+                        "IsCoach":  false,
+                        "IsAssociated":  true,
+                        "PlatformType":  "pc",
+                        "PremierPrestige":  {
+
+                                            }
+                    }
+                ],
+    "MatchmakingData":  {
+                            "QueueID":  "swiftplay",
+                            "IsRanked":  false
+                        }
+}

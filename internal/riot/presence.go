@@ -4,10 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type Private struct {
 	SessionLoopState   string
+	ProvisioningFlow   string
 	PartyID            string
 	PartyClientVersion string
 	QueueID            string
@@ -20,6 +22,9 @@ const (
 	LoopPregame = "PREGAME"
 	LoopIngame  = "INGAME"
 )
+
+// FlowRange is the provisioning flow of the Range - in your presence and in its core-game match
+const FlowRange = "ShootingRange"
 
 // fields moved under these objects in later presence versions - some clients mix both layouts
 var nestedPresence = []string{"matchPresenceData", "partyPresenceData", "playerPresenceData"}
@@ -64,6 +69,9 @@ func ParsePrivate(encoded string) (Private, error) {
 	if p.SessionLoopState, ok = find("sessionLoopState"); !ok {
 		p.SessionLoopState, _ = find("partyOwnerSessionLoopState")
 	}
+	if p.ProvisioningFlow, ok = find("provisioningFlow"); !ok {
+		p.ProvisioningFlow, _ = find("partyOwnerProvisioningFlow")
+	}
 	p.PartyID, _ = find("partyId")
 	p.PartyClientVersion, _ = find("partyClientVersion")
 	p.QueueID, p.HasQueueID = find("queueId")
@@ -76,6 +84,11 @@ func ParsePrivate(encoded string) (Private, error) {
 		p.Shape = "hybrid"
 	}
 	return p, nil
+}
+
+// InRange is your presence in the Range - you can queue from it so it isn't a match
+func (p Private) InRange() bool {
+	return strings.EqualFold(p.SessionLoopState, LoopIngame) && p.ProvisioningFlow == FlowRange
 }
 
 func jsonString(raw json.RawMessage) (string, bool) {

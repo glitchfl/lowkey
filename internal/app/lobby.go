@@ -209,8 +209,9 @@ func (lv *live) fetchRoster(lob *lobby) {
 			lv.problem = fmt.Sprintf("can't load the roster: %v", err)
 			return
 		}
-		// a match that ended or one you're not in is a leftover - Riot keeps sending events about both
-		if roster.Over || lob.kind == lobbyMatchLoad && !roster.Has(lv.self) {
+		// a match that ended or one you're not in is a leftover - Riot keeps sending events about both -
+		// and the Range is no match at all
+		if roster.Over || roster.Range || lob.kind == lobbyMatchLoad && !roster.Has(lv.self) {
 			lv.matchOver(lob)
 			return
 		}
@@ -218,8 +219,8 @@ func (lv *live) fetchRoster(lob *lobby) {
 	})
 }
 
-// matchOver drops a match load for a match that already ended - a late event about it started the
-// load - and lets your presence say where you really are
+// matchOver drops a match load for a match that already ended or the Range - an event about it
+// started the load - and lets your presence say where you really are
 func (lv *live) matchOver(lob *lobby) {
 	lv.finish(lob.matchID)
 	lv.cancelLobby()

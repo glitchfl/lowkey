@@ -13,7 +13,9 @@ type Roster struct {
 	Map      string
 	Mode     string
 	// Over is a core-game match that already ended - Riot keeps answering for it after the end
-	Over    bool
+	Over bool
+	// Range is the Range's own core-game match - lowkey treats the Range as the menus
+	Range   bool
 	Players []RosterPlayer
 }
 
@@ -95,19 +97,23 @@ func DecodePregame(body []byte) (Roster, error) {
 
 func DecodeCoreGame(body []byte) (Roster, error) {
 	var v struct {
-		MatchID         string         `json:"MatchID"`
-		State           string         `json:"State"`
-		MapID           string         `json:"MapID"`
-		ModeID          string         `json:"ModeID"`
-		Players         []rosterPlayer `json:"Players"`
-		MatchmakingData *struct {
+		MatchID          string         `json:"MatchID"`
+		State            string         `json:"State"`
+		ProvisioningFlow string         `json:"ProvisioningFlow"`
+		MapID            string         `json:"MapID"`
+		ModeID           string         `json:"ModeID"`
+		Players          []rosterPlayer `json:"Players"`
+		MatchmakingData  *struct {
 			QueueID string `json:"QueueID"`
 		} `json:"MatchmakingData"`
 	}
 	if err := json.Unmarshal(body, &v); err != nil {
 		return Roster{}, fmt.Errorf("core-game match isn't JSON: %w", err)
 	}
-	r := Roster{MatchID: strings.ToLower(v.MatchID), Map: v.MapID, Mode: v.ModeID, Over: v.State == "CLOSED" || v.State == "POST_GAME"}
+	r := Roster{
+		MatchID: strings.ToLower(v.MatchID), Map: v.MapID, Mode: v.ModeID,
+		Over: v.State == "CLOSED" || v.State == "POST_GAME", Range: v.ProvisioningFlow == FlowRange,
+	}
 	if v.MatchmakingData != nil {
 		r.Queue, r.HasQueue = v.MatchmakingData.QueueID, true
 	}

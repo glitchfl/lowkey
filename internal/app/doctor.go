@@ -126,7 +126,7 @@ func (d *doctor) check(ctx context.Context) {
 	case !havePresence:
 		d.report(false, "phase", "no Valorant presence - is Valorant running?")
 	default:
-		d.report(true, "phase", fmt.Sprintf("%s (%s presence)", phaseFromLoop(priv.SessionLoopState), priv.Shape))
+		d.report(true, "phase", fmt.Sprintf("%s (%s presence)", phaseOf(priv), priv.Shape))
 	}
 
 	region, shard, ok := d.region(ctx, local)
@@ -283,8 +283,11 @@ func staticVersion(body []byte) (string, bool) {
 	return v.Data.RiotClientVersion, true
 }
 
-func phaseFromLoop(state string) string {
-	switch strings.ToUpper(state) {
+func phaseOf(priv riot.Private) string {
+	if priv.InRange() {
+		return "In the Range"
+	}
+	switch strings.ToUpper(priv.SessionLoopState) {
 	case riot.LoopMenus:
 		return "Menus"
 	case riot.LoopPregame:
@@ -292,5 +295,5 @@ func phaseFromLoop(state string) string {
 	case riot.LoopIngame:
 		return "In match"
 	}
-	return fmt.Sprintf("unknown session loop state %q", state)
+	return fmt.Sprintf("unknown session loop state %q", priv.SessionLoopState)
 }

@@ -344,10 +344,13 @@ func (lv *live) ended(matchID string) bool {
 	return false
 }
 
+// presenceInMatch is false in the Range - events about your next match arrive while you're still in it
 func (lv *live) presenceInMatch() bool {
 	switch strings.ToUpper(lv.presence.SessionLoopState) {
-	case riot.LoopPregame, riot.LoopIngame:
+	case riot.LoopPregame:
 		return true
+	case riot.LoopIngame:
+		return !lv.presence.InRange()
 	}
 	return false
 }
@@ -361,6 +364,7 @@ func (lv *live) applyPresence(priv riot.Private, present, startup bool) {
 		lv.setPhase(phaseWaiting)
 		return
 	}
+	was := lv.presence
 	lv.presence = priv
 	switch strings.ToUpper(priv.SessionLoopState) {
 	case riot.LoopMenus:
@@ -371,6 +375,12 @@ func (lv *live) applyPresence(priv riot.Private, present, startup bool) {
 		}
 	case riot.LoopIngame:
 		switch {
+		case priv.InRange():
+			// you can queue from the Range so it counts as the menus - but once an event has moved lowkey
+			// on to your next match a presence that still says Range is just late
+			if startup || !was.InRange() || lv.phase == phaseWaiting || lv.phase == phaseIdle {
+				lv.toMenus()
+			}
 		case startup || lv.phase == phaseWaiting || lv.phase == phaseIdle:
 			lv.midMatch = true
 			lv.setPhase(phaseInRound)

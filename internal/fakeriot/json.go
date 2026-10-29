@@ -49,7 +49,7 @@ func (w *World) incognito(puuid string) bool {
 func (w *World) privatePresence() []byte {
 	match := obj{
 		"sessionLoopState": w.Loop,
-		"provisioningFlow": "Matchmaking",
+		"provisioningFlow": w.flow(),
 		"matchMap":         "",
 	}
 	if w.QueueInPresence {
@@ -463,6 +463,13 @@ func (w *World) coreGameMatch(g *LiveGame) []byte {
 		},
 		"PostGameDetails": nil, "Players": players, "MatchmakingData": mm,
 	})
+}
+
+func (w *World) flow() string {
+	if w.Flow == "" {
+		return "Matchmaking"
+	}
+	return w.Flow
 }
 
 func (w *World) partyPlayer(puuid string) []byte {

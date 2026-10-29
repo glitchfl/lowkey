@@ -16,6 +16,9 @@ const (
 	LoopIngame  = "INGAME"
 )
 
+// FlowRange is the provisioning flow your presence shows in the Range
+const FlowRange = "ShootingRange"
+
 const (
 	Astra     = "41fb69c1-4189-7b37-f117-bcaf1e96f1bf"
 	Breach    = "5f8d3a7f-467b-97f3-062c-13acf203c006"
@@ -82,6 +85,7 @@ type World struct {
 	Region     string
 
 	Loop            string
+	Flow            string // provisioning flow in your presence - empty is Matchmaking
 	Queue           string
 	QueueInPresence bool
 	PartyID         string

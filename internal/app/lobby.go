@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"time"
 
@@ -441,7 +442,7 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	}
 }
 
-func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter, skins map[string]render.Cell) render.Section {
+func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter, skins map[string]render.Row) render.Section {
 	sec := render.Section{Title: title}
 	for _, m := range members {
 		row := lv.memberRow(m, mode)
@@ -452,8 +453,8 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 			row["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
 		}
 		// like every other stat a skin stays off hidden players and enemies lowkey doesn't look up
-		if skin, ok := skins[m.puuid]; ok && !m.hidden && m.p != nil {
-			row["skin"] = skin
+		if !m.hidden && m.p != nil {
+			maps.Copy(row, skins[m.puuid])
 		}
 		sec.Rows = append(sec.Rows, row)
 	}
@@ -496,22 +497,31 @@ func (lv *live) agentCell(m *member) render.Cell {
 	return render.Cell{Text: name}
 }
 
-// skinCells show everyone's skin for the gun in the settings in its edition's color - "?" is a skin
+// skinKey is the column a gun's skins go in
+func skinKey(gun string) string { return "skin:" + gun }
+
+// skinCells show everyone's skin for each gun in the settings in its edition's color - "?" is a skin
 // newer than the snapshot until a refresh names it
-func (lv *live) skinCells(lob *lobby) map[string]render.Cell {
-	cells := map[string]render.Cell{}
-	weapon, _, ok := lv.data.Weapon(lv.cfg.Settings().Weapon)
-	if !ok {
-		return cells
-	}
-	for puuid, skins := range lob.skins {
-		id, ok := skins[weapon]
+func (lv *live) skinCells(lob *lobby) map[string]render.Row {
+	cells := map[string]render.Row{}
+	for _, gun := range lv.cfg.Settings().Weapons {
+		weapon, _, ok := lv.data.Weapon(gun)
 		if !ok {
 			continue
 		}
-		cells[puuid] = render.Cell{Text: "?"}
-		if s, ok := lv.data.Skin(id); ok {
-			cells[puuid] = render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
+		for puuid, skins := range lob.skins {
+			id, ok := skins[weapon]
+			if !ok {
+				continue
+			}
+			if cells[puuid] == nil {
+				cells[puuid] = render.Row{}
+			}
+			cell := render.Cell{Text: "?"}
+			if s, ok := lv.data.Skin(id); ok {
+				cell = render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
+			}
+			cells[puuid][skinKey(gun)] = cell
 		}
 	}
 	return cells

@@ -7,7 +7,7 @@
   cutoff             40s
   enemy lookups      on
   region             auto
-  skin weapon        vandal
+  skin weapons       vandal
 
 columns left to right - drop or reorder freely
 

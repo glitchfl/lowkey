@@ -31,7 +31,8 @@ func read(t *testing.T, path string) string {
 	return string(data)
 }
 
-const weaponComment = "# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\n"
+const weaponComment = "# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\n" +
+	"# a list like [\"vandal\", \"phantom\"] gives each gun a skin column\n"
 
 func TestChangeKeepsEverythingElseInTheFile(t *testing.T) {
 	more := func(s *settings.Settings) { s.Matches++ }
@@ -58,15 +59,19 @@ func TestChangeKeepsEverythingElseInTheFile(t *testing.T) {
 		{"a multi-line array", "columns = [\n  \"name\", # who\n  \"rank\",\n]\nmatches = 7\n",
 			func(s *settings.Settings) { s.Columns = []string{"rank", "name"} }, "columns = [\"rank\", \"name\"]\nmatches = 7\n"},
 		{"a multi-line string value", "weapon = \"\"\"vandal\"\"\"\nmatches = 7\n",
-			func(s *settings.Settings) { s.Weapon = "phantom" }, "weapon = \"phantom\"\nmatches = 7\n"},
+			func(s *settings.Settings) { s.Weapons = []string{"phantom"} }, "weapon = \"phantom\"\nmatches = 7\n"},
 		{"a literal multi-line string before it", "weapon = '''vandal'''\nmatches = 7\n", more, "weapon = '''vandal'''\nmatches = 8\n"},
-		{"a key the file doesn't have", "matches = 7\n", func(s *settings.Settings) { s.Weapon = "phantom" },
+		{"a key the file doesn't have", "matches = 7\n", func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
 			"matches = 7\n\n" + weaponComment + "weapon = \"phantom\"\n"},
-		{"no newline at the end", "matches = 7", func(s *settings.Settings) { s.Weapon = "phantom" },
+		{"no newline at the end", "matches = 7", func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
 			"matches = 7\n\n" + weaponComment + "weapon = \"phantom\"\n"},
 		{"a key at the very end without a newline", "matches = 7", more, "matches = 8"},
+		{"one gun becomes a list", "weapon = \"vandal\" # mine\nmatches = 7\n",
+			func(s *settings.Settings) { s.Weapons = append(s.Weapons, "phantom") }, "weapon = [\"vandal\", \"phantom\"] # mine\nmatches = 7\n"},
+		{"a list of one goes back to a name", "weapon = [\n  \"vandal\",\n  \"phantom\",\n]\nmatches = 7\n",
+			func(s *settings.Settings) { s.Weapons = s.Weapons[1:] }, "weapon = \"phantom\"\nmatches = 7\n"},
 		{"two keys at once", "matches = 7\nweapon = \"ares\"\n",
-			func(s *settings.Settings) { s.Matches, s.Weapon = 8, "odin" }, "matches = 8\nweapon = \"odin\"\n"},
+			func(s *settings.Settings) { s.Matches, s.Weapons = 8, []string{"odin"} }, "matches = 8\nweapon = \"odin\"\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -160,7 +165,7 @@ func TestChangeReplacesABrokenFileAndKeepsACopy(t *testing.T) {
 	if !f.Invalid() {
 		t.Fatal("the file should count as broken")
 	}
-	backup, err := f.Change(func(s *settings.Settings) { s.Weapon = "phantom" })
+	backup, err := f.Change(func(s *settings.Settings) { s.Weapons = []string{"phantom"} })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +179,7 @@ func TestChangeReplacesABrokenFileAndKeepsACopy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the new file should parse: %v", err)
 	}
-	if s.Matches != 7 || s.Weapon != "phantom" {
+	if s.Matches != 7 || strings.Join(s.Weapons, ",") != "phantom" {
 		t.Errorf("it should hold the last good settings plus the change: %+v", s)
 	}
 	if f.Invalid() || f.Warning() != "" {
@@ -250,7 +255,7 @@ func TestChangeKeepsAClampNoteUntilThatValueChanges(t *testing.T) {
 	if !strings.Contains(f.Warning(), "matches 99 is above 25") {
 		t.Fatalf("warning: %q", f.Warning())
 	}
-	if _, err := f.Change(func(s *settings.Settings) { s.Weapon = "phantom" }); err != nil {
+	if _, err := f.Change(func(s *settings.Settings) { s.Weapons = []string{"phantom"} }); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(read(t, path), "matches = 99") || !strings.Contains(f.Warning(), "matches 99 is above 25") {
@@ -288,7 +293,7 @@ func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
 		s.Cutoff = 5 * time.Second
 		s.EnemyLookups = false
 		s.Region = "kr"
-		s.Weapon = "ghost"
+		s.Weapons = []string{"ghost", "vandal"}
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +302,7 @@ func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
 		t.Fatalf("note %q err %v", note, err)
 	}
 	if strings.Join(s.Columns, ",") != "rank,name" || s.Matches != 3 || len(s.Modes) != 0 || s.SessionResetHour != 0 ||
-		s.Cutoff != 5*time.Second || s.EnemyLookups || s.Region != "kr" || s.Weapon != "ghost" {
+		s.Cutoff != 5*time.Second || s.EnemyLookups || s.Region != "kr" || strings.Join(s.Weapons, ",") != "ghost,vandal" {
 		t.Errorf("got %+v", s)
 	}
 }

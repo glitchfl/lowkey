@@ -36,8 +36,8 @@ type Settings struct {
 	SessionResetHour int
 	Cutoff           time.Duration
 	EnemyLookups     bool
-	Region           string // empty means detect it
-	Weapon           string // the gun the skin column shows - lowercase
+	Region           string   // empty means detect it
+	Weapons          []string // the guns the skin column shows left to right - lowercase
 }
 
 func Default() Settings {
@@ -48,7 +48,7 @@ func Default() Settings {
 		SessionResetHour: 6,
 		Cutoff:           40 * time.Second,
 		EnemyLookups:     true,
-		Weapon:           "vandal",
+		Weapons:          []string{"vandal"},
 	}
 }
 
@@ -98,8 +98,15 @@ var fields = []field{
 			}
 			return strconv.Quote(s.Region)
 		}},
-	{"weapon", []string{"the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name"},
-		func(s Settings) string { return strconv.Quote(s.Weapon) }},
+	{"weapon", []string{"the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name",
+		`a list like ["vandal", "phantom"] gives each gun a skin column`},
+		// one gun stays a plain name so a file that only ever had one still reads the way it always did
+		func(s Settings) string {
+			if len(s.Weapons) == 1 {
+				return strconv.Quote(s.Weapons[0])
+			}
+			return tomlList(s.Weapons)
+		}},
 }
 
 func tomlList(items []string) string {
@@ -145,7 +152,7 @@ type file struct {
 	CutoffSeconds    *int      `toml:"cutoff_seconds"`
 	EnemyLookups     *bool     `toml:"enemy_lookups"`
 	Region           *string   `toml:"region"`
-	Weapon           *string   `toml:"weapon"`
+	Weapon           any       `toml:"weapon"` // one gun's name or a list of them
 }
 
 // Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
@@ -223,13 +230,39 @@ func Parse(data []byte) (Settings, string, error) {
 		}
 	}
 	if f.Weapon != nil {
-		w := strings.ToLower(strings.TrimSpace(*f.Weapon))
-		if !slices.Contains(static.Weapons(), w) {
-			return Settings{}, "", fmt.Errorf("unknown weapon %q", *f.Weapon)
+		weapons, err := parseWeapons(f.Weapon)
+		if err != nil {
+			return Settings{}, "", err
 		}
-		s.Weapon = w
+		s.Weapons = weapons
 	}
 	return s, note, nil
+}
+
+func parseWeapons(v any) ([]string, error) {
+	names := []any{v}
+	if list, ok := v.([]any); ok {
+		names = list
+	}
+	if len(names) == 0 {
+		return nil, errors.New("weapon is an empty list")
+	}
+	var weapons []string
+	for _, n := range names {
+		name, ok := n.(string)
+		if !ok {
+			return nil, errors.New("weapon takes a gun's name or a list of them")
+		}
+		w := strings.ToLower(strings.TrimSpace(name))
+		if !slices.Contains(static.Weapons(), w) {
+			return nil, fmt.Errorf("unknown weapon %q", name)
+		}
+		if slices.Contains(weapons, w) {
+			return nil, fmt.Errorf("weapon %q is listed twice", name)
+		}
+		weapons = append(weapons, w)
+	}
+	return weapons, nil
 }
 
 // File watches lowkey.toml next to the exe and keeps the last good settings

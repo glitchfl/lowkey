@@ -569,13 +569,18 @@ func (lv *live) screen() render.Screen {
 	return s
 }
 
-// columns follow the settings - the skin column is headed by the gun it shows
+// columns follow the settings - the skin column is one column per gun headed by its name
 func (lv *live) columns() []render.Column {
 	cfg := lv.cfg.Settings()
-	cols := render.Columns(cfg.Columns)
-	for i := range cols {
-		if cols[i].Key == "skin" {
-			cols[i].Header = strings.ToUpper(cfg.Weapon)
+	var cols []render.Column
+	for _, c := range render.Columns(cfg.Columns) {
+		if c.Key != "skin" {
+			cols = append(cols, c)
+			continue
+		}
+		for _, gun := range cfg.Weapons {
+			c.Key, c.Header = skinKey(gun), strings.ToUpper(gun)
+			cols = append(cols, c)
 		}
 	}
 	return cols

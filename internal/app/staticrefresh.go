@@ -73,25 +73,30 @@ func (lv *live) refreshStatic() {
 			}
 		})
 	}
-	// skins are thousands so each new one is asked for by itself - only the gun on screen and only
-	// for players whose skin can show
-	weapon, weaponName, ok := lv.data.Weapon(lv.cfg.Settings().Weapon)
-	for _, m := range lv.lobby.members {
-		id := lv.lobby.skins[m.puuid][weapon]
-		if !ok || id == "" || m.hidden || m.p == nil || lv.static.asked[id] || lv.static.skinsBusy[id] {
+	// skins are thousands so each new one is asked for by itself - only the guns on screen and only
+	// for players whose skins can show
+	for _, gun := range lv.cfg.Settings().Weapons {
+		weapon, weaponName, ok := lv.data.Weapon(gun)
+		if !ok {
 			continue
 		}
-		if _, known := lv.data.Skin(id); known {
-			continue
-		}
-		lv.static.skinsBusy[id] = true
-		lv.eng.submit(&job{prio: prioRoster, svc: remote.Static, path: "/v1/weapons/skins/" + id}, func(body []byte, err error) {
-			delete(lv.static.skinsBusy, id)
-			lv.static.asked[id] = true
-			if s, ok := decodeStaticSkin(body, weaponName); err == nil && ok {
-				lv.data.AddSkins(map[string]static.Skin{id: s})
+		for _, m := range lv.lobby.members {
+			id := lv.lobby.skins[m.puuid][weapon]
+			if id == "" || m.hidden || m.p == nil || lv.static.asked[id] || lv.static.skinsBusy[id] {
+				continue
 			}
-		})
+			if _, known := lv.data.Skin(id); known {
+				continue
+			}
+			lv.static.skinsBusy[id] = true
+			lv.eng.submit(&job{prio: prioRoster, svc: remote.Static, path: "/v1/weapons/skins/" + id}, func(body []byte, err error) {
+				delete(lv.static.skinsBusy, id)
+				lv.static.asked[id] = true
+				if s, ok := decodeStaticSkin(body, weaponName); err == nil && ok {
+					lv.data.AddSkins(map[string]static.Skin{id: s})
+				}
+			})
+		}
 	}
 }
 

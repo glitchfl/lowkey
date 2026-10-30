@@ -113,6 +113,10 @@ func TestInvalidSettingsKeepTheLastGoodOnesAndSayWhy(t *testing.T) {
 		{"unknown setting", `matchs = 5` + "\n", `unknown setting "matchs"`},
 		{"bad hour", `session_reset_hour = 25` + "\n", "session_reset_hour"},
 		{"unknown weapon", `weapon = "vandl"` + "\n", `unknown weapon "vandl"`},
+		{"unknown weapon in a list", `weapon = ["vandal", "vandl"]` + "\n", `unknown weapon "vandl"`},
+		{"a gun listed twice", `weapon = ["vandal", "Vandal"]` + "\n", `weapon "Vandal" is listed twice`},
+		{"no guns", `weapon = []` + "\n", "weapon is an empty list"},
+		{"a gun that isn't a name", `weapon = ["vandal", 3]` + "\n", "weapon takes a gun's name or a list of them"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

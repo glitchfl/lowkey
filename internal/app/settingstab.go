@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/glitchfl/lowkey/internal/render"
@@ -71,9 +72,8 @@ var settingRows = []settingRow{
 		step: func(s *settings.Settings, dir int) {
 			s.Region = cycle(append([]string{""}, riot.Regions()...), s.Region, dir)
 		}},
-	{key: "weapon", label: "skin weapon",
-		value: func(s settings.Settings) string { return s.Weapon },
-		step:  func(s *settings.Settings, dir int) { s.Weapon = cycle(static.Weapons(), s.Weapon, dir) }},
+	{key: "weapon", label: "skin weapons", open: weaponsList,
+		value: func(s settings.Settings) string { return strings.Join(s.Weapons, ", ") }},
 }
 
 // stepCutoff lands on multiples of 5 so a hand-set 37 goes to 40 or 35 - the limits can be off that grid
@@ -262,6 +262,14 @@ func modesList(cfg settings.Settings) *optionList {
 		title: "modes to track - " + nextLobbyNote, hint: "space on/off · esc back",
 		all:   stats.ModeKeys(),
 		field: func(s *settings.Settings) *[]string { return &s.Modes },
+	}, cfg)
+}
+
+func weaponsList(cfg settings.Settings) *optionList {
+	return newOptionList(optionList{
+		title: "skin weapons - top is leftmost in the table", hint: "space on/off · left/right move · esc back",
+		all: static.Weapons(), movable: true, keepOn: 1, keepOnNotice: "at least one gun has to stay on - turn the skin column off under columns",
+		field: func(s *settings.Settings) *[]string { return &s.Weapons },
 	}, cfg)
 }
 

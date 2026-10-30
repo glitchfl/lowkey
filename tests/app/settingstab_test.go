@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/glitchfl/lowkey/internal/app"
 	"github.com/glitchfl/lowkey/internal/fakeriot"
+	"github.com/glitchfl/lowkey/internal/static"
 )
 
 // what the console sends for each key - each string is one read
@@ -157,8 +159,6 @@ func TestEveryRowChangesTheFileAtOnce(t *testing.T) {
 		{"enemies by enter", enemyRow, []string{enterKey}, "< off >", "enemy_lookups = false\n"},
 		{"region forward", regionRow, []string{rightKey}, "< ap >", `region = "ap"` + "\n"},
 		{"region backward", regionRow, []string{leftKey}, "< pbe >", `region = "pbe"` + "\n"},
-		{"weapon forward", weaponRow, []string{rightKey}, "< warden >", `weapon = "warden"` + "\n"},
-		{"weapon backward", weaponRow, []string{leftKey}, "< stinger >", `weapon = "stinger"` + "\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -193,7 +193,6 @@ func TestStepsStopAtTheLimitsAndWrapWhereItMakesSense(t *testing.T) {
 		{"hand-set cutoff down", "cutoff_seconds = 37\n", cutoffRow, leftKey, "< 35s >", "cutoff_seconds = 35"},
 		{"region back to auto", `region = "ap"` + "\n", regionRow, leftKey, "< auto >", `region = "auto"`},
 		{"region around the end", `region = "pbe"` + "\n", regionRow, rightKey, "< auto >", `region = "auto"`},
-		{"weapon around the end", `weapon = "warden"` + "\n", weaponRow, rightKey, "< ares >", `weapon = "ares"`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -233,14 +232,23 @@ func TestChangingTheFirstRunFileKeepsItsComments(t *testing.T) {
 	}
 }
 
+// downTo moves from vandal at the top of the guns list to another gun - the guns that are on come first
+func downTo(gun string) []string {
+	off := slices.DeleteFunc(slices.Clone(static.Weapons()), func(w string) bool { return w == "vandal" })
+	return slices.Repeat([]string{downKey}, slices.Index(off, gun)+1)
+}
+
 func TestAKeyTheFileDoesNotHaveIsAddedWithItsComment(t *testing.T) {
 	r := newRig(t)
 	r.writeSettings("matches = 7")
 	r.settingsTab()
 	r.onRow(weaponRow)
-	r.press(leftKey)
-	r.screen("< stinger >")
-	want := "matches = 7\n\n# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\nweapon = \"stinger\"\n"
+	r.press(enterKey)
+	r.press(downTo("phantom")...)
+	r.press(spaceKey)
+	r.screen("> [x] phantom")
+	want := "matches = 7\n\n# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\n" +
+		"# a list like [\"vandal\", \"phantom\"] gives each gun a skin column\nweapon = [\"vandal\", \"phantom\"]\n"
 	if got := r.settingsFile(); got != want {
 		t.Errorf("--- want\n%s--- got\n%s", want, got)
 	}
@@ -451,6 +459,45 @@ func TestModesSubList(t *testing.T) {
 	r.screen("[LOBBY]", "not tracking competitive")
 }
 
+func TestWeaponsSubList(t *testing.T) {
+	t.Run("adds a gun and moves it", func(t *testing.T) {
+		r := newRig(t)
+		r.settingsTab()
+		r.onRow(weaponRow)
+		r.screen("> skin weapons       vandal  (enter)")
+		r.press(enterKey)
+		r.screen("skin weapons - top is leftmost in the table", "> [x] vandal")
+		r.press(downTo("phantom")...)
+		r.press(spaceKey)
+		r.screen("> [x] phantom")
+		r.saved(`weapon = ["vandal", "phantom"]` + "\n")
+		for range downTo("phantom") {
+			r.press(leftKey)
+		}
+		r.screen("> [x] phantom\n  [x] vandal")
+		r.saved(`weapon = ["phantom", "vandal"]` + "\n")
+		r.press(escKey)
+		r.screen("> skin weapons       phantom, vandal  (enter)")
+	})
+	t.Run("a single gun is saved as a name", func(t *testing.T) {
+		r := newRig(t)
+		r.writeSettings(`weapon = ["vandal", "phantom"]` + "\n")
+		r.settingsTab()
+		r.onRow(weaponRow)
+		r.press(enterKey, spaceKey)
+		r.screen("> [ ] vandal")
+		r.saved(`weapon = "phantom"` + "\n")
+	})
+	t.Run("the last one has to stay on", func(t *testing.T) {
+		r := newRig(t)
+		r.settingsTab()
+		r.onRow(weaponRow)
+		r.press(enterKey, spaceKey)
+		r.screen("at least one gun has to stay on - turn the skin column off under columns", "> [x] vandal")
+		r.saved(`weapon = "vandal"` + "\n")
+	})
+}
+
 func TestABrokenFileIsKeptAsABackupAndReplaced(t *testing.T) {
 	r := newRig(t)
 	r.writeSettings(`matches = 7` + "\n")
@@ -564,6 +611,7 @@ func TestKeysNeverMakeARiotRequest(t *testing.T) {
 		for range weaponRow {
 			r.press(downKey, rightKey, leftKey, rightKey)
 		}
+		r.press(enterKey, downKey, spaceKey, rightKey, escKey)
 	}
 	t.Run("in the menus", func(t *testing.T) {
 		r := newRig(t, ranked)
@@ -593,17 +641,19 @@ func TestKeysNeverMakeARiotRequest(t *testing.T) {
 	})
 }
 
-func TestSteppingTheWeaponChangesTheSkinColumnWithoutARequest(t *testing.T) {
+func TestAddingAGunOnTheTabAddsItsSkinColumnWithoutARequest(t *testing.T) {
 	r := atAgentSelectWithKeyboard(t, lobbySkins)
 	r.enterMatchLoad()
 	r.settled("MATCH LOADING", "VANDAL", "Reaver")
 	r.press(tabKey)
 	r.screen("[SETTINGS]")
 	r.onRow(weaponRow)
-	r.press(leftKey, leftKey, leftKey, leftKey, leftKey)
-	r.screen("< phantom >")
+	r.press(enterKey)
+	r.press(downTo("phantom")...)
+	r.press(spaceKey)
+	r.screen("> [x] phantom")
 	r.press(tabKey)
-	r.screen("[LOBBY]", "PHANTOM", "Ion")
+	r.screen("[LOBBY]", "VANDAL", "Reaver", "PHANTOM", "Ion")
 	if n := requestsExact(r, loadouts); n != 1 {
 		t.Errorf("loadouts fetched %d times, want once", n)
 	}

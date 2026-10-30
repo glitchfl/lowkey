@@ -13,6 +13,7 @@ const (
 	skinColumns = `columns = ["name", "agent", "rank", "skin"]` + "\n"
 	newSkin     = "5c1a0000-0000-4000-8000-000000000001"
 	ghostSkin   = "5c1a0000-0000-4000-8000-000000000002"
+	newPhantom  = "5c1a0000-0000-4000-8000-000000000003"
 	ultra       = "411e4a55-4e59-7757-41f0-86a53f101bb5"
 )
 
@@ -74,6 +75,70 @@ func TestTheSkinColumnShowsEveryVisiblePlayersSkinForTheChosenGun(t *testing.T) 
 	}
 	if n := requestsExact(r, loadouts); n != 1 {
 		t.Errorf("loadouts fetched %d times, want once", n)
+	}
+}
+
+// headerLine is the table's column header - the one line naming the column without a "·"
+func headerLine(t *testing.T, frame, column string) string {
+	t.Helper()
+	for _, l := range strings.Split(frame, "\n") {
+		if strings.Contains(l, column) && !strings.Contains(l, "·") {
+			return strings.Join(strings.Fields(l), " ")
+		}
+	}
+	t.Fatalf("no %s column in:\n%s", column, frame)
+	return ""
+}
+
+func TestEachGunInTheListGetsASkinColumnInTheListsOrder(t *testing.T) {
+	r := newRig(t, matchLobby, lobbySkins)
+	r.writeSettings(skinColumns + `weapon = ["Phantom", "vandal"]` + "\n")
+	r.live()
+	r.screen("waiting for the next match")
+	r.subscribed()
+	r.enterMatchLoad()
+	frame := r.settled("MATCH LOADING · Ascent", "Reaver", "Ion", "Sakura", "US - THEM")
+	if got, want := headerLine(t, frame, "PHANTOM"), "PLAYER AGENT RANK PHANTOM VANDAL"; got != want {
+		t.Errorf("header %q, want %q\n%s", got, want, frame)
+	}
+	if got, want := skinColumn(t, frame, "PHANTOM"), "Ion,Standard,Standard,,Standard,Standard,Standard,,Standard,Standard"; got != want {
+		t.Errorf("phantoms: got %s, want %s\n%s", got, want, frame)
+	}
+	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,,Standard,Sakura,Standard,,Standard,Standard"; got != want {
+		t.Errorf("vandals: got %s, want %s\n%s", got, want, frame)
+	}
+
+	// dropping a gun only drops its column
+	r.writeSettings(skinColumns + `weapon = "phantom"` + "\n")
+	frame = r.screen("PHANTOM", "Ion")
+	eventually(t, "the vandal column to go", func() bool {
+		frame = r.con.last()
+		return !strings.Contains(frame, "VANDAL") && strings.Contains(frame, "PHANTOM")
+	})
+	if n := requestsExact(r, loadouts); n != 1 {
+		t.Errorf("loadouts fetched %d times, want once whatever the guns", n)
+	}
+}
+
+func TestANewSkinOnAnyGunInTheListIsNamedByARefresh(t *testing.T) {
+	r := newRig(t, matchLobby, lobbySkins, func(w *fakeriot.World) {
+		w.StaticSkins[newPhantom] = fakeriot.StaticSkin{Name: "Nova Phantom", Edition: ultra}
+		wear(w, ally1, fakeriot.Phantom, newPhantom)
+	})
+	r.writeSettings(skinColumns + `weapon = ["vandal", "phantom"]` + "\n")
+	r.live()
+	r.screen("waiting for the next match")
+	r.subscribed()
+	r.enterMatchLoad()
+	frame := r.settled("MATCH LOADING", "Reaver", "Nova", "US - THEM")
+	if got := cellIn(t, frame, "PHANTOM", 3); got != "Nova" {
+		t.Errorf("a phantom newer than the snapshot: got %q, want Nova\n%s", got, frame)
+	}
+	if got := cellIn(t, frame, "VANDAL", 3); got != "Elderflame" {
+		t.Errorf("the same player's vandal: got %q, want Elderflame\n%s", got, frame)
+	}
+	if n := staticRequests(r, "/v1/weapons/skins/"+newPhantom); n != 1 {
+		t.Errorf("asked valorant-api.com about the new phantom %d times, want once", n)
 	}
 }
 

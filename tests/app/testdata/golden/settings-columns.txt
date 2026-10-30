@@ -1,0 +1,23 @@
+ LOBBY  [SETTINGS]         tab to switch
+
+columns - top is leftmost in the table
+> [x] rank
+  [x] name
+  [ ] party
+  [ ] agent
+  [ ] peak
+  [ ] last_act
+  [ ] wr
+  [ ] wl
+  [ ] kd
+  [ ] hs
+  [ ] acs
+  [ ] adr
+  [ ] fb
+  [ ] n
+  [ ] mains
+  [ ] rr_trend
+  [ ] met
+  [ ] skin
+
+space on/off · left/right move · esc back

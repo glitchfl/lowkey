@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,13 @@ import (
 )
 
 const FileName = "lowkey.toml"
+
+const (
+	MinMatches       = 1
+	MaxMatches       = 25
+	MinCutoffSeconds = 1
+	MaxCutoffSeconds = 600
+)
 
 type Settings struct {
 	Columns          []string
@@ -63,33 +71,71 @@ func (s Settings) Tracks(queue string) bool {
 	return false
 }
 
-const defaultFile = `# lowkey settings - edits apply at the next redraw without a restart
+// field is one key of lowkey.toml - the commented file and the settings tab's help come from the same words
+type field struct {
+	key     string
+	comment []string
+	value   func(Settings) string
+}
 
-# columns left to right - drop or reorder freely
-# party name agent rank peak last_act wr wl kd hs acs adr fb n mains rr_trend met skin
-columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met", "skin"]
+var fields = []field{
+	{"columns", []string{"columns left to right - drop or reorder freely", "party name agent rank peak last_act wr wl kd hs acs adr fb n mains rr_trend met skin"},
+		func(s Settings) string { return tomlList(s.Columns) }},
+	{"matches", []string{"recent matches per player behind k/d hs% acs adr fb% and mains - 1 to 25"},
+		func(s Settings) string { return strconv.Itoa(s.Matches) }},
+	{"modes", []string{"modes to track - competitive premier unrated swiftplay deathmatch team_deathmatch"},
+		func(s Settings) string { return tomlList(s.Modes) }},
+	{"session_reset_hour", []string{"hour of the day in local time when the session line starts over"},
+		func(s Settings) string { return strconv.Itoa(s.SessionResetHour) }},
+	{"cutoff_seconds", []string{"seconds after the match loads when every lookup stops - rounds start soon after"},
+		func(s Settings) string { return strconv.Itoa(int(s.Cutoff / time.Second)) }},
+	{"enemy_lookups", []string{"look up the enemy team at match load - off shows enemies by agent only"},
+		func(s Settings) string { return strconv.FormatBool(s.EnemyLookups) }},
+	{"region", []string{"auto reads the region from the game - na latam br eu ap kr or pbe overrides it"},
+		func(s Settings) string {
+			if s.Region == "" {
+				return `"auto"`
+			}
+			return strconv.Quote(s.Region)
+		}},
+	{"weapon", []string{"the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name"},
+		func(s Settings) string { return strconv.Quote(s.Weapon) }},
+}
 
-# recent matches per player behind k/d hs% acs adr fb% and mains - 1 to 25
-matches = 13
+func tomlList(items []string) string {
+	quoted := make([]string, len(items))
+	for i, item := range items {
+		quoted[i] = strconv.Quote(item)
+	}
+	return "[" + strings.Join(quoted, ", ") + "]"
+}
 
-# modes to track - competitive premier unrated swiftplay deathmatch team_deathmatch
-modes = ["competitive", "premier", "unrated", "swiftplay", "deathmatch", "team_deathmatch"]
+func (fd field) block(value string) string {
+	var b strings.Builder
+	for _, line := range fd.comment {
+		b.WriteString("# " + line + "\n")
+	}
+	b.WriteString(fd.key + " = " + value + "\n")
+	return b.String()
+}
 
-# hour of the day in local time when the session line starts over
-session_reset_hour = 6
+func Help(key string) string {
+	for _, fd := range fields {
+		if fd.key == key {
+			return fd.comment[0]
+		}
+	}
+	return ""
+}
 
-# seconds after the match loads when every lookup stops - rounds start soon after
-cutoff_seconds = 40
-
-# look up the enemy team at match load - false shows enemies by agent only
-enemy_lookups = true
-
-# auto reads the region from the game - na latam br eu ap kr or pbe overrides it
-region = "auto"
-
-# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name
-weapon = "vandal"
-`
+func (s Settings) contents() []byte {
+	var b strings.Builder
+	b.WriteString("# lowkey settings - edit them here or on the settings tab - changes apply without a restart\n")
+	for _, fd := range fields {
+		b.WriteString("\n" + fd.block(fd.value(s)))
+	}
+	return []byte(b.String())
+}
 
 type file struct {
 	Columns          *[]string `toml:"columns"`
@@ -136,10 +182,10 @@ func Parse(data []byte) (Settings, string, error) {
 	}
 	if f.Matches != nil {
 		switch m := *f.Matches; {
-		case m < 1:
-			s.Matches, note = 1, fmt.Sprintf("matches %d is below 1 - using 1", m)
-		case m > 25:
-			s.Matches, note = 25, fmt.Sprintf("matches %d is above 25 - using 25", m)
+		case m < MinMatches:
+			s.Matches, note = MinMatches, fmt.Sprintf("matches %d is below %d - using %d", m, MinMatches, MinMatches)
+		case m > MaxMatches:
+			s.Matches, note = MaxMatches, fmt.Sprintf("matches %d is above %d - using %d", m, MaxMatches, MaxMatches)
 		default:
 			s.Matches = m
 		}
@@ -159,8 +205,8 @@ func Parse(data []byte) (Settings, string, error) {
 		s.SessionResetHour = *f.SessionResetHour
 	}
 	if f.CutoffSeconds != nil {
-		if c := *f.CutoffSeconds; c < 1 || c > 600 {
-			return Settings{}, "", fmt.Errorf("cutoff_seconds %d isn't between 1 and 600", c)
+		if c := *f.CutoffSeconds; c < MinCutoffSeconds || c > MaxCutoffSeconds {
+			return Settings{}, "", fmt.Errorf("cutoff_seconds %d isn't between %d and %d", c, MinCutoffSeconds, MaxCutoffSeconds)
 		}
 		s.Cutoff = time.Duration(*f.CutoffSeconds) * time.Second
 	}
@@ -215,7 +261,7 @@ func (f *File) Create() error {
 	if err != nil {
 		return err
 	}
-	_, err = fh.WriteString(defaultFile)
+	_, err = fh.Write(Default().contents())
 	if cerr := fh.Close(); err == nil {
 		err = cerr
 	}
@@ -225,9 +271,13 @@ func (f *File) Create() error {
 
 // Refresh re-reads the file when its modification time changed and reports whether anything did
 func (f *File) Refresh() bool {
-	fi, err := os.Stat(f.path)
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	return f.refresh()
+}
+
+func (f *File) refresh() bool {
+	fi, err := os.Stat(f.path)
 	if err != nil {
 		changed := f.exists
 		f.exists, f.warning, f.invalid, f.mtime = false, "", false, time.Time{}

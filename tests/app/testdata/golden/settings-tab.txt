@@ -1,0 +1,14 @@
+ LOBBY  [SETTINGS]         tab to switch
+
+> columns            18 of 18  (enter)
+  matches            13
+  modes              6 of 6
+  session starts at  06:00
+  cutoff             40s
+  enemy lookups      on
+  region             auto
+  skin weapon        vandal
+
+columns left to right - drop or reorder freely
+
+up/down move · left/right change · enter open · saved at once

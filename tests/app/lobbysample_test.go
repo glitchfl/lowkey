@@ -149,9 +149,10 @@ func TestLobbyRequestsStayWithinTheBudget(t *testing.T) {
 	if details != 16 {
 		t.Errorf("fetched %d match details, want 16 with the premade's shared match counted once", details)
 	}
-	// two rosters - your party - content - two session refreshes - then rank and trend and history per visible player
+	// two rosters - your party - content - two session refreshes - the match's loadouts - then rank and trend and
+	// history per visible player
 	visible := 8
-	budget := 2 + 2 + 1 + 2 + visible*3 + details
+	budget := 2 + 2 + 1 + 2 + 1 + visible*3 + details
 	if n := len(r.fr.RemoteRequests()); n > budget {
 		t.Errorf("%d requests for the lobby, over the budget of %d", n, budget)
 	}

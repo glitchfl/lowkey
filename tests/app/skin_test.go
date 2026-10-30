@@ -79,6 +79,7 @@ func TestTheSkinColumnShowsEveryVisiblePlayersSkinForTheChosenGun(t *testing.T) 
 
 func TestLoadoutsAreOnlyFetchedForTheSkinColumn(t *testing.T) {
 	r := newRig(t, matchLobby, lobbySkins)
+	r.writeSettings(`columns = ["name", "agent", "rank"]` + "\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()

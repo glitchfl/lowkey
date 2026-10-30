@@ -32,16 +32,9 @@ type Settings struct {
 	Weapon           string // the gun the skin column shows - lowercase
 }
 
-// skin is left out of the default columns - the full set already fills 120 columns at its widest
 func Default() Settings {
-	var columns []string
-	for _, k := range render.Keys() {
-		if k != "skin" {
-			columns = append(columns, k)
-		}
-	}
 	return Settings{
-		Columns:          columns,
+		Columns:          render.Keys(),
 		Matches:          13,
 		Modes:            stats.ModeKeys(),
 		SessionResetHour: 6,
@@ -72,9 +65,9 @@ func (s Settings) Tracks(queue string) bool {
 
 const defaultFile = `# lowkey settings - edits apply at the next redraw without a restart
 
-# columns left to right - drop or reorder freely - skin is the one left out by default
+# columns left to right - drop or reorder freely
 # party name agent rank peak last_act wr wl kd hs acs adr fb n mains rr_trend met skin
-columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met"]
+columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met", "skin"]
 
 # recent matches per player behind k/d hs% acs adr fb% and mains - 1 to 25
 matches = 13

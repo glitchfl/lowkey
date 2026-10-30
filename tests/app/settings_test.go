@@ -34,7 +34,7 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 	r.screen("waiting for the next match")
 	file := r.settingsFile()
 	defaults := []string{
-		`columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met"]`,
+		`columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met", "skin"]`,
 		`matches = 13`,
 		`modes = ["competitive", "premier", "unrated", "swiftplay", "deathmatch", "team_deathmatch"]`,
 		`session_reset_hour = 6`,

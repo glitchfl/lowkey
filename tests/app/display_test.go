@@ -96,7 +96,7 @@ func TestRedirectedOutputHasNoEscapeCodes(t *testing.T) {
 }
 
 func TestNarrowWindowsDropTrailingColumns(t *testing.T) {
-	order := []string{"PLAYER", "AGENT", "RANK", "PEAK", "LAST", "WR", "W-L", "K/D", "HS%", "ACS", "ADR", "FB%", "N", "MAINS", "TREND", "MET"}
+	order := []string{"PLAYER", "AGENT", "RANK", "PEAK", "LAST", "WR", "W-L", "K/D", "HS%", "ACS", "ADR", "FB%", "N", "MAINS", "TREND", "MET", "VANDAL"}
 	for _, width := range []int{80, 60} {
 		t.Run(fmt.Sprint(width), func(t *testing.T) {
 			r := newRig(t, matchLobby, lobbySamples)
@@ -164,15 +164,16 @@ func widest(w *fakeriot.World) {
 	}
 }
 
-func TestTheFullDefaultColumnSetFitsIn120Columns(t *testing.T) {
+// the skin column comes last so at the very widest it's the one that gives way - every stat still fits
+func TestTheDefaultStatColumnsFitIn120Columns(t *testing.T) {
 	r := newRig(t, widest)
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
 	r.enterMatchLoad()
-	frame := r.settled("MATCH LOADING", "LongestNameEve", "Rad 1000", "US - THEM")
-	if strings.Contains(frame, "hidden - widen the window") {
-		t.Errorf("columns were dropped at 120:\n%s", frame)
+	frame := r.settled("MATCH LOADING", "LongestNameEve", "Rad 1000", "US - THEM", "+1 hidden - widen the window")
+	if strings.Contains(frame, "VANDAL") {
+		t.Errorf("the skin column should be the one dropped at 120:\n%s", frame)
 	}
 	for _, want := range []string{"Brimstone", "Rad 1000", "100-100", "10.00", "100%", "999", "Brim Astr", "+150", "enemy L 20h", "●"} {
 		if !strings.Contains(frame, want) {

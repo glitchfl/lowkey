@@ -15,5 +15,5 @@ hidden      Viper
 -           Skye    -        -     -      -     -     -   -   -   -   -
 AVERAGE 4/5         Plat2    Plat2      60%        1.50 30% 175 140 10%
 US - THEM           ▲2       ▲3          ▼4       ▼0.33  ▼5  ▲8 ▼57  ▼5
-+4 hidden - widen the window
++5 hidden - widen the window
 SESSION · 2W 1L +26 RR since 06:00

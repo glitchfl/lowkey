@@ -1,4 +1,4 @@
-MATCH LOADING · Ascent · Competitive
+MATCH LOADING · Ascent · Defenders · Competitive
 PLAYER      AGENT   RANK     PEAK  LAST  WR   W-L   K/D HS% ACS ADR FB%
 ALLIES
 Kestrel#EUW Sova    Dia3 12  Imm2  Dia2 57%  12-9  1.00   - 200   0  0%

@@ -13,7 +13,7 @@ Leave it open all day. It idles at about 0% CPU. Settings live in `lowkey.toml` 
 ## What it won't do
 
 - Look up players in streamer mode. They just show as "hidden".
-- Call Riot's name service, touch agent select or show which side a team starts on.
+- Call Riot's name service or touch agent select.
 - Use the internet while rounds are being played.
 - Touch the game. No injection, memory reading or overlay. It runs at low priority and stays under 100 MB of RAM.
 

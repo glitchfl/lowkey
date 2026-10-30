@@ -367,13 +367,21 @@ func (lv *live) tracked(queue string) bool {
 	return lv.cfg.Settings().Tracks(queue)
 }
 
+// sides is the half each team starts on - Riot's red team always attacks first
+var sides = map[string]string{"Red": "Attackers", "Blue": "Defenders"}
+
 func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	if lob.known {
 		mapName, ok := lv.data.MapName(lob.mapURL)
 		if !ok {
 			mapName = "?"
 		}
-		title += " · " + mapName + " · " + lob.mode.Name
+		title += " · " + mapName
+		// only the round modes have sides - deathmatch and TDM show none
+		if side, ok := sides[lob.ownTeam]; ok && lob.mode.Rounds {
+			title += " · " + side
+		}
+		title += " · " + lob.mode.Name
 	}
 	s.Header = title
 	if len(lob.members) == 0 {

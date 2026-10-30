@@ -252,7 +252,7 @@ func TestLiveRecordingsKeepAnonymizedScreens(t *testing.T) {
 		t.Fatal(err)
 	}
 	screens := string(raw)
-	if !strings.Contains(screens, "AGENT SELECT · Ascent · Competitive") || !strings.Contains(screens, "Dia1 50") {
+	if !strings.Contains(screens, "AGENT SELECT · Ascent · Defenders · Competitive") || !strings.Contains(screens, "Dia1 50") {
 		t.Errorf("screens.txt doesn't hold the agent select table:\n%s", screens)
 	}
 	for _, real := range []string{"Kestrel", "AllyOne", "AllyTwo", "EUW"} {

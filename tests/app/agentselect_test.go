@@ -78,7 +78,7 @@ func TestAgentSelectShowsYourTeam(t *testing.T) {
 	r.screen("waiting for the next match")
 	r.subscribed()
 	r.enterAgentSelect()
-	frame := r.settled("AGENT SELECT · Ascent · Competitive", "SESSION · 2W 1L +26 RR", "Dia1 50", "Plat1 30")
+	frame := r.settled("AGENT SELECT · Ascent · Defenders · Competitive", "SESSION · 2W 1L +26 RR", "Dia1 50", "Plat1 30")
 
 	rows := []struct {
 		agent, rank, peak, last, wr, wl, trend string

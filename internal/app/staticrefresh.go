@@ -82,7 +82,7 @@ func (lv *live) refreshStatic() {
 		}
 		for _, m := range lv.lobby.members {
 			id := lv.lobby.skins[m.puuid][weapon]
-			if id == "" || m.hidden || m.p == nil || lv.static.asked[id] || lv.static.skinsBusy[id] {
+			if id == "" || m.p == nil || lv.static.asked[id] || lv.static.skinsBusy[id] {
 				continue
 			}
 			if _, known := lv.data.Skin(id); known {

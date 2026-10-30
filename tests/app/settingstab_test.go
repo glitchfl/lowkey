@@ -36,6 +36,7 @@ const (
 	sessionRow
 	cutoffRow
 	enemyRow
+	hiddenStatsRow
 	regionRow
 	weaponRow
 )
@@ -157,6 +158,9 @@ func TestEveryRowChangesTheFileAtOnce(t *testing.T) {
 		{"enemies by arrow", enemyRow, []string{rightKey}, "< off >", "enemy_lookups = false\n"},
 		{"enemies by space", enemyRow, []string{spaceKey}, "< off >", "enemy_lookups = false\n"},
 		{"enemies by enter", enemyRow, []string{enterKey}, "< off >", "enemy_lookups = false\n"},
+		{"hidden stats by arrow", hiddenStatsRow, []string{rightKey}, "< off >", "hidden_player_stats = false\n"},
+		{"hidden stats by space", hiddenStatsRow, []string{spaceKey}, "< off >", "hidden_player_stats = false\n"},
+		{"hidden stats by enter", hiddenStatsRow, []string{enterKey}, "< off >", "hidden_player_stats = false\n"},
 		{"region forward", regionRow, []string{rightKey}, "< ap >", `region = "ap"` + "\n"},
 		{"region backward", regionRow, []string{leftKey}, "< pbe >", `region = "pbe"` + "\n"},
 	}
@@ -258,7 +262,7 @@ func TestAHandEditShowsOnTheTabAndAChangeKeepsIt(t *testing.T) {
 	r := newRig(t)
 	r.settingsTab()
 	r.writeSettings("matches = 9\nsession_reset_hour = 18\n")
-	r.screen("  matches            9", "  session starts at  18:00")
+	r.screen("  matches              9", "  session starts at    18:00")
 	r.onRow(matchesRow)
 	r.press(rightKey)
 	r.screen("< 10 >")
@@ -280,6 +284,7 @@ func TestTheHelpLineSaysWhatARowDoesAndWhenItApplies(t *testing.T) {
 		{"when the session line starts over", true},
 		{"when every lookup stops", true},
 		{"look up the enemy team", true},
+		{"show the stats of hidden players", true},
 		{"auto reads the region", true},
 		{"the gun the skin column shows", false},
 	} {
@@ -464,7 +469,7 @@ func TestWeaponsSubList(t *testing.T) {
 		r := newRig(t)
 		r.settingsTab()
 		r.onRow(weaponRow)
-		r.screen("> skin weapons       vandal  (enter)")
+		r.screen("> skin weapons         vandal  (enter)")
 		r.press(enterKey)
 		r.screen("skin weapons - top is leftmost in the table", "> [x] vandal")
 		r.press(downTo("phantom")...)
@@ -477,7 +482,7 @@ func TestWeaponsSubList(t *testing.T) {
 		r.screen("> [x] phantom\n  [x] vandal")
 		r.saved(`weapon = ["phantom", "vandal"]` + "\n")
 		r.press(escKey)
-		r.screen("> skin weapons       phantom, vandal  (enter)")
+		r.screen("> skin weapons         phantom, vandal  (enter)")
 	})
 	t.Run("a single gun is saved as a name", func(t *testing.T) {
 		r := newRig(t)
@@ -502,10 +507,10 @@ func TestABrokenFileIsKeptAsABackupAndReplaced(t *testing.T) {
 	r := newRig(t)
 	r.writeSettings(`matches = 7` + "\n")
 	r.settingsTab()
-	r.screen("  matches            7")
+	r.screen("  matches              7")
 	broken := "matches = 7\ncolumns = [\"name\",\n"
 	r.writeSettings(broken)
-	r.screen("using the last good settings", "  matches            7")
+	r.screen("using the last good settings", "  matches              7")
 
 	r.onRow(matchesRow)
 	r.press(rightKey)

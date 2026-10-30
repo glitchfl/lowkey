@@ -301,7 +301,7 @@ func (r *rig) settledWith(held int, texts ...string) string {
 }
 
 // checkPolicy runs after every test - whatever happened Riot must never have seen a forbidden request
-// and a live run must have stayed quiet whenever its screen said so
+// and a live run must have stayed quiet whenever its screen said so and never named a hidden player
 func (r *rig) checkPolicy() {
 	for _, v := range r.fr.Violations() {
 		r.t.Errorf("policy: %s", v)
@@ -309,7 +309,8 @@ func (r *rig) checkPolicy() {
 	if r.stop == nil {
 		return
 	}
-	for _, v := range r.fr.QuietViolations(r.con.timedFrames()) {
+	frames := r.con.timedFrames()
+	for _, v := range append(r.fr.QuietViolations(frames), r.fr.NameViolations(frames)...) {
 		r.t.Errorf("policy: %s", v)
 	}
 }

@@ -105,6 +105,7 @@ func TestTheGuardRefusesRequestsAboutHiddenPlayersWhateverTheData(t *testing.T) 
 			Players: []fakeriot.MatchPlayer{{PUUID: ally1, Team: "Blue", Agent: fakeriot.Jett, Score: 1, Rounds: 1}},
 		})
 	})
+	r.writeSettings(hiddenStatsOff)
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()

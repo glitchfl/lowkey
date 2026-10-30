@@ -32,7 +32,7 @@ type engine struct {
 	gen       int
 }
 
-// player is everything known about one visible player so far
+// player is everything known about one player so far
 type player struct {
 	puuid      string
 	queue      string

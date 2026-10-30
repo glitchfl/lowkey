@@ -55,13 +55,11 @@ var settingRows = []settingRow{
 		value: func(s settings.Settings) string { return fmt.Sprintf("%ds", int(s.Cutoff/time.Second)) },
 		step:  stepCutoff},
 	{key: "enemy_lookups", label: "enemy lookups", nextLobby: true, flips: true,
-		value: func(s settings.Settings) string {
-			if s.EnemyLookups {
-				return "on"
-			}
-			return "off"
-		},
-		step: func(s *settings.Settings, _ int) { s.EnemyLookups = !s.EnemyLookups }},
+		value: func(s settings.Settings) string { return onOff(s.EnemyLookups) },
+		step:  func(s *settings.Settings, _ int) { s.EnemyLookups = !s.EnemyLookups }},
+	{key: "hidden_player_stats", label: "hidden player stats", nextLobby: true, flips: true,
+		value: func(s settings.Settings) string { return onOff(s.HiddenPlayerStats) },
+		step:  func(s *settings.Settings, _ int) { s.HiddenPlayerStats = !s.HiddenPlayerStats }},
 	{key: "region", label: "region", nextLobby: true,
 		value: func(s settings.Settings) string {
 			if s.Region == "" {
@@ -86,6 +84,13 @@ func stepCutoff(s *settings.Settings, dir int) {
 	}
 	c = max(settings.MinCutoffSeconds, min(c, settings.MaxCutoffSeconds))
 	s.Cutoff = time.Duration(c) * time.Second
+}
+
+func onOff(on bool) string {
+	if on {
+		return "on"
+	}
+	return "off"
 }
 
 func direction(k key) int {

@@ -40,6 +40,7 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		`session_reset_hour = 6`,
 		`cutoff_seconds = 40`,
 		`enemy_lookups = true`,
+		`hidden_player_stats = true`,
 		`region = "auto"`,
 		`weapon = "vandal"`,
 	}
@@ -169,7 +170,7 @@ func TestEnemyLookupsCanBeSwitchedOff(t *testing.T) {
 	r.settled("AGENT SELECT", "Dia1 50")
 	r.enterMatchLoad()
 	frame := r.settled("MATCH LOADING", "ENEMIES", "Raze")
-	for _, e := range []string{enemy1, enemy2, enemy4, enemy5} {
+	for _, e := range []string{enemy1, enemy2, enemy3, enemy4, enemy5} {
 		for _, req := range r.fr.RemoteRequests() {
 			if strings.Contains(req.Path+"?"+req.Query.Encode(), e) {
 				t.Errorf("an enemy was looked up: %s", req.Path)

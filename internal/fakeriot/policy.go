@@ -14,16 +14,10 @@ type Frame struct {
 
 // Violations lists every request Riot must never see from lowkey whatever it was doing
 func (s *Server) Violations() []string {
-	hidden := s.Hidden()
 	self := s.Self()
 	var out []string
 	for _, req := range s.RemoteRequests() {
 		where := strings.ToLower(req.Path + "?" + req.Query.Encode())
-		for _, h := range hidden {
-			if strings.Contains(where, strings.ToLower(h)) {
-				out = append(out, fmt.Sprintf("a request referenced the hidden player %s: %s", h, where))
-			}
-		}
 		parts := strings.Split(strings.Trim(req.Path, "/"), "/")
 		switch {
 		case req.Method != "GET":
@@ -34,6 +28,42 @@ func (s *Server) Violations() []string {
 			out = append(out, "an agent select action was sent: "+where)
 		case len(parts) >= 4 && parts[0] == "parties" && parts[2] == "players" && parts[3] != self:
 			out = append(out, "party data was asked for someone else: "+where)
+		}
+	}
+	return out
+}
+
+// HiddenLookups lists the requests that named a hidden player - with hidden_player_stats off there must be none
+func (s *Server) HiddenLookups() []string {
+	hidden := s.Hidden()
+	var out []string
+	for _, req := range s.RemoteRequests() {
+		where := strings.ToLower(req.Path + "?" + req.Query.Encode())
+		for _, h := range hidden {
+			if strings.Contains(where, strings.ToLower(h)) {
+				out = append(out, where)
+			}
+		}
+	}
+	return out
+}
+
+// NameViolations lists every screen that showed a hidden player's name - whatever the settings that must never happen
+func (s *Server) NameViolations(frames []Frame) []string {
+	s.mu.Lock()
+	var names []string
+	for puuid, p := range s.world.Players {
+		if p.Incognito && puuid != s.world.Self && p.Name != "" {
+			names = append(names, p.Name)
+		}
+	}
+	s.mu.Unlock()
+	var out []string
+	for _, f := range frames {
+		for _, name := range names {
+			if strings.Contains(f.Text, name) {
+				out = append(out, fmt.Sprintf("the hidden player %s was named on screen:\n%s", name, f.Text))
+			}
 		}
 	}
 	return out

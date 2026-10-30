@@ -4,15 +4,15 @@ ALLIES
 Kestrel#EUW  Sova     Dia3 12   Imm2   Dia2  57%   12-9   1.00    -  200    0   0%  6  Jett     +14       Standard
 AllyOne#A1   Jett     Dia1 50   Dia1   -     50%  10-10   2.00  30%  200  150  10%  5  Jett      +5       Standard
 AllyTwo#A2   Killjoy  Plat1 30  Plat1  -     60%    6-4   0.50  20%  150  100   5%  3  KJ       -10       Standard
-hidden       Omen
+hidden       Omen     Rad 900   Rad    -     90%  90-10      -    -    -    -    -  0  -          -       Standard
 -            Sage     -         -      -       -      -      -    -    -    -    -  0  -          -       Standard
-AVERAGE 4/5           Dia1      Dia2   Dia2  56%          1.17  25%  183   83   5%               +3
+AVERAGE               Dia3      Asc1   Dia2  64%          1.17  25%  183   83   5%               +3
 ENEMIES
 EnemyOne#E1  Raze     Plat2 10  Plat2  -     60%    6-4   2.50  50%  250  200  20%  2  Raze     +12       Standard
 EnemyTwo#E2  Breach   Gold3 70  Gold3  -     50%    5-5   0.50  10%  100   80   0%  1  Brch      -6       Standard
-hidden       Viper
+hidden       Viper    Rad 999   Rad    -     99%   99-1      -    -    -    -    -  0  -          -       Standard
 -            Cypher   Plat3 0   Plat3  -     70%    7-3      -    -    -    -    -  0  -         +0       Standard
 -            Skye     -         -      -       -      -      -    -    -    -    -  0  -          -       Standard
-AVERAGE 4/5           Plat2     Plat2        60%          1.50  30%  175  140  10%               +2
-US - THEM             ▲2        ▲3            ▼4         ▼0.33   ▼5   ▲8  ▼57   ▼5               ▲1
+AVERAGE               Dia2      Dia2         70%          1.50  30%  175  140  10%               +2
+US - THEM             ▲1        ▲2            ▼6         ▼0.33   ▼5   ▲8  ▼57   ▼5               ▲1
 SESSION · 2W 1L +26 RR since 06:00

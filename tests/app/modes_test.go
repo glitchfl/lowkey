@@ -46,6 +46,10 @@ func deathmatch(w *fakeriot.World) {
 				line5{score: 1000, rounds: 1, kills: 20 * i, deaths: 20, head: 10, body: 10, damage: 2000})
 		}
 		p.Incognito = i == 13
+		if i == 13 {
+			modeMatches(w, p.PUUID, "deathmatch", fakeriot.ModeDeathmatch, "dd000013", 1,
+				line5{score: 1000, rounds: 1, kills: 30, deaths: 20, head: 10, body: 10, damage: 2000})
+		}
 		w.CoreGame.Players = append(w.CoreGame.Players, fakeriot.LivePlayer{PUUID: p.PUUID, Team: p.PUUID, Agent: fakeriot.Phoenix})
 	}
 }

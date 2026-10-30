@@ -56,7 +56,7 @@ func (g *Guard) SetSelf(puuid string) {
 	delete(g.hidden, g.self)
 }
 
-// Hide adds streamer-mode players - your own PUUID is never treated as hidden
+// Hide refuses anything about these players until Show - your own PUUID is never treated as hidden
 func (g *Guard) Hide(puuids ...string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -66,6 +66,12 @@ func (g *Guard) Hide(puuids ...string) {
 			g.hidden[p] = true
 		}
 	}
+}
+
+func (g *Guard) Show(puuid string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	delete(g.hidden, strings.ToLower(puuid))
 }
 
 // Check judges the endpoint path - the full URL only matters for spotting a hidden player anywhere in it

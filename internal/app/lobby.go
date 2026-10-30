@@ -298,12 +298,16 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 			lob.ownTeam = rp.Team
 		}
 	}
+	offLimits := func(rp riot.RosterPlayer) bool {
+		enemy := lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
+		return rp.Incognito && rp.PUUID != lv.self && !cfg.HiddenPlayerStats || enemy && !cfg.EnemyLookups
+	}
+	// every roster decides again - or a setting switched back on would keep refusing last lobby's players
 	for _, rp := range roster.Players {
-		// the guard learns streamer mode straight from Riot's data whatever the rows decide - and with
-		// enemy lookups off it refuses anything about an enemy too
-		offLimits := !cfg.EnemyLookups && lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
-		if rp.Incognito || offLimits {
+		if offLimits(rp) {
 			lv.guard.Hide(rp.PUUID)
+		} else {
+			lv.guard.Show(rp.PUUID)
 		}
 	}
 	var members []*member
@@ -311,8 +315,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		m := lob.member(rp.PUUID)
 		if m == nil {
 			m = &member{puuid: rp.PUUID, hidden: rp.Incognito && rp.PUUID != lv.self}
-			enemy := lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
-			if !m.hidden && (cfg.EnemyLookups || !enemy) {
+			if !offLimits(rp) {
 				m.p = newPlayer(m.puuid, lob.mode.Queue, cfg.Matches)
 				want := wantRank | wantTrend | wantSample
 				if m.puuid == lv.self {
@@ -323,6 +326,8 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 			}
 		}
 		m.agent, m.hover, m.team = rp.Agent, rp.Hover, rp.Team
+		// streamer mode can come on between rosters - a name already on screen still has to go
+		m.hidden = m.hidden || rp.Incognito && rp.PUUID != lv.self
 		members = append(members, m)
 	}
 	for _, rp := range roster.Players {
@@ -449,11 +454,12 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 		if mark, ok := marks[m.puuid]; ok {
 			row["party"] = render.Cell{Text: mark}
 		}
+		// meeting someone ties them to a game you saw them in - so a hidden player never gets it even with stats
 		if e, ok := met[m.puuid]; ok && !m.hidden && m.p != nil {
 			row["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
 		}
-		// like every other stat a skin stays off hidden players and enemies lowkey doesn't look up
-		if !m.hidden && m.p != nil {
+		// like every other stat a skin stays off players lowkey doesn't look up
+		if m.p != nil {
 			maps.Copy(row, skins[m.puuid])
 		}
 		sec.Rows = append(sec.Rows, row)
@@ -463,21 +469,22 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 }
 
 func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
-	if m.hidden {
-		return render.Row{"name": {Text: "hidden"}, "agent": lv.agentCell(m)}
-	}
-	if m.p == nil {
-		return render.Row{"agent": lv.agentCell(m)}
-	}
-	if m.puuid == lv.self && lv.sess != nil && lv.sess.done {
-		m.p.useSession(lv.sess)
-	}
-	row := playerRow(m.p, mode, lv.eng.acts, lv.data)
-	row["agent"] = lv.agentCell(m)
-	if lv.alias != nil && m.p.historyDone {
-		if name := stats.SampleOf(m.p.puuid, m.p.loaded()).Name; name != "" {
-			row["name"] = render.Cell{Text: cut(lv.alias(name), 16)}
+	row := render.Row{}
+	if m.p != nil {
+		if m.puuid == lv.self && lv.sess != nil && lv.sess.done {
+			m.p.useSession(lv.sess)
 		}
+		row = playerRow(m.p, mode, lv.eng.acts, lv.data)
+		if lv.alias != nil && m.p.historyDone {
+			if name := stats.SampleOf(m.p.puuid, m.p.loaded()).Name; name != "" {
+				row["name"] = render.Cell{Text: cut(lv.alias(name), 16)}
+			}
+		}
+	}
+	row["agent"] = lv.agentCell(m)
+	// match details can still name them - Riot only allows their stats while the name stays off the screen
+	if m.hidden {
+		row["name"] = render.Cell{Text: "hidden"}
 	}
 	return row
 }
@@ -544,7 +551,7 @@ func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
 	var kds, hss, acss, adrs, fbs []float64
 	a := averages{size: len(members)}
 	for _, m := range members {
-		if m.hidden || m.p == nil {
+		if m.p == nil {
 			continue
 		}
 		if m.p.historyDone && m.p.historyErr == nil {

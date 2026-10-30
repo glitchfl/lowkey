@@ -150,9 +150,9 @@ func TestLobbyRequestsStayWithinTheBudget(t *testing.T) {
 		t.Errorf("fetched %d match details, want 16 with the premade's shared match counted once", details)
 	}
 	// two rosters - your party - content - two session refreshes - the match's loadouts - then rank and trend and
-	// history per visible player
-	visible := 8
-	budget := 2 + 2 + 1 + 2 + 1 + visible*3 + details
+	// history per player
+	players := 10
+	budget := 2 + 2 + 1 + 2 + 1 + players*3 + details
 	if n := len(r.fr.RemoteRequests()); n > budget {
 		t.Errorf("%d requests for the lobby, over the budget of %d", n, budget)
 	}
@@ -201,7 +201,7 @@ func TestMatchDetailsGoRoundRobinNewestFirst(t *testing.T) {
 	}
 	waitHeld(t, r.fr, 2)
 	// histories finish in roster order - that's the order players join the rotation
-	for _, p := range []string{fakeriot.DefaultSelf, ally1, ally2, ally4} {
+	for _, p := range []string{fakeriot.DefaultSelf, ally1, ally2, ally3, ally4} {
 		release("/match-history/v1/history/"+p, 2)
 	}
 	for unreleased := 9; unreleased > 0; unreleased-- {

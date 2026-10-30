@@ -12,7 +12,7 @@ Leave it open all day. It idles at about 0% CPU. Press Tab to open the settings 
 
 ## What it won't do
 
-- Look up players in streamer mode. They just show as "hidden".
+- Show the names of players in streamer mode. They show as "hidden" with their agent and stats, and turning off `hidden_player_stats` leaves just the agent.
 - Call Riot's name service or touch agent select.
 - Use the internet while rounds are being played.
 - Touch the game. No injection, memory reading or overlay. It runs at low priority and stays under 100 MB of RAM.

@@ -55,6 +55,32 @@ const (
 	EpisodeV26a = "15a01c8a-4637-7b7b-de7b-9f906719c020"
 )
 
+// guns and skins the embedded snapshot knows - each skin with its edition
+const (
+	Classic  = "29a0cfab-485b-f5d5-779a-b59f85e204a8"
+	Sheriff  = "e336c6b8-418d-9340-d77f-7a9e4cfe0702"
+	Phantom  = "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a"
+	Vandal   = "9c82e19d-4575-0200-1a81-3eacf00cf872"
+	Operator = "a03b24d3-4319-996d-0f8c-94bbfba1dfc7"
+	Melee    = "2f59173c-4bed-b6c3-2191-dea9b58be9c7"
+
+	ReaverVandal     = "30388628-42f0-606c-82c0-73ad43de997f" // Premium
+	PrimeVandal      = "b9ee2457-481c-6776-3f5b-0ca8e8f90c89" // Premium
+	ElderflameVandal = "18609205-4edb-5966-cff8-0fba0230ba1e" // Ultra
+	SakuraVandal     = "f946ef5c-46ab-e146-a712-1d99a1651356" // Deluxe
+	IonPhantom       = "e86bf7e4-4dd3-fbee-533b-fa875344bbaf" // Premium
+)
+
+// StandardSkins is what each gun carries for a player who never equipped anything else
+var StandardSkins = map[string]string{
+	Classic:  "24aee897-4cdc-b0fd-e596-1ba90fa6d1b2",
+	Sheriff:  "1ef6ba68-4dbe-30c7-6bc8-93a6c6f13f04",
+	Phantom:  "337cb216-4a6e-d85d-88c2-f29ab317784c",
+	Vandal:   "27f21d97-4c4b-bd1c-1f08-31830ab0be84",
+	Operator: "d1f2920f-469a-3431-ad96-96afbd0017f2",
+	Melee:    "12cc9ed2-4430-d2fe-3064-f7a19b1ba7c7",
+}
+
 const (
 	MapAscent = "/Game/Maps/Ascent/Ascent"
 	MapHaven  = "/Game/Maps/Triad/Triad"
@@ -108,6 +134,13 @@ type World struct {
 	// what valorant-api.com knows beyond lowkey's snapshot - agent UUID or map URL to name
 	StaticAgents map[string]string
 	StaticMaps   map[string]string
+	StaticSkins  map[string]StaticSkin
+}
+
+// StaticSkin is a skin as valorant-api.com names it - "Nova Vandal" with its content tier
+type StaticSkin struct {
+	Name    string
+	Edition string // empty sends null like default skins get
 }
 
 type RawResponse struct {
@@ -217,6 +250,8 @@ type LivePlayer struct {
 	Team  string
 	Agent string
 	State string
+	// Skins by gun - a gun left out carries its standard skin
+	Skins map[string]string
 }
 
 func NewWorld(now time.Time) *World {
@@ -237,6 +272,7 @@ func NewWorld(now time.Time) *World {
 		TokenLifetime:   time.Hour,
 		StaticAgents:    map[string]string{Jett: "Jett", Sova: "Sova", Omen: "Omen"},
 		StaticMaps:      map[string]string{MapAscent: "Ascent"},
+		StaticSkins:     map[string]StaticSkin{},
 	}
 	w.PartyMembers = []string{w.Self}
 	w.Players[w.Self] = &Player{PUUID: w.Self, Name: "Kestrel", Tag: "EUW"}

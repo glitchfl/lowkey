@@ -14,7 +14,7 @@ import (
 )
 
 // these columns only mean something in a lobby
-var lobbyOnly = map[string]bool{"party": true, "agent": true, "met": true}
+var lobbyOnly = map[string]bool{"party": true, "agent": true, "met": true, "skin": true}
 
 func runMe(ctx context.Context, env Env, opts options) int {
 	out := env.Console.Out

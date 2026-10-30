@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -465,6 +466,35 @@ func (w *World) coreGameMatch(g *LiveGame) []byte {
 	})
 }
 
+// loadout sockets - a gun's skin sits beside its chroma and the rest
+const (
+	skinSocket   = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
+	chromaSocket = "3ad1b2b2-acdb-4524-852f-954a76ddae0a"
+	someChroma   = "c4c40000-0000-4000-8000-000000000001"
+)
+
+func (w *World) coreGameLoadouts(g *LiveGame) []byte {
+	loadouts := []obj{}
+	for _, p := range g.Players {
+		items := obj{}
+		for gun, standard := range StandardSkins {
+			skin := standard
+			if s, ok := p.Skins[gun]; ok {
+				skin = s
+			}
+			items[gun] = obj{"ID": gun, "Sockets": obj{
+				skinSocket:   obj{"ID": skinSocket, "Item": obj{"ID": skin, "TypeID": skinSocket}},
+				chromaSocket: obj{"ID": chromaSocket, "Item": obj{"ID": someChroma, "TypeID": chromaSocket}},
+			}}
+		}
+		loadouts = append(loadouts, obj{"CharacterID": p.Agent, "Loadout": obj{
+			"Subject": p.PUUID, "Sprays": obj{"SpraySelections": []any{}}, "Expressions": obj{"AESSelections": []any{}},
+			"Items": items,
+		}})
+	}
+	return mustJSON(obj{"Loadouts": loadouts})
+}
+
 func (w *World) flow() string {
 	if w.Flow == "" {
 		return "Matchmaking"
@@ -520,6 +550,21 @@ func (w *World) staticMaps() []byte {
 		list = append(list, obj{"uuid": "00000000-0000-4000-8000-" + fmt.Sprintf("%012d", len(list)), "displayName": name, "mapUrl": url})
 	}
 	return mustJSON(obj{"status": 200, "data": list})
+}
+
+func (w *World) staticSkin(id string) (int, []byte) {
+	s, ok := w.StaticSkins[id]
+	if !ok {
+		return http.StatusNotFound, mustJSON(obj{"status": 404, "error": "the requested uuid was not found"})
+	}
+	var edition any
+	if s.Edition != "" {
+		edition = s.Edition
+	}
+	return http.StatusOK, mustJSON(obj{"status": 200, "data": obj{
+		"uuid": id, "displayName": s.Name, "themeUuid": "00000000-0000-4000-8000-000000000000",
+		"contentTierUuid": edition, "chromas": []any{}, "levels": []any{},
+	}})
 }
 
 func errorBody(status int, code, msg string) []byte {

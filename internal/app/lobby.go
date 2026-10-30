@@ -28,11 +28,15 @@ type lobby struct {
 	members []*member
 	party   *party
 	started time.Time
+	// skins come once per match load and only while the skin column is on
+	skins         riot.Loadouts
+	loadoutsAsked bool
 }
 
 type member struct {
 	puuid  string
 	agent  string
+	hover  bool // the agent is picked in agent select but not locked in
 	team   string
 	hidden bool
 	p      *player
@@ -94,6 +98,10 @@ func (lv *live) startMatchLoad(matchID string) {
 	if prev != nil {
 		lob.mode, lob.known, lob.mapURL, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.ownTeam
 		lob.members, lob.party = prev.members, prev.party
+		// agent select is over so whatever was still hovered got locked in
+		for _, m := range lob.members {
+			m.hover = false
+		}
 	}
 	lv.lobby = lob
 	lv.guard.SetWindow(remote.MatchLoad)
@@ -313,7 +321,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 				lv.eng.lookUp(m.p, want)
 			}
 		}
-		m.agent, m.team = rp.Agent, rp.Team
+		m.agent, m.hover, m.team = rp.Agent, rp.Hover, rp.Team
 		members = append(members, m)
 	}
 	for _, rp := range roster.Players {
@@ -334,6 +342,23 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lob.members = members
+	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && cfg.Shows("skin") {
+		lv.fetchLoadouts(lob)
+	}
+}
+
+// fetchLoadouts asks once for the whole match's skins - one request whatever the lobby's size
+func (lv *live) fetchLoadouts(lob *lobby) {
+	lob.loadoutsAsked = true
+	lv.eng.submit(&job{prio: prioLoadouts, svc: remote.GLZ, path: "/core-game/v1/matches/" + lob.matchID + "/loadouts"}, func(body []byte, err error) {
+		// a failed request is in the log already and leaves the skin column hidden
+		if err != nil {
+			return
+		}
+		if lob.skins, err = riot.DecodeLoadouts(body); err != nil {
+			lv.log.printf("loadouts: %v", err)
+		}
+	})
 }
 
 func (lv *live) untrackedMode(queue string) {
@@ -389,9 +414,10 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	}
 	marks := lv.markers(lob)
 	met := lv.metIndex(lob.matchID)
+	skins := lv.skinCells(lob)
 	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
 	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
-		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met)}
+		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met, skins)}
 		return
 	}
 	var allies, enemies []*member
@@ -404,18 +430,18 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	}
 	// until the core-game roster arrives there are only the allies carried over from agent select
 	if len(enemies) == 0 {
-		s.Sections = []render.Section{lv.teamSection("ALLIES", allies, lob.mode, marks, met)}
+		s.Sections = []render.Section{lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins)}
 		return
 	}
 	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
 	s.Sections = []render.Section{
-		lv.teamSection("ALLIES", allies, lob.mode, marks, met),
-		lv.teamSection("ENEMIES", enemies, lob.mode, marks, met),
+		lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins),
+		lv.teamSection("ENEMIES", enemies, lob.mode, marks, met, skins),
 		{Rows: []render.Row{diffRow(us, them)}},
 	}
 }
 
-func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter) render.Section {
+func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter, skins map[string]render.Cell) render.Section {
 	sec := render.Section{Title: title}
 	for _, m := range members {
 		row := lv.memberRow(m, mode)
@@ -425,6 +451,10 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 		if e, ok := met[m.puuid]; ok && !m.hidden && m.p != nil {
 			row["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
 		}
+		// like every other stat a skin stays off hidden players and enemies lowkey doesn't look up
+		if skin, ok := skins[m.puuid]; ok && !m.hidden && m.p != nil {
+			row["skin"] = skin
+		}
 		sec.Rows = append(sec.Rows, row)
 	}
 	sec.Rows = append(sec.Rows, lv.teamAverages(members, mode).row(lv))
@@ -433,16 +463,16 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 
 func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 	if m.hidden {
-		return render.Row{"name": {Text: "hidden"}, "agent": lv.agentCell(m.agent)}
+		return render.Row{"name": {Text: "hidden"}, "agent": lv.agentCell(m)}
 	}
 	if m.p == nil {
-		return render.Row{"agent": lv.agentCell(m.agent)}
+		return render.Row{"agent": lv.agentCell(m)}
 	}
 	if m.puuid == lv.self && lv.sess != nil && lv.sess.done {
 		m.p.useSession(lv.sess)
 	}
 	row := playerRow(m.p, mode, lv.eng.acts, lv.data)
-	row["agent"] = lv.agentCell(m.agent)
+	row["agent"] = lv.agentCell(m)
 	if lv.alias != nil && m.p.historyDone {
 		if name := stats.SampleOf(m.p.puuid, m.p.loaded()).Name; name != "" {
 			row["name"] = render.Cell{Text: cut(lv.alias(name), 16)}
@@ -451,14 +481,40 @@ func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 	return row
 }
 
-func (lv *live) agentCell(id string) render.Cell {
-	if id == "" {
+// agentCell brackets an agent that's only hovered - a locked-in agent stands bare
+func (lv *live) agentCell(m *member) render.Cell {
+	if m.agent == "" {
 		return render.Cell{}
 	}
-	if name, ok := lv.data.AgentName(id); ok {
-		return render.Cell{Text: name}
+	name, ok := lv.data.AgentName(m.agent)
+	if !ok {
+		name = "?"
 	}
-	return render.Cell{Text: "?"}
+	if m.hover {
+		name = "(" + name + ")"
+	}
+	return render.Cell{Text: name}
+}
+
+// skinCells show everyone's skin for the gun in the settings in its edition's color - "?" is a skin
+// newer than the snapshot until a refresh names it
+func (lv *live) skinCells(lob *lobby) map[string]render.Cell {
+	cells := map[string]render.Cell{}
+	weapon, _, ok := lv.data.Weapon(lv.cfg.Settings().Weapon)
+	if !ok {
+		return cells
+	}
+	for puuid, skins := range lob.skins {
+		id, ok := skins[weapon]
+		if !ok {
+			continue
+		}
+		cells[puuid] = render.Cell{Text: "?"}
+		if s, ok := lv.data.Skin(id); ok {
+			cells[puuid] = render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
+		}
+	}
+	return cells
 }
 
 // averages are the shown values of a team's average row - the diff subtracts what's on screen

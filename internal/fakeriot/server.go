@@ -726,6 +726,10 @@ func (s *Server) route(service, path string, q url.Values) (int, []byte) {
 			if w.CoreGame != nil && w.CoreGame.ID == p[3] {
 				return http.StatusOK, w.coreGameMatch(w.CoreGame)
 			}
+		case is("core-game", "v1", "matches", "*", "loadouts"):
+			if w.CoreGame != nil && w.CoreGame.ID == p[3] {
+				return http.StatusOK, w.coreGameLoadouts(w.CoreGame)
+			}
 		case is("parties", "v1", "players", "*"):
 			return http.StatusOK, w.partyPlayer(p[3])
 		case is("parties", "v1", "parties", "*"):
@@ -745,6 +749,8 @@ func (s *Server) route(service, path string, q url.Values) (int, []byte) {
 			return http.StatusOK, w.staticAgents()
 		case is("v1", "maps"):
 			return http.StatusOK, w.staticMaps()
+		case is("v1", "weapons", "skins", "*"):
+			return w.staticSkin(p[3])
 		}
 	}
 	return notFound()

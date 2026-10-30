@@ -27,7 +27,7 @@ func staticRequests(r *rig, path string) int {
 func TestAnUnknownAgentShowsAPlaceholderUntilOneRefresh(t *testing.T) {
 	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) {
 		w.StaticAgents[newAgent] = "Nova"
-		w.Pregame.Players[0].Agent = newAgent
+		w.Pregame.Players[0].Agent, w.Pregame.Players[0].State = newAgent, "locked"
 	})
 	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/agents", Hold: true})
 	r.live()
@@ -59,7 +59,7 @@ func TestAnUnknownAgentShowsAPlaceholderUntilOneRefresh(t *testing.T) {
 
 func TestAnIDValorantAPIDoesntKnowEitherIsOnlyAskedAboutOnce(t *testing.T) {
 	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) {
-		w.Pregame.Players[0].Agent = ghostAgent
+		w.Pregame.Players[0].Agent, w.Pregame.Players[0].State = ghostAgent, "locked"
 		w.Pregame.Map = newMap
 		w.StaticMaps[newMap] = "Orbit"
 	})
@@ -110,7 +110,7 @@ func TestStaticRefreshesOnlyHappenInsideAWindow(t *testing.T) {
 func TestARefreshCutShortByADodgeGoesAgainInTheNextLobby(t *testing.T) {
 	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) {
 		w.StaticAgents[newAgent] = "Nova"
-		w.Pregame.Players[0].Agent = newAgent
+		w.Pregame.Players[0].Agent, w.Pregame.Players[0].State = newAgent, "locked"
 	})
 	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/agents", Hold: true, Times: 1})
 	r.live()
@@ -144,7 +144,9 @@ func TestKnownIDsNeverTouchStaticData(t *testing.T) {
 }
 
 func TestAFailingStaticRefreshIsNotRetriedInALoop(t *testing.T) {
-	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) { w.Pregame.Players[0].Agent = newAgent })
+	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) {
+		w.Pregame.Players[0].Agent, w.Pregame.Players[0].State = newAgent, "locked"
+	})
 	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/agents", Status: 500, Body: `{"status":500}`})
 	r.live()
 	r.settled("waiting for the next match", "SESSION")

@@ -19,6 +19,8 @@ type Column struct {
 	Key    string
 	Header string
 	Align  Align
+	// HideEmpty drops the column while no row has a value - skins only arrive at match load
+	HideEmpty bool
 }
 
 var catalog = []Column{
@@ -39,6 +41,7 @@ var catalog = []Column{
 	{Key: "mains", Header: "MAINS"},
 	{Key: "rr_trend", Header: "TREND", Align: Right},
 	{Key: "met", Header: "MET"},
+	{Key: "skin", Header: "SKIN", HideEmpty: true},
 }
 
 // Keys lists every column in the default order
@@ -72,7 +75,7 @@ func Columns(keys []string) []Column {
 
 type Cell struct {
 	Text  string
-	Color string // RRGGBB - only rank tiers carry one
+	Color string // RRGGBB - only rank tiers and skin editions carry one
 }
 
 type Row map[string]Cell
@@ -114,15 +117,14 @@ func (s Screen) table(cols []Column, maxWidth int, ansi bool) []string {
 	widths := map[string]int{}
 	var shown []Column
 	for _, c := range cols {
-		w := width(c.Header)
+		w, filled := width(c.Header), false
 		for _, sec := range s.Sections {
 			for _, row := range sec.Rows {
-				if n := width(row[c.Key].Text); n > w {
-					w = n
-				}
+				n := width(row[c.Key].Text)
+				w, filled = max(w, n), filled || n > 0
 			}
 		}
-		if w == 0 {
+		if w == 0 || c.HideEmpty && !filled {
 			continue
 		}
 		widths[c.Key] = w

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/glitchfl/lowkey/internal/render"
 	"github.com/glitchfl/lowkey/internal/riot"
+	"github.com/glitchfl/lowkey/internal/static"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
@@ -27,17 +29,31 @@ type Settings struct {
 	Cutoff           time.Duration
 	EnemyLookups     bool
 	Region           string // empty means detect it
+	Weapon           string // the gun the skin column shows - lowercase
 }
 
+// skin is left out of the default columns - the full set already fills 120 columns at its widest
 func Default() Settings {
+	var columns []string
+	for _, k := range render.Keys() {
+		if k != "skin" {
+			columns = append(columns, k)
+		}
+	}
 	return Settings{
-		Columns:          render.Keys(),
+		Columns:          columns,
 		Matches:          13,
 		Modes:            stats.ModeKeys(),
 		SessionResetHour: 6,
 		Cutoff:           40 * time.Second,
 		EnemyLookups:     true,
+		Weapon:           "vandal",
 	}
+}
+
+// Shows reports whether a column is switched on
+func (s Settings) Shows(column string) bool {
+	return slices.Contains(s.Columns, column)
 }
 
 // Tracks reports whether a queue's mode is switched on
@@ -56,8 +72,8 @@ func (s Settings) Tracks(queue string) bool {
 
 const defaultFile = `# lowkey settings - edits apply at the next redraw without a restart
 
-# columns left to right - drop or reorder freely
-# party name agent rank peak last_act wr wl kd hs acs adr fb n mains rr_trend met
+# columns left to right - drop or reorder freely - skin is the one left out by default
+# party name agent rank peak last_act wr wl kd hs acs adr fb n mains rr_trend met skin
 columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met"]
 
 # recent matches per player behind k/d hs% acs adr fb% and mains - 1 to 25
@@ -77,6 +93,9 @@ enemy_lookups = true
 
 # auto reads the region from the game - na latam br eu ap kr or pbe overrides it
 region = "auto"
+
+# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name
+weapon = "vandal"
 `
 
 type file struct {
@@ -87,6 +106,7 @@ type file struct {
 	CutoffSeconds    *int      `toml:"cutoff_seconds"`
 	EnemyLookups     *bool     `toml:"enemy_lookups"`
 	Region           *string   `toml:"region"`
+	Weapon           *string   `toml:"weapon"`
 }
 
 // Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
@@ -162,6 +182,13 @@ func Parse(data []byte) (Settings, string, error) {
 		if r != "auto" {
 			s.Region = r
 		}
+	}
+	if f.Weapon != nil {
+		w := strings.ToLower(strings.TrimSpace(*f.Weapon))
+		if !slices.Contains(static.Weapons(), w) {
+			return Settings{}, "", fmt.Errorf("unknown weapon %q", *f.Weapon)
+		}
+		s.Weapon = w
 	}
 	return s, note, nil
 }

@@ -16,6 +16,7 @@ type priority int
 const (
 	prioRoster priority = iota
 	prioParty
+	prioLoadouts
 	prioRank
 	prioTrend
 	prioHistory

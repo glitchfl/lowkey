@@ -114,7 +114,7 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 	}
 	lv.eng = newEngine(nil, lv.loop.post)
 	lv.eng.changed = lv.refreshStatic
-	lv.static.asked = map[string]bool{}
+	lv.static = staticRefresh{asked: map[string]bool{}, skinsBusy: map[string]bool{}}
 	if opts.record {
 		rec, err := startRecording(env, lv.data)
 		if err != nil {
@@ -549,11 +549,23 @@ func (lv *live) screen() render.Screen {
 	return s
 }
 
+// columns follow the settings - the skin column is headed by the gun it shows
+func (lv *live) columns() []render.Column {
+	cfg := lv.cfg.Settings()
+	cols := render.Columns(cfg.Columns)
+	for i := range cols {
+		if cols[i].Key == "skin" {
+			cols[i].Header = strings.ToUpper(cfg.Weapon)
+		}
+	}
+	return cols
+}
+
 // redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
 	screen := lv.screen()
-	lines := screen.Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), lv.env.Console.Terminal)
+	lines := screen.Lines(lv.columns(), lv.env.Console.Width(), lv.env.Console.Terminal)
 	var frame string
 	if lv.env.Console.Terminal {
 		var b strings.Builder
@@ -590,7 +602,7 @@ func (lv *live) redraw() {
 // recordScreen keeps an anonymized plain copy of each new frame with the recording
 func (lv *live) recordScreen() {
 	lv.alias = lv.rec.Scrubber().Alias
-	lines := lv.screen().Lines(render.Columns(lv.cfg.Settings().Columns), lv.env.Console.Width(), false)
+	lines := lv.screen().Lines(lv.columns(), lv.env.Console.Width(), false)
 	lv.alias = nil
 	text := strings.Join(lines, "\n")
 	if text != lv.lastScreen {

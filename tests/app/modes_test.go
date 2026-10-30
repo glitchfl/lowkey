@@ -127,7 +127,7 @@ func TestPremierAndSwiftplayFollowTheirOwnQueues(t *testing.T) {
 			r.screen("waiting for the next match")
 			r.subscribed()
 			r.enterAgentSelect()
-			frame := r.settled("AGENT SELECT · Ascent · "+q.name, "AllyOne#A1")
+			frame := r.settled("AGENT SELECT · Ascent · Defenders · "+q.name, "AllyOne#A1")
 			if got := cellIn(t, frame, "WR", 2); got != "25%" {
 				t.Errorf("ally one's %s win rate: got %q, want 25%%", q.name, got)
 			}

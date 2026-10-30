@@ -99,7 +99,7 @@ func TestPlayersFromEarlierLobbiesThisSessionAreMarked(t *testing.T) {
 	r.fr.Update(secondLobby)
 	r.fr.Update(func(w *fakeriot.World) { w.Loop = fakeriot.LoopIngame })
 	r.fr.EmitCoreGame(unratedGame, false)
-	frame := r.settled("MATCH LOADING · Haven · Unrated")
+	frame := r.settled("MATCH LOADING · Haven · Defenders · Unrated")
 	// the first match loaded 40m55s ago and you won it - recency rounds down
 	if got := cellIn(t, frame, "MET", 5); got != "ally W 40m" {
 		t.Errorf("ally two from the first lobby: got %q, want ally W 40m\n%s", got, frame)
@@ -132,7 +132,7 @@ func TestMetBeforeLivesInMemoryOnly(t *testing.T) {
 	r2.fr.Update(secondLobby)
 	r2.fr.Update(func(w *fakeriot.World) { w.Loop = fakeriot.LoopIngame })
 	r2.fr.EmitCoreGame(unratedGame, false)
-	frame := r2.settled("MATCH LOADING · Haven · Unrated")
+	frame := r2.settled("MATCH LOADING · Haven · Defenders · Unrated")
 	if strings.Contains(frame, "ally ") || strings.Contains(frame, "enemy ") {
 		t.Errorf("a restarted lowkey remembered the earlier lobby:\n%s", frame)
 	}

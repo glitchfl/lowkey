@@ -26,11 +26,11 @@ func TestALateEventAboutTheLastMatchStartsNoMatchLoad(t *testing.T) {
 	r.fr.EmitCoreGame(coreGame, false)
 	r.fr.Update(func(w *fakeriot.World) { w.CoreGame = nil })
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
-	r.screen("LAST MATCH · Ascent · Competitive", "waiting for the next match")
+	r.screen("LAST MATCH · Ascent · Defenders · Competitive", "waiting for the next match")
 
 	r.fr.EmitCoreGame(coreGame, false)
 	settle()
-	r.screen("LAST MATCH · Ascent · Competitive", "waiting for the next match")
+	r.screen("LAST MATCH · Ascent · Defenders · Competitive", "waiting for the next match")
 	if n := requestsExact(r, "/core-game/v1/matches/"+coreGame); n != 1 {
 		t.Errorf("the finished match was fetched %d times, want only at its match load", n)
 	}

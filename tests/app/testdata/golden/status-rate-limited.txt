@@ -1,5 +1,5 @@
 Riot is rate-limiting - some stats are missing
-AGENT SELECT · Ascent · Competitive
+AGENT SELECT · Ascent · Defenders · Competitive
 PLAYER       AGENT  RANK     PEAK  LAST   WR    W-L   K/D  HS%  ACS  ADR  FB%  N  MAINS  TREND  MET
 Kestrel#EUW         Dia3 12  Imm2  Dia2  57%   12-9  1.00    -  200    0   0%  6  Jett     +14
 -            Jett   Dia1 50  Dia1  -     50%  10-10     -    -    -    -    -  0  -         +5

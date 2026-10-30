@@ -94,21 +94,21 @@ func TestAMatchQueuedFromTheRangeIsTracked(t *testing.T) {
 	r.fr.EmitPregame(pregame, false)
 	r.screen("AGENT SELECT")
 	r.presence(func(w *fakeriot.World) { w.Loop, w.Flow = fakeriot.LoopPregame, "Invalid" })
-	r.settled("AGENT SELECT · Ascent · Competitive", "Dia1 50", "Plat1 30")
+	r.settled("AGENT SELECT · Ascent · Defenders · Competitive", "Dia1 50", "Plat1 30")
 	r.presence(func(w *fakeriot.World) { w.Flow = "Matchmaking" })
 	r.fr.EmitCoreGame(rangeMatch, false)
 	settle()
-	r.screen("AGENT SELECT · Ascent · Competitive")
+	r.screen("AGENT SELECT · Ascent · Defenders · Competitive")
 
 	r.enterMatchLoad()
 	r.presence(func(w *fakeriot.World) {})
-	r.settled("MATCH LOADING · Ascent · Competitive", "Plat2 10", "US - THEM")
+	r.settled("MATCH LOADING · Ascent · Defenders · Competitive", "Plat2 10", "US - THEM")
 	r.clock.Advance(40 * time.Second)
-	r.screen("IN MATCH · Ascent · Competitive")
+	r.screen("IN MATCH · Ascent · Defenders · Competitive")
 
 	r.fr.Update(func(w *fakeriot.World) { w.CoreGame = nil })
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
-	r.screen("LAST MATCH · Ascent · Competitive", "waiting for the next match")
+	r.screen("LAST MATCH · Ascent · Defenders · Competitive", "waiting for the next match")
 	rangeFetchedOnce(t, r)
 }
 
@@ -128,7 +128,7 @@ func TestOpeningLowkeyInTheRangeWaitsForTheNextMatch(t *testing.T) {
 	r.screen("waiting for the next match")
 	noRangeLookups(t, r)
 	r.enterAgentSelect()
-	r.settled("AGENT SELECT · Ascent · Competitive", "Dia1 50", "Plat1 30")
+	r.settled("AGENT SELECT · Ascent · Defenders · Competitive", "Dia1 50", "Plat1 30")
 }
 
 func TestDoctorNamesTheRange(t *testing.T) {

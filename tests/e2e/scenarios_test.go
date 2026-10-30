@@ -15,12 +15,12 @@ func TestFullFlow(t *testing.T) {
 	subscribed(t, fr)
 
 	fr.StartAgentSelect(fakeriot.LobbyPregame)
-	lk.screen("AGENT SELECT · Ascent · Competitive", "Dia3 12", "AVERAGE")
+	lk.screen("AGENT SELECT · Ascent · Defenders · Competitive", "Dia3 12", "AVERAGE")
 	fr.Hover(fakeriot.LobbyAllies[0], fakeriot.Breach, true)
 	lk.screen("AGENT SELECT", "Breach")
 
 	fr.LoadMatch(fakeriot.LobbyCoreGame)
-	frame := lk.screen("MATCH LOADING · Ascent · Competitive", "ALLIES", "ENEMIES", "Player5#AA", "US - THEM")
+	frame := lk.screen("MATCH LOADING · Ascent · Defenders · Competitive", "ALLIES", "ENEMIES", "Player5#AA", "US - THEM")
 	if strings.Count(frame, "hidden") < 2 {
 		t.Errorf("both streamer-mode players should show as hidden:\n%s", frame)
 	}
@@ -32,7 +32,7 @@ func TestFullFlow(t *testing.T) {
 	}
 
 	fr.EndMatch()
-	lk.screen("LAST MATCH · Ascent · Competitive", "waiting for the next match")
+	lk.screen("LAST MATCH · Ascent · Defenders · Competitive", "waiting for the next match")
 }
 
 func TestDodge(t *testing.T) {
@@ -117,5 +117,5 @@ func TestRiotClientRestart(t *testing.T) {
 	lk.screen("waiting for the next match")
 	subscribed(t, fr)
 	fr.StartAgentSelect(fakeriot.LobbyPregame)
-	lk.screen("AGENT SELECT · Ascent · Competitive", "Dia3 12")
+	lk.screen("AGENT SELECT · Ascent · Defenders · Competitive", "Dia3 12")
 }

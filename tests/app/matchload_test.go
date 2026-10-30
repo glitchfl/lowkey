@@ -81,7 +81,7 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 	r := fromAgentSelect(t)
 	allyLookups := requestsExact(r, "/mmr/v1/players/"+ally1)
 	r.enterMatchLoad()
-	frame := r.settled("MATCH LOADING · Ascent · Competitive", "Plat2 10", "Gold3 70", "Plat3 0", "▼4", "▲1")
+	frame := r.settled("MATCH LOADING · Ascent · Defenders · Competitive", "Plat2 10", "Gold3 70", "Plat3 0", "▼4", "▲1")
 
 	if n := requestsExact(r, "/mmr/v1/players/"+ally1); n != allyLookups {
 		t.Errorf("ally rank data fetched again at match load (%d times)", n)
@@ -127,31 +127,30 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 	}
 }
 
-func TestNothingRevealsTheStartingSide(t *testing.T) {
-	for _, team := range []string{"Blue", "Red"} {
-		t.Run("you on "+team, func(t *testing.T) {
+// Riot's red team attacks first and blue defends - allies still come first whatever side you start on
+func TestHeaderShowsTheSideYouStartOn(t *testing.T) {
+	for _, tc := range []struct{ team, side string }{{"Blue", "Defenders"}, {"Red", "Attackers"}} {
+		t.Run("you on "+tc.team, func(t *testing.T) {
 			r := newRig(t, matchLobby, func(w *fakeriot.World) {
-				if team == "Blue" {
+				if tc.team == "Blue" {
 					return
 				}
-				for i := range w.CoreGame.Players {
-					p := &w.CoreGame.Players[i]
-					p.Team = map[string]string{"Blue": "Red", "Red": "Blue"}[p.Team]
+				for _, g := range []*fakeriot.LiveGame{w.Pregame, w.CoreGame} {
+					for i := range g.Players {
+						p := &g.Players[i]
+						p.Team = map[string]string{"Blue": "Red", "Red": "Blue"}[p.Team]
+					}
 				}
 			})
 			r.live()
 			r.screen("waiting for the next match")
 			r.subscribed()
+			r.enterAgentSelect()
+			r.settled("AGENT SELECT · Ascent · "+tc.side+" · Competitive", "Dia1 50", "Plat1 30")
 			r.enterMatchLoad()
-			frame := r.screen("MATCH LOADING", "Plat2 10", "Dia3 12")
+			frame := r.settled("MATCH LOADING · Ascent · "+tc.side+" · Competitive", "Plat2 10", "US - THEM")
 			if a, e := lineIndex(frame, "ALLIES"), lineIndex(frame, "ENEMIES"); a < 0 || e < a {
 				t.Errorf("allies must come first whatever side you start on:\n%s", frame)
-			}
-			low := strings.ToLower(frame)
-			for _, word := range []string{"attack", "defend", "atk", "def ", "red", "blue"} {
-				if strings.Contains(low, word) {
-					t.Errorf("the screen says %q:\n%s", word, frame)
-				}
 			}
 		})
 	}
@@ -166,7 +165,7 @@ func TestTheCutoffStopsEveryLookup(t *testing.T) {
 	waitHeld(t, r.fr, 2)
 
 	r.clock.Advance(40 * time.Second)
-	r.screen("IN MATCH · Ascent · Competitive")
+	r.screen("IN MATCH · Ascent · Defenders · Competitive")
 	eventually(t, "held lookups to be cancelled", func() bool { return len(r.fr.Held()) == 0 })
 	before := len(r.fr.RemoteRequests())
 	r.fr.ReleaseHeld()
@@ -194,7 +193,7 @@ func TestBackInTheMenusShowsTheLastMatchAndRefreshesTheSession(t *testing.T) {
 		me.Updates = append([]fakeriot.Update{me.Updates[len(me.Updates)-1]}, me.Updates[:len(me.Updates)-1]...)
 	})
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
-	frame := r.screen("LAST MATCH · Ascent · Competitive", "waiting for the next match", "Plat2 10")
+	frame := r.screen("LAST MATCH · Ascent · Defenders · Competitive", "waiting for the next match", "Plat2 10")
 	if !strings.Contains(frame, "SESSION · 2W 1L +26 RR") {
 		t.Errorf("the session line should stay until the refresh:\n%s", frame)
 	}

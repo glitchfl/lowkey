@@ -30,25 +30,27 @@ const (
 )
 
 type Settings struct {
-	Columns          []string
-	Matches          int
-	Modes            []string
-	SessionResetHour int
-	Cutoff           time.Duration
-	EnemyLookups     bool
-	Region           string   // empty means detect it
-	Weapons          []string // the guns the skin column shows left to right - lowercase
+	Columns           []string
+	Matches           int
+	Modes             []string
+	SessionResetHour  int
+	Cutoff            time.Duration
+	EnemyLookups      bool
+	HiddenPlayerStats bool
+	Region            string   // empty means detect it
+	Weapons           []string // the guns the skin column shows left to right - lowercase
 }
 
 func Default() Settings {
 	return Settings{
-		Columns:          render.Keys(),
-		Matches:          13,
-		Modes:            stats.ModeKeys(),
-		SessionResetHour: 6,
-		Cutoff:           40 * time.Second,
-		EnemyLookups:     true,
-		Weapons:          []string{"vandal"},
+		Columns:           render.Keys(),
+		Matches:           13,
+		Modes:             stats.ModeKeys(),
+		SessionResetHour:  6,
+		Cutoff:            40 * time.Second,
+		EnemyLookups:      true,
+		HiddenPlayerStats: true,
+		Weapons:           []string{"vandal"},
 	}
 }
 
@@ -91,6 +93,8 @@ var fields = []field{
 		func(s Settings) string { return strconv.Itoa(int(s.Cutoff / time.Second)) }},
 	{"enemy_lookups", []string{"look up the enemy team at match load - off shows enemies by agent only"},
 		func(s Settings) string { return strconv.FormatBool(s.EnemyLookups) }},
+	{"hidden_player_stats", []string{"show the stats of hidden players - never their names - off shows them by agent only"},
+		func(s Settings) string { return strconv.FormatBool(s.HiddenPlayerStats) }},
 	{"region", []string{"auto reads the region from the game - na latam br eu ap kr or pbe overrides it"},
 		func(s Settings) string {
 			if s.Region == "" {
@@ -145,14 +149,15 @@ func (s Settings) contents() []byte {
 }
 
 type file struct {
-	Columns          *[]string `toml:"columns"`
-	Matches          *int      `toml:"matches"`
-	Modes            *[]string `toml:"modes"`
-	SessionResetHour *int      `toml:"session_reset_hour"`
-	CutoffSeconds    *int      `toml:"cutoff_seconds"`
-	EnemyLookups     *bool     `toml:"enemy_lookups"`
-	Region           *string   `toml:"region"`
-	Weapon           any       `toml:"weapon"` // one gun's name or a list of them
+	Columns           *[]string `toml:"columns"`
+	Matches           *int      `toml:"matches"`
+	Modes             *[]string `toml:"modes"`
+	SessionResetHour  *int      `toml:"session_reset_hour"`
+	CutoffSeconds     *int      `toml:"cutoff_seconds"`
+	EnemyLookups      *bool     `toml:"enemy_lookups"`
+	HiddenPlayerStats *bool     `toml:"hidden_player_stats"`
+	Region            *string   `toml:"region"`
+	Weapon            any       `toml:"weapon"` // one gun's name or a list of them
 }
 
 // Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
@@ -219,6 +224,9 @@ func Parse(data []byte) (Settings, string, error) {
 	}
 	if f.EnemyLookups != nil {
 		s.EnemyLookups = *f.EnemyLookups
+	}
+	if f.HiddenPlayerStats != nil {
+		s.HiddenPlayerStats = *f.HiddenPlayerStats
 	}
 	if f.Region != nil {
 		r := strings.ToLower(strings.TrimSpace(*f.Region))

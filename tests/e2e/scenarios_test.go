@@ -20,7 +20,7 @@ func TestFullFlow(t *testing.T) {
 	lk.screen("AGENT SELECT", "Breach")
 
 	fr.LoadMatch(fakeriot.LobbyCoreGame)
-	frame := lk.screen("MATCH LOADING · Ascent · Defenders · Competitive", "ALLIES", "ENEMIES", "Player5#AA", "US - THEM")
+	frame := lk.screen("MATCH LOADING · Ascent · Defenders · Competitive", "ALLIES", "ENEMIES", "Player5#AA", "US - THEM", "Imm3 20", "Rad 60")
 	if strings.Count(frame, "hidden") < 2 {
 		t.Errorf("both streamer-mode players should show as hidden:\n%s", frame)
 	}
@@ -33,6 +33,24 @@ func TestFullFlow(t *testing.T) {
 
 	fr.EndMatch()
 	lk.screen("LAST MATCH · Ascent · Defenders · Competitive", "waiting for the next match")
+}
+
+func TestHiddenPlayerStatsSwitchedOff(t *testing.T) {
+	fr := startRiot(t, fakeriot.LobbyWorld(time.Now(), false))
+	lk := startLowkey(t, fr, fastSettings+"hidden_player_stats = false\n")
+	lk.screen("waiting for the next match", "SESSION")
+	subscribed(t, fr)
+	fr.StartAgentSelect(fakeriot.LobbyPregame)
+	lk.screen("AGENT SELECT", "Dia3 12", "AVERAGE")
+	fr.LoadMatch(fakeriot.LobbyCoreGame)
+	frame := lk.screen("MATCH LOADING", "ENEMIES", "Player5#AA", "US - THEM")
+	if strings.Contains(frame, "Imm3 20") || strings.Contains(frame, "Rad 60") {
+		t.Errorf("a hidden player's rank showed with the setting off:\n%s", frame)
+	}
+	lk.screen("IN MATCH")
+	for _, req := range fr.HiddenLookups() {
+		t.Errorf("asked about a hidden player with the setting off: %s", req)
+	}
 }
 
 func TestDodge(t *testing.T) {

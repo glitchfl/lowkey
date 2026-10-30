@@ -29,7 +29,7 @@ func wear(w *fakeriot.World, puuid, gun, skin string) {
 	}
 }
 
-// lobbySkins dresses the match lobby - the streamer-mode ally and enemy wear skins that must never show
+// lobbySkins dresses the match lobby - the streamer-mode ally and enemy's skins only show with their stats
 func lobbySkins(w *fakeriot.World) {
 	wear(w, w.Self, fakeriot.Vandal, fakeriot.ReaverVandal)
 	wear(w, w.Self, fakeriot.Phantom, fakeriot.IonPhantom)
@@ -49,7 +49,7 @@ func skinColumn(t *testing.T, frame, header string) string {
 	return strings.Join(cells, ",")
 }
 
-func TestTheSkinColumnShowsEveryVisiblePlayersSkinForTheChosenGun(t *testing.T) {
+func TestTheSkinColumnShowsEveryonesSkinForTheChosenGun(t *testing.T) {
 	r := newRig(t, matchLobby, lobbySkins)
 	r.writeSettings(skinColumns)
 	r.live()
@@ -63,14 +63,14 @@ func TestTheSkinColumnShowsEveryVisiblePlayersSkinForTheChosenGun(t *testing.T) 
 
 	r.enterMatchLoad()
 	frame = r.settled("MATCH LOADING · Ascent", "Reaver", "Sakura", "US - THEM")
-	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,,Standard,Sakura,Standard,,Standard,Standard"; got != want {
+	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,Prime,Standard,Sakura,Standard,Elderflame,Standard,Standard"; got != want {
 		t.Errorf("vandals: got %s, want %s\n%s", got, want, frame)
 	}
 
 	// another gun is a settings edit away and needs no new request
 	r.writeSettings(skinColumns + `weapon = "Phantom"` + "\n")
 	frame = r.screen("PHANTOM", "Ion")
-	if got, want := skinColumn(t, frame, "PHANTOM"), "Ion,Standard,Standard,,Standard,Standard,Standard,,Standard,Standard"; got != want {
+	if got, want := skinColumn(t, frame, "PHANTOM"), "Ion,Standard,Standard,Standard,Standard,Standard,Standard,Standard,Standard,Standard"; got != want {
 		t.Errorf("phantoms: got %s, want %s\n%s", got, want, frame)
 	}
 	if n := requestsExact(r, loadouts); n != 1 {
@@ -101,10 +101,10 @@ func TestEachGunInTheListGetsASkinColumnInTheListsOrder(t *testing.T) {
 	if got, want := headerLine(t, frame, "PHANTOM"), "PLAYER AGENT RANK PHANTOM VANDAL"; got != want {
 		t.Errorf("header %q, want %q\n%s", got, want, frame)
 	}
-	if got, want := skinColumn(t, frame, "PHANTOM"), "Ion,Standard,Standard,,Standard,Standard,Standard,,Standard,Standard"; got != want {
+	if got, want := skinColumn(t, frame, "PHANTOM"), "Ion,Standard,Standard,Standard,Standard,Standard,Standard,Standard,Standard,Standard"; got != want {
 		t.Errorf("phantoms: got %s, want %s\n%s", got, want, frame)
 	}
-	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,,Standard,Sakura,Standard,,Standard,Standard"; got != want {
+	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,Prime,Standard,Sakura,Standard,Elderflame,Standard,Standard"; got != want {
 		t.Errorf("vandals: got %s, want %s\n%s", got, want, frame)
 	}
 
@@ -163,7 +163,7 @@ func TestEnemiesShownByAgentOnlyShowNoSkins(t *testing.T) {
 	r.subscribed()
 	r.enterMatchLoad()
 	frame := r.settled("MATCH LOADING", "Reaver", "US - THEM")
-	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,,Standard,,,,,"; got != want {
+	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,Prime,Standard,,,,,"; got != want {
 		t.Errorf("vandals: got %s, want %s\n%s", got, want, frame)
 	}
 }
@@ -198,7 +198,7 @@ func TestASkinNewerThanTheSnapshotIsNamedByOneRefresh(t *testing.T) {
 		wear(w, enemy3, fakeriot.Vandal, ghostSkin)
 	})
 	r.fr.AddFault(fakeriot.Fault{Service: "static", Path: "/v1/weapons/skins/", Hold: true})
-	r.writeSettings(skinColumns)
+	r.writeSettings(skinColumns + hiddenStatsOff)
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()

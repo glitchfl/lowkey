@@ -28,7 +28,7 @@ func agentSelectLobby(w *fakeriot.World) {
 	a2.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 15, RR: 30, Wins: 6, WinsWithPlacements: 6, Games: 10})
 	a2.Updates = []fakeriot.Update{{MatchID: "x3", Earned: -10}}
 	a3 := w.Player(ally3)
-	a3.Incognito = true
+	a3.Name, a3.Tag, a3.Incognito = "SecretAlly", "A3", true
 	a3.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 27, RR: 900, Wins: 90, Games: 100})
 	w.Player(ally4)
 	w.Queue = "competitive"
@@ -86,7 +86,7 @@ func TestAgentSelectShowsYourTeam(t *testing.T) {
 		{"", "Dia3 12", "Imm2", "Dia2", "57%", "12-9", "+14"},
 		{"(Jett)", "Dia1 50", "Dia1", "-", "50%", "10-10", "+5"},
 		{"", "Plat1 30", "Plat1", "-", "60%", "6-4", "-10"},
-		{"Omen", "", "", "", "", "", ""},
+		{"Omen", "Rad 900", "Rad", "-", "90%", "90-10", "-"},
 		{"Sage", "-", "-", "-", "-", "-", "-"},
 	}
 	for i, want := range rows {
@@ -102,7 +102,8 @@ func TestAgentSelectShowsYourTeam(t *testing.T) {
 	if got := cellIn(t, frame, "PLAYER", 4); got != "hidden" {
 		t.Errorf("the streamer-mode ally shows %q, want hidden", got)
 	}
-	avg := []struct{ col, want string }{{"PLAYER", "AVERAGE 4/5"}, {"RANK", "Dia1"}, {"WR", "56%"}, {"TREND", "+3"}}
+	// the hidden ally counts too - ranks 20 18 15 27 average out to Dia3 and win rates 57 50 60 90 to 64
+	avg := []struct{ col, want string }{{"PLAYER", "AVERAGE"}, {"RANK", "Dia3"}, {"WR", "64%"}, {"TREND", "+3"}}
 	for _, a := range avg {
 		if got := cellIn(t, frame, a.col, 6); got != a.want {
 			t.Errorf("average %s: got %q, want %q\n%s", a.col, got, a.want, frame)
@@ -114,17 +115,16 @@ func TestAgentSelectShowsYourTeam(t *testing.T) {
 	}
 }
 
-func TestStreamerModePlayersAreNeverLookedUp(t *testing.T) {
+func TestStreamerModeOnYourselfStillLooksYouUp(t *testing.T) {
 	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) { w.Player(w.Self).Incognito = true })
+	r.writeSettings(hiddenStatsOff)
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
 	r.enterAgentSelect()
 	r.screen("AGENT SELECT", "Dia1 50", "Dia3 12")
-	for _, req := range r.fr.RemoteRequests() {
-		if strings.Contains(req.Path+"?"+req.Query.Encode(), ally3) {
-			t.Errorf("requested a hidden player's data: %s", req.Path)
-		}
+	for _, req := range r.fr.HiddenLookups() {
+		t.Errorf("requested a hidden player's data: %s", req)
 	}
 	if requestsExact(r, "/mmr/v1/players/"+fakeriot.DefaultSelf) == 0 {
 		t.Error("streamer mode on yourself must not stop your own lookup")

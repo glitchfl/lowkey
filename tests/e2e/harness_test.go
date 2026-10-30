@@ -76,7 +76,7 @@ func startLowkey(t *testing.T, fr *fakeriot.Server, settings string, args ...str
 	l := run(t, cmd, dir)
 	t.Cleanup(func() {
 		l.stop()
-		l.checkQuiet(fr)
+		l.checkScreens(fr)
 	})
 	return l
 }
@@ -194,12 +194,13 @@ func checkPolicy(t *testing.T, fr *fakeriot.Server) {
 	}
 }
 
-// checkQuiet holds the real exe to the screen it showed - no requests while it said it was idle or mid-round
-func (l *lowkey) checkQuiet(fr *fakeriot.Server) {
+// checkScreens holds the real exe to the screen it showed - no requests while it said it was idle or mid-round
+// and no hidden player's name ever
+func (l *lowkey) checkScreens(fr *fakeriot.Server) {
 	l.mu.Lock()
 	frames := append([]fakeriot.Frame(nil), l.timed...)
 	l.mu.Unlock()
-	for _, v := range fr.QuietViolations(frames) {
+	for _, v := range append(fr.QuietViolations(frames), fr.NameViolations(frames)...) {
 		l.t.Errorf("policy: %s", v)
 	}
 }

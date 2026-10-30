@@ -28,7 +28,7 @@ func matchLobby(w *fakeriot.World) {
 	e2.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 14, RR: 70, Wins: 5, WinsWithPlacements: 5, Games: 10})
 	e2.Updates = []fakeriot.Update{{MatchID: "y2", Earned: -6}}
 	e3 := w.Player(enemy3)
-	e3.Incognito = true
+	e3.Name, e3.Tag, e3.Incognito = "SecretEnemy", "E3", true
 	e3.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 27, RR: 999, Wins: 99, Games: 100})
 	e4 := w.Player(enemy4)
 	e4.SetRank("competitive", fakeriot.ActCurrent, fakeriot.SeasonInfo{Tier: 17, Wins: 7, WinsWithPlacements: 7, Games: 10})
@@ -81,12 +81,12 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 	r := fromAgentSelect(t)
 	allyLookups := requestsExact(r, "/mmr/v1/players/"+ally1)
 	r.enterMatchLoad()
-	frame := r.settled("MATCH LOADING · Ascent · Defenders · Competitive", "Plat2 10", "Gold3 70", "Plat3 0", "▼4", "▲1")
+	frame := r.settled("MATCH LOADING · Ascent · Defenders · Competitive", "Plat2 10", "Gold3 70", "Plat3 0", "▼6", "▲1")
 
 	if n := requestsExact(r, "/mmr/v1/players/"+ally1); n != allyLookups {
 		t.Errorf("ally rank data fetched again at match load (%d times)", n)
 	}
-	for _, e := range []string{enemy1, enemy2, enemy4, enemy5} {
+	for _, e := range []string{enemy1, enemy2, enemy3, enemy4, enemy5} {
 		if requestsExact(r, "/mmr/v1/players/"+e) != 1 {
 			t.Errorf("enemy %s wasn't looked up exactly once", e)
 		}
@@ -98,7 +98,7 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 	// under the header come ALLIES - 5 allies - the average - ENEMIES - then the enemies from the 9th line
 	// none of the enemies has matches in this fixture so names show "-"
 	enemyRows := []struct{ agent, name, rank string }{
-		{"Raze", "-", "Plat2 10"}, {"Breach", "-", "Gold3 70"}, {"Viper", "hidden", ""}, {"Cypher", "-", "Plat3 0"}, {"Skye", "-", "-"},
+		{"Raze", "-", "Plat2 10"}, {"Breach", "-", "Gold3 70"}, {"Viper", "hidden", "Rad 999"}, {"Cypher", "-", "Plat3 0"}, {"Skye", "-", "-"},
 	}
 	for i, want := range enemyRows {
 		n := 9 + i
@@ -111,18 +111,13 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 		row       int
 		col, want string
 	}{
-		{7, "PLAYER", "AVERAGE 4/5"}, {7, "RANK", "Dia1"}, {7, "WR", "56%"}, {7, "TREND", "+3"},
-		{14, "PLAYER", "AVERAGE 4/5"}, {14, "RANK", "Plat2"}, {14, "PEAK", "Plat2"}, {14, "WR", "60%"}, {14, "TREND", "+2"},
-		{15, "PLAYER", "US - THEM"}, {15, "RANK", "▲2"}, {15, "PEAK", "▲3"}, {15, "WR", "▼4"}, {15, "TREND", "▲1"},
+		{7, "PLAYER", "AVERAGE"}, {7, "RANK", "Dia3"}, {7, "WR", "64%"}, {7, "TREND", "+3"},
+		{14, "PLAYER", "AVERAGE"}, {14, "RANK", "Dia2"}, {14, "PEAK", "Dia2"}, {14, "WR", "70%"}, {14, "TREND", "+2"},
+		{15, "PLAYER", "US - THEM"}, {15, "RANK", "▲1"}, {15, "PEAK", "▲2"}, {15, "WR", "▼6"}, {15, "TREND", "▲1"},
 	}
 	for _, c := range checks {
 		if got := cellIn(t, frame, c.col, c.row); got != c.want {
 			t.Errorf("line %d %s: got %q, want %q\n%s", c.row, c.col, got, c.want, frame)
-		}
-	}
-	for _, req := range r.fr.RemoteRequests() {
-		if strings.Contains(req.Path, enemy3) {
-			t.Errorf("looked up the hidden enemy: %s", req.Path)
 		}
 	}
 }
@@ -224,7 +219,7 @@ func TestAMatchWithoutAgentSelectLooksEveryoneUp(t *testing.T) {
 	r.subscribed()
 	r.enterMatchLoad()
 	r.settled("MATCH LOADING", "Dia3 12", "Dia1 50", "Plat2 10", "Gold3 70")
-	for _, p := range []string{fakeriot.DefaultSelf, ally1, ally2, ally4, enemy1, enemy2, enemy4, enemy5} {
+	for _, p := range []string{fakeriot.DefaultSelf, ally1, ally2, ally3, ally4, enemy1, enemy2, enemy3, enemy4, enemy5} {
 		if requestsExact(r, "/mmr/v1/players/"+p) != 1 {
 			t.Errorf("%s wasn't looked up once", p)
 		}

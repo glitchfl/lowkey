@@ -41,6 +41,7 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		`cutoff_seconds = 40`,
 		`enemy_lookups = true`,
 		`region = "auto"`,
+		`weapon = "vandal"`,
 	}
 	lines := strings.Split(file, "\n")
 	for _, d := range defaults {
@@ -111,6 +112,7 @@ func TestInvalidSettingsKeepTheLastGoodOnesAndSayWhy(t *testing.T) {
 		{"unknown column", `columns = ["name", "kda"]` + "\n", `unknown column "kda"`},
 		{"unknown setting", `matchs = 5` + "\n", `unknown setting "matchs"`},
 		{"bad hour", `session_reset_hour = 25` + "\n", "session_reset_hour"},
+		{"unknown weapon", `weapon = "vandl"` + "\n", `unknown weapon "vandl"`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

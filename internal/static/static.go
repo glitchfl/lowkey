@@ -1,9 +1,10 @@
-// Package static is lowkey's built-in knowledge of agents and maps and rank tiers
+// Package static is lowkey's built-in knowledge of agents and maps and rank tiers and weapon skins
 package static
 
 import (
 	_ "embed"
 	"encoding/json"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,13 @@ type Tier struct {
 	Color string `json:"color"`
 }
 
+// Skin goes by the name players use - Reaver for Reaver Vandal and Standard for every default skin
+type Skin struct {
+	Name string `json:"name"`
+	// Edition is the content tier from Select to Ultra - default skins have none
+	Edition string `json:"edition,omitempty"`
+}
+
 type snapshot struct {
 	Generated      time.Time         `json:"generated"`
 	ClientVersion  string            `json:"clientVersion"`
@@ -28,6 +36,9 @@ type snapshot struct {
 	TierSets       map[string][]Tier `json:"tierSets"`
 	CurrentTierSet string            `json:"currentTierSet"`
 	Acts           map[string]string `json:"acts"`
+	Weapons        map[string]string `json:"weapons"`
+	Skins          map[string]Skin   `json:"skins"`
+	Editions       map[string]string `json:"editions"`
 	IDs            []string          `json:"ids"`
 }
 
@@ -55,11 +66,35 @@ func Embedded() *Data {
 		d.ids[strings.ToLower(id)] = true
 		d.ids[strings.ToLower(set)] = true
 	}
+	for _, ids := range []map[string]string{s.Weapons, s.Editions} {
+		for id := range ids {
+			d.ids[strings.ToLower(id)] = true
+		}
+	}
+	for id := range s.Skins {
+		d.ids[strings.ToLower(id)] = true
+	}
 	for _, t := range s.TierSets[s.CurrentTierSet] {
 		d.tier[t.Tier] = t
 	}
 	return d
 }
+
+// Weapons are the guns by the lowercase names lowkey.toml takes - melee included
+var Weapons = sync.OnceValue(func() []string {
+	var s struct {
+		Weapons map[string]string `json:"weapons"`
+	}
+	if err := json.Unmarshal(snapshotJSON, &s); err != nil {
+		panic("static: broken snapshot.json: " + err.Error())
+	}
+	var names []string
+	for _, name := range s.Weapons {
+		names = append(names, strings.ToLower(name))
+	}
+	sort.Strings(names)
+	return names
+})
 
 func (d *Data) Generated() time.Time { return d.s.Generated }
 
@@ -100,6 +135,46 @@ func (d *Data) AddMaps(maps map[string]string) {
 	for url, name := range maps {
 		d.s.Maps[url] = name
 	}
+}
+
+// Weapon finds a gun by its name in any case
+func (d *Data) Weapon(name string) (id, display string, ok bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	for id, display := range d.s.Weapons {
+		if strings.EqualFold(display, name) {
+			return id, display, true
+		}
+	}
+	return "", "", false
+}
+
+func (d *Data) Skin(id string) (Skin, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	s, ok := d.s.Skins[strings.ToLower(id)]
+	return s, ok
+}
+
+// AddSkins merges skins a refresh found on valorant-api.com
+func (d *Data) AddSkins(skins map[string]Skin) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for id, s := range skins {
+		d.s.Skins[strings.ToLower(id)] = s
+		d.ids[strings.ToLower(id)] = true
+	}
+}
+
+// EditionColor is the RRGGBB the game gives a skin's edition - empty for default skins
+func (d *Data) EditionColor(edition string) string {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	c := d.s.Editions[strings.ToLower(edition)]
+	if len(c) < 6 {
+		return ""
+	}
+	return c[:6]
 }
 
 // CurrentTier maps an act's tier onto today's tier set

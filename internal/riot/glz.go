@@ -34,13 +34,16 @@ type RosterPlayer struct {
 	Team      string
 	Agent     string
 	Incognito bool
+	// Hover is agent select only - the agent is picked but not locked in yet
+	Hover bool
 }
 
 type rosterPlayer struct {
-	Subject        string `json:"Subject"`
-	TeamID         string `json:"TeamID"`
-	CharacterID    string `json:"CharacterID"`
-	PlayerIdentity struct {
+	Subject                 string `json:"Subject"`
+	TeamID                  string `json:"TeamID"`
+	CharacterID             string `json:"CharacterID"`
+	CharacterSelectionState string `json:"CharacterSelectionState"`
+	PlayerIdentity          struct {
 		Incognito bool `json:"Incognito"`
 	} `json:"PlayerIdentity"`
 }
@@ -51,7 +54,7 @@ func (p rosterPlayer) decode(team string) RosterPlayer {
 	}
 	return RosterPlayer{
 		PUUID: strings.ToLower(p.Subject), Team: team, Agent: strings.ToLower(p.CharacterID),
-		Incognito: p.PlayerIdentity.Incognito,
+		Incognito: p.PlayerIdentity.Incognito, Hover: p.CharacterSelectionState == "selected",
 	}
 }
 
@@ -123,6 +126,54 @@ func DecodeCoreGame(body []byte) (Roster, error) {
 		}
 	}
 	return r, nil
+}
+
+// Loadouts maps each player to the skin on every weapon - player and weapon and skin UUIDs lowercased
+type Loadouts map[string]map[string]string
+
+// skinSocket holds a weapon's skin - its other sockets hold the chroma and level and buddy
+const skinSocket = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
+
+// DecodeLoadouts reads the core-game loadouts - Riot has sent the player both inside the loadout and beside it
+func DecodeLoadouts(body []byte) (Loadouts, error) {
+	var v struct {
+		Loadouts []struct {
+			Subject string `json:"Subject"`
+			Loadout struct {
+				Subject string `json:"Subject"`
+				Items   map[string]struct {
+					Sockets map[string]struct {
+						Item struct {
+							ID string `json:"ID"`
+						} `json:"Item"`
+					} `json:"Sockets"`
+				} `json:"Items"`
+			} `json:"Loadout"`
+		} `json:"Loadouts"`
+	}
+	if err := json.Unmarshal(body, &v); err != nil {
+		return nil, fmt.Errorf("loadouts aren't JSON: %w", err)
+	}
+	out := Loadouts{}
+	for _, l := range v.Loadouts {
+		subject := l.Loadout.Subject
+		if subject == "" {
+			subject = l.Subject
+		}
+		if !IsUUID(subject) {
+			continue
+		}
+		skins := map[string]string{}
+		for weapon, item := range l.Loadout.Items {
+			for socket, s := range item.Sockets {
+				if strings.EqualFold(socket, skinSocket) && IsUUID(s.Item.ID) {
+					skins[strings.ToLower(weapon)] = strings.ToLower(s.Item.ID)
+				}
+			}
+		}
+		out[strings.ToLower(subject)] = skins
+	}
+	return out, nil
 }
 
 func truncate(b []byte) string {

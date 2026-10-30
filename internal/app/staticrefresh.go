@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/glitchfl/lowkey/internal/remote"
+	"github.com/glitchfl/lowkey/internal/static"
 )
 
 // staticRefresh remembers which unknown IDs a finished refresh already looked for - once per run each
@@ -14,10 +15,12 @@ type staticRefresh struct {
 	asked      map[string]bool
 	agentsBusy bool
 	mapsBusy   bool
+	skinsBusy  map[string]bool
 	gen        int
 }
 
-// refreshStatic asks valorant-api.com about agents or maps the snapshot doesn't know - only inside a window
+// refreshStatic asks valorant-api.com about agents or maps or skins the snapshot doesn't know - only
+// inside a window
 func (lv *live) refreshStatic() {
 	if lv.lobby == nil || lv.guard == nil || lv.eng.sched == nil {
 		return
@@ -28,6 +31,7 @@ func (lv *live) refreshStatic() {
 	// a cancelled refresh never replies - its busy flags belong to the generation it died with
 	if lv.static.gen != lv.eng.gen {
 		lv.static.gen, lv.static.agentsBusy, lv.static.mapsBusy = lv.eng.gen, false, false
+		lv.static.skinsBusy = map[string]bool{}
 	}
 	var agents []string
 	unknown := func(id string) {
@@ -69,6 +73,26 @@ func (lv *live) refreshStatic() {
 			}
 		})
 	}
+	// skins are thousands so each new one is asked for by itself - only the gun on screen and only
+	// for players whose skin can show
+	weapon, weaponName, ok := lv.data.Weapon(lv.cfg.Settings().Weapon)
+	for _, m := range lv.lobby.members {
+		id := lv.lobby.skins[m.puuid][weapon]
+		if !ok || id == "" || m.hidden || m.p == nil || lv.static.asked[id] || lv.static.skinsBusy[id] {
+			continue
+		}
+		if _, known := lv.data.Skin(id); known {
+			continue
+		}
+		lv.static.skinsBusy[id] = true
+		lv.eng.submit(&job{prio: prioRoster, svc: remote.Static, path: "/v1/weapons/skins/" + id}, func(body []byte, err error) {
+			delete(lv.static.skinsBusy, id)
+			lv.static.asked[id] = true
+			if s, ok := decodeStaticSkin(body, weaponName); err == nil && ok {
+				lv.data.AddSkins(map[string]static.Skin{id: s})
+			}
+		})
+	}
 }
 
 func decodeStaticAgents(body []byte) map[string]string {
@@ -87,6 +111,21 @@ func decodeStaticAgents(body []byte) map[string]string {
 		}
 	}
 	return out
+}
+
+// decodeStaticSkin names a skin the way the snapshot does - Reaver for Reaver Vandal
+func decodeStaticSkin(body []byte, weapon string) (static.Skin, bool) {
+	var v struct {
+		Data struct {
+			DisplayName     string `json:"displayName"`
+			ContentTierUUID string `json:"contentTierUuid"`
+		} `json:"data"`
+	}
+	if json.Unmarshal(body, &v) != nil || strings.TrimSpace(v.Data.DisplayName) == "" {
+		return static.Skin{}, false
+	}
+	name := strings.TrimSuffix(strings.TrimSpace(v.Data.DisplayName), " "+weapon)
+	return static.Skin{Name: name, Edition: strings.ToLower(v.Data.ContentTierUUID)}, true
 }
 
 func decodeStaticMaps(body []byte) map[string]string {

@@ -67,12 +67,14 @@ func LobbyWorld(now time.Time, heavy bool) *World {
 	}
 	w.Pregame = &LiveGame{ID: LobbyPregame, Queue: "competitive", Map: MapAscent, Mode: ModeBomb, Ranked: true}
 	w.CoreGame = &LiveGame{ID: LobbyCoreGame, Queue: "competitive", Map: MapAscent, Mode: ModeBomb, Ranked: true}
+	vandals := []string{ReaverVandal, PrimeVandal, ElderflameVandal, SakuraVandal, StandardSkins[Vandal]}
+	skins := func(i int) map[string]string { return map[string]string{Vandal: vandals[i%len(vandals)]} }
 	for i, puuid := range append([]string{w.Self}, LobbyAllies...) {
 		w.Pregame.Players = append(w.Pregame.Players, LivePlayer{PUUID: puuid, Team: "Blue"})
-		w.CoreGame.Players = append(w.CoreGame.Players, LivePlayer{PUUID: puuid, Team: "Blue", Agent: agents[i%len(agents)]})
+		w.CoreGame.Players = append(w.CoreGame.Players, LivePlayer{PUUID: puuid, Team: "Blue", Agent: agents[i%len(agents)], Skins: skins(i)})
 	}
 	for i, puuid := range LobbyEnemies {
-		w.CoreGame.Players = append(w.CoreGame.Players, LivePlayer{PUUID: puuid, Team: "Red", Agent: agents[(i+4)%len(agents)]})
+		w.CoreGame.Players = append(w.CoreGame.Players, LivePlayer{PUUID: puuid, Team: "Red", Agent: agents[(i+4)%len(agents)], Skins: skins(i + 2)})
 	}
 	return w
 }

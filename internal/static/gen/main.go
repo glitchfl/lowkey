@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,11 @@ type tier struct {
 	Tier  int    `json:"tier"`
 	Name  string `json:"name"`
 	Color string `json:"color"`
+}
+
+type skin struct {
+	Name    string `json:"name"`
+	Edition string `json:"edition,omitempty"`
 }
 
 type snapshot struct {
@@ -25,6 +31,9 @@ type snapshot struct {
 	TierSets       map[string][]tier `json:"tierSets"`
 	CurrentTierSet string            `json:"currentTierSet"`
 	Acts           map[string]string `json:"acts"`
+	Weapons        map[string]string `json:"weapons"`
+	Skins          map[string]skin   `json:"skins"`
+	Editions       map[string]string `json:"editions"`
 	IDs            []string          `json:"ids"`
 }
 
@@ -64,6 +73,9 @@ func run(out string) error {
 		Maps:      map[string]string{},
 		TierSets:  map[string][]tier{},
 		Acts:      map[string]string{},
+		Weapons:   map[string]string{},
+		Skins:     map[string]skin{},
+		Editions:  map[string]string{},
 	}
 	ids := map[string]bool{}
 
@@ -144,6 +156,37 @@ func run(out string) error {
 		}
 	}
 
+	var weapons []struct {
+		UUID            string `json:"uuid"`
+		DisplayName     string `json:"displayName"`
+		DefaultSkinUUID string `json:"defaultSkinUuid"`
+		Skins           []struct {
+			UUID            string `json:"uuid"`
+			DisplayName     string `json:"displayName"`
+			ContentTierUUID string `json:"contentTierUuid"`
+		} `json:"skins"`
+	}
+	if err := get("/v1/weapons", &weapons); err != nil {
+		return err
+	}
+	for _, w := range weapons {
+		s.Weapons[w.UUID] = w.DisplayName
+		for _, sk := range w.Skins {
+			s.Skins[sk.UUID] = skin{Name: skinName(sk.DisplayName, w.DisplayName, sk.UUID == w.DefaultSkinUUID), Edition: sk.ContentTierUUID}
+		}
+	}
+
+	var editions []struct {
+		UUID           string `json:"uuid"`
+		HighlightColor string `json:"highlightColor"`
+	}
+	if err := get("/v1/contenttiers", &editions); err != nil {
+		return err
+	}
+	for _, e := range editions {
+		s.Editions[e.UUID] = e.HighlightColor
+	}
+
 	for id := range ids {
 		s.IDs = append(s.IDs, id)
 	}
@@ -153,4 +196,17 @@ func run(out string) error {
 		return err
 	}
 	return os.WriteFile(out, append(data, '\n'), 0o644)
+}
+
+// skinName drops the weapon from the name - every default becomes Standard since the melee's is just "Melee"
+// and the random favorites placeholder becomes Random
+func skinName(name, weapon string, isDefault bool) string {
+	name = strings.TrimSpace(name)
+	switch {
+	case isDefault:
+		return "Standard"
+	case name == "Random Favorite Skin":
+		return "Random"
+	}
+	return strings.TrimSuffix(name, " "+weapon)
 }

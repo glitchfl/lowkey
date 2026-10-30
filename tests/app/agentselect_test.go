@@ -84,7 +84,7 @@ func TestAgentSelectShowsYourTeam(t *testing.T) {
 		agent, rank, peak, last, wr, wl, trend string
 	}{
 		{"", "Dia3 12", "Imm2", "Dia2", "57%", "12-9", "+14"},
-		{"Jett", "Dia1 50", "Dia1", "-", "50%", "10-10", "+5"},
+		{"(Jett)", "Dia1 50", "Dia1", "-", "50%", "10-10", "+5"},
 		{"", "Plat1 30", "Plat1", "-", "60%", "6-4", "-10"},
 		{"Omen", "", "", "", "", "", ""},
 		{"Sage", "-", "-", "-", "-", "-", "-"},
@@ -155,11 +155,45 @@ func TestHoversAndLocksUpdateTheAgentsAtMostEveryThreeSeconds(t *testing.T) {
 	}
 	r.clock.Advance(3 * time.Second)
 	frame := r.screen("Sova", "Killjoy")
-	if got := cellIn(t, frame, "AGENT", 1); got != "Sova" {
-		t.Errorf("your agent: got %q, want Sova", got)
+	if got := cellIn(t, frame, "AGENT", 1); got != "(Sova)" {
+		t.Errorf("your hovered agent: got %q, want (Sova)", got)
 	}
 	if n := requestsFor(r, "/pregame/v1/matches/"); n != 2 {
 		t.Errorf("roster fetched %d times, want 2", n)
+	}
+}
+
+func TestHoveredAgentsShowInBracketsUntilLockedIn(t *testing.T) {
+	r := fromAgentSelect(t)
+	frame := r.settled("AGENT SELECT", "(Jett)")
+	// ally one only hovers Jett - the streamer-mode ally and the unranked one locked theirs in
+	for row, want := range map[int]string{2: "(Jett)", 4: "Omen", 5: "Sage"} {
+		if got := cellIn(t, frame, "AGENT", row); got != want {
+			t.Errorf("row %d agent: got %q, want %q\n%s", row, got, want, frame)
+		}
+	}
+
+	r.fr.Hover(ally1, fakeriot.Jett, true)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	eventually(t, "the lock to drop the brackets", func() bool { return cellIn(t, r.con.last(), "AGENT", 2) == "Jett" })
+
+	// a hover still on screen when agent select ends was locked in - the allies carried into match load
+	// show bare even before the core-game roster lands
+	r.fr.Hover(ally2, fakeriot.Killjoy, false)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	r.screen("(Killjoy)")
+	r.fr.AddFault(fakeriot.Fault{Service: "glz", Path: "/core-game/v1/matches/" + coreGame, Exact: true, Hold: true})
+	r.enterMatchLoad()
+	frame = r.screen("MATCH LOADING", "Killjoy")
+	if strings.Contains(frame, "(") {
+		t.Errorf("match load shows a hover:\n%s", frame)
+	}
+	r.fr.ReleaseHeld()
+	frame = r.settled("MATCH LOADING", "US - THEM")
+	if strings.Contains(frame, "(") {
+		t.Errorf("match load shows a hover:\n%s", frame)
 	}
 }
 

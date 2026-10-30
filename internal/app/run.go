@@ -16,7 +16,7 @@ type options struct {
 
 const usage = `usage: lowkey [doctor | me [--mode <mode>]] [--record]
 
-  (no command)  follow the game and show lobby tables until the window closes
+  (no command)  follow the game and show lobby tables until the window closes - tab opens the settings
   doctor        check this PC in seconds - exits non-zero on any failure
   me            print your own row and session line once
   --record      also save every Riot response, scrubbed, into a folder next to the exe

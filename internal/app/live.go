@@ -62,6 +62,7 @@ type live struct {
 	client   *remote.Client
 	presence riot.Private
 	region   string
+	forced   bool // the region came from the settings - not the game
 	shard    string
 	version  string
 	logRead  bool
@@ -90,6 +91,10 @@ type live struct {
 	drawnAt     time.Time
 	drawnKind   string
 	redrawTimer *time.Timer
+
+	keyboard   bool // someone can type - so there's a tab bar
+	onSettings bool
+	tab        settingsTab
 }
 
 type rateState int
@@ -111,6 +116,14 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		everHidden: map[string]bool{}, cfg: settings.Open(env.Dir)}
 	if err := lv.cfg.Create(); err != nil {
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
+	}
+	lv.tab.cfg = lv.cfg
+	if env.Console.Keyboard != nil {
+		if keys, restore, ok := env.Console.Keyboard(); ok {
+			defer restore()
+			lv.keyboard = true
+			go lv.readKeys(keys)
+		}
 	}
 	lv.eng = newEngine(nil, lv.loop.post)
 	lv.eng.changed = lv.refreshStatic
@@ -445,14 +458,21 @@ func (lv *live) onCoreGame(matchID string) {
 }
 
 func (lv *live) setPhase(p phase) {
+	// the table only matters for about a minute and edits are already saved - so a new lobby takes the screen back
+	if p != lv.phase && (p == phaseAgentSelect || p == phaseMatchLoad) {
+		lv.onSettings = false
+	}
 	lv.phase = p
 }
 
 // ensureTarget makes sure the region and shard and client version are known before lowkey asks Riot anything
 func (lv *live) ensureTarget(then func()) {
-	if r := lv.cfg.Settings().Region; r != "" && r != lv.region {
-		lv.region = r
+	switch r := lv.cfg.Settings().Region; {
+	case r != "" && r != lv.region:
+		lv.region, lv.forced = r, true
 		lv.shard, _ = riot.Shard(r)
+	case r == "" && lv.forced:
+		lv.region, lv.forced = "", false
 	}
 	if lv.region == "" {
 		gen, local := lv.gen, lv.conn.local
@@ -561,10 +581,27 @@ func (lv *live) columns() []render.Column {
 	return cols
 }
 
+// shown is the open tab - the settings are all status lines so every key press counts as a new one and draws at once
+func (lv *live) shown() render.Screen {
+	if !lv.keyboard {
+		return lv.screen()
+	}
+	if lv.onSettings {
+		// the tab bar and the newline after the last line take a row each
+		return render.Screen{Status: append([]string{tabBarSettings}, lv.tab.lines(lv.env.Console.Height()-2)...)}
+	}
+	s := lv.screen()
+	s.Status = append([]string{tabBarLobby}, s.Status...)
+	return s
+}
+
 // redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
-	screen := lv.screen()
+	if lv.rec != nil && lv.onSettings {
+		lv.recordScreen()
+	}
+	screen := lv.shown()
 	lines := screen.Lines(lv.columns(), lv.env.Console.Width(), lv.env.Console.Terminal)
 	var frame string
 	if lv.env.Console.Terminal {

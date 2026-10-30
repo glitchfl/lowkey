@@ -3,9 +3,11 @@ package app_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -23,6 +25,7 @@ type console struct {
 	frames   []string
 	written  []time.Time
 	width    int
+	height   int
 	terminal bool
 }
 
@@ -62,6 +65,18 @@ func (c *console) setWidth(w int) {
 	c.width = w
 }
 
+func (c *console) Height() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.height
+}
+
+func (c *console) setHeight(h int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.height = h
+}
+
 func (c *console) output() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -76,6 +91,9 @@ type rig struct {
 	dir   string
 	env   app.Env
 	stop  func()
+
+	keys     atomic.Pointer[io.PipeWriter]
+	restored atomic.Int32
 }
 
 func newRig(t *testing.T, setup ...func(w *fakeriot.World)) *rig {
@@ -100,7 +118,7 @@ func newRigAt(t *testing.T, start time.Time, opts fakeriot.Options, setup ...fun
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := &rig{t: t, fr: fr, clock: clock, con: &console{width: 120}, dir: t.TempDir()}
+	r := &rig{t: t, fr: fr, clock: clock, con: &console{width: 120, height: 30}, dir: t.TempDir()}
 	t.Cleanup(func() {
 		r.checkPolicy()
 		fr.Close()
@@ -111,7 +129,7 @@ func newRigAt(t *testing.T, start time.Time, opts fakeriot.Options, setup ...fun
 		LocalRoots: fr.Roots(),
 		Servers:    app.Servers{PD: urls.PD, GLZ: urls.GLZ, Shared: urls.Shared, Static: urls.Static},
 		Clock:      clock,
-		Console:    app.Console{Out: r.con, Width: r.con.Width},
+		Console:    app.Console{Out: r.con, Width: r.con.Width, Height: r.con.Height},
 		Dir:        r.dir,
 	}
 	return r

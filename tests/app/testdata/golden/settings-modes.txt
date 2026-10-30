@@ -1,0 +1,11 @@
+ LOBBY  [SETTINGS]         tab to switch
+
+modes to track - applies from the next lobby
+> [x] competitive
+  [x] premier
+  [x] unrated
+  [x] swiftplay
+  [x] deathmatch
+  [x] team_deathmatch
+
+space on/off · esc back

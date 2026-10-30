@@ -8,7 +8,7 @@ Its a small windows console app that shows whos in your lobby: their rank, recen
 
 Download `lowkey.exe` from the [latest release](https://github.com/glitchfl/lowkey/releases/latest), put it in its own folder and double-click it. It isn't signed, so Windows will probably warn you first. Click "More info", then "Run anyway".
 
-Leave it open all day. It idles at about 0% CPU. Settings live in `lowkey.toml` next to the exe, and edits apply without a restart. If something seems off, run `.\lowkey.exe doctor` in PowerShell from that folder.
+Leave it open all day. It idles at about 0% CPU. Press Tab to open the settings and change them with the arrow keys. They save straight away to `lowkey.toml` next to the exe, and you can edit that file by hand too, no restart needed. If something seems off, run `.\lowkey.exe doctor` in PowerShell from that folder.
 
 ## What it won't do
 

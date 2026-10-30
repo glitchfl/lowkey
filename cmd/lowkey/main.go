@@ -23,7 +23,7 @@ func main() {
 		Lockfile: override("LOWKEY_LOCKFILE", platform.LockfilePath()),
 		Servers:  servers(),
 		Clock:    app.RealClock(),
-		Console:  app.Console{Out: os.Stdout, Width: platform.ConsoleWidth, Terminal: platform.EnableANSI()},
+		Console:  app.Console{Out: os.Stdout, Width: platform.ConsoleWidth, Height: platform.ConsoleHeight, Terminal: platform.EnableANSI(), Keyboard: platform.Keyboard},
 		Dir:      override("LOWKEY_DIR", platform.ExeDir()),
 		GameLog:  override("LOWKEY_GAME_LOG", platform.GameLogPath()),
 		Version:  version,

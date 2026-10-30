@@ -39,10 +39,13 @@ type Clock interface {
 }
 
 type Console struct {
-	Out   io.Writer
-	Width func() int
+	Out    io.Writer
+	Width  func() int
+	Height func() int
 	// Terminal allows ANSI codes - redirected output gets plain text
 	Terminal bool
+	// Keyboard opens the keyboard for the tabs - without one lowkey shows the lobby alone
+	Keyboard func() (keys io.Reader, restore func(), ok bool)
 }
 
 func ProductionServers() Servers {
@@ -77,6 +80,9 @@ func (e Env) withDefaults() Env {
 	}
 	if e.Console.Width == nil {
 		e.Console.Width = func() int { return 120 }
+	}
+	if e.Console.Height == nil {
+		e.Console.Height = func() int { return 30 }
 	}
 	if e.Version == "" {
 		e.Version = "dev"

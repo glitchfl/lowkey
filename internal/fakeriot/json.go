@@ -57,14 +57,16 @@ func (w *World) privatePresence() []byte {
 		match["queueId"] = w.Queue
 	}
 	party := obj{
-		"partyId":                    w.PartyID,
-		"isPartyOwner":               true,
-		"partyState":                 "DEFAULT",
-		"partyAccessibility":         "CLOSED",
-		"maxPartySize":               5,
-		"partyLFM":                   false,
-		"partySize":                  len(w.PartyMembers),
-		"partyOwnerSessionLoopState": w.Loop,
+		"partyId":                       w.PartyID,
+		"isPartyOwner":                  true,
+		"partyState":                    "DEFAULT",
+		"partyAccessibility":            "CLOSED",
+		"maxPartySize":                  5,
+		"partyLFM":                      false,
+		"partySize":                     len(w.PartyMembers),
+		"partyOwnerSessionLoopState":    w.Loop,
+		"partyOwnerMatchScoreAllyTeam":  w.AllyScore,
+		"partyOwnerMatchScoreEnemyTeam": w.EnemyScore,
 	}
 	if w.PresenceVersion != "" {
 		party["partyClientVersion"] = w.PresenceVersion

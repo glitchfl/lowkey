@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -122,9 +123,16 @@ func TestMatchLoadShowsBothTeamsWithAveragesAndADiff(t *testing.T) {
 	}
 }
 
+// score pushes the score like Riot does when a round ends
+func (r *rig) score(us, them int) {
+	r.t.Helper()
+	r.presence(func(w *fakeriot.World) { w.AllyScore, w.EnemyScore = us, them })
+	settle()
+}
+
 // Riot's red team attacks first and blue defends - allies still come first whatever side you start on
-func TestHeaderShowsTheSideYouStartOn(t *testing.T) {
-	for _, tc := range []struct{ team, side string }{{"Blue", "Defenders"}, {"Red", "Attackers"}} {
+func TestHeaderShowsYourSideWhicheverYouStartOn(t *testing.T) {
+	for _, tc := range []struct{ team, side, swapped string }{{"Blue", "Defenders", "Attackers"}, {"Red", "Attackers", "Defenders"}} {
 		t.Run("you on "+tc.team, func(t *testing.T) {
 			r := newRig(t, matchLobby, func(w *fakeriot.World) {
 				if tc.team == "Blue" {
@@ -147,6 +155,95 @@ func TestHeaderShowsTheSideYouStartOn(t *testing.T) {
 			if a, e := lineIndex(frame, "ALLIES"), lineIndex(frame, "ENEMIES"); a < 0 || e < a {
 				t.Errorf("allies must come first whatever side you start on:\n%s", frame)
 			}
+			r.score(8, 4)
+			r.screen("MATCH LOADING · Ascent · " + tc.swapped + " · Competitive")
+		})
+	}
+}
+
+// the recorded matches attack as RRRRRRRRRRRRBBBBBBBBBBBBRBRB - 12 rounds each way and then a swap every round
+func TestHeaderFollowsYourSideThroughTheMatch(t *testing.T) {
+	r := fromAgentSelect(t)
+	r.enterMatchLoad()
+	r.settled("MATCH LOADING · Ascent · Defenders · Competitive", "Plat2 10", "US - THEM")
+	r.clock.Advance(40 * time.Second)
+	r.screen("IN MATCH · Ascent · Defenders · Competitive")
+
+	before := len(r.fr.RemoteRequests())
+	for _, step := range []struct {
+		us, them int
+		side     string
+	}{
+		{7, 4, "Defenders"},
+		{7, 5, "Attackers"},
+		{12, 11, "Attackers"},
+		{12, 12, "Defenders"},
+		{13, 12, "Attackers"},
+		{13, 13, "Defenders"},
+		{14, 13, "Attackers"},
+	} {
+		r.score(step.us, step.them)
+		r.screen("IN MATCH · Ascent · " + step.side + " · Competitive")
+	}
+	if n := len(r.fr.RemoteRequests()); n != before {
+		t.Errorf("%d requests while following the score", n-before)
+	}
+}
+
+func TestSwiftplaySwapsSidesAfterFourRounds(t *testing.T) {
+	r := newRig(t, matchLobby, func(w *fakeriot.World) { w.Queue, w.CoreGame.Queue = "swiftplay", "swiftplay" })
+	r.live()
+	r.screen("waiting for the next match")
+	r.subscribed()
+	r.enterMatchLoad()
+	r.screen("MATCH LOADING · Ascent · Defenders · Swiftplay")
+	for _, step := range []struct {
+		us, them int
+		side     string
+	}{
+		{2, 1, "Defenders"},
+		{2, 2, "Attackers"},
+		{4, 3, "Attackers"},
+		{4, 4, "Defenders"},
+	} {
+		r.score(step.us, step.them)
+		r.screen("MATCH LOADING · Ascent · " + step.side + " · Swiftplay")
+	}
+}
+
+func TestTheSideFollowsTheScoreInEveryPresenceShape(t *testing.T) {
+	for name, shape := range map[string]fakeriot.Shape{"nested": fakeriot.Nested, "flat": fakeriot.Flat, "hybrid": fakeriot.Hybrid} {
+		t.Run(name, func(t *testing.T) {
+			r := newRig(t, matchLobby, func(w *fakeriot.World) { w.Shape = shape })
+			r.live()
+			r.screen("waiting for the next match")
+			r.subscribed()
+			r.enterMatchLoad()
+			r.screen("MATCH LOADING · Ascent · Defenders · Competitive")
+			r.score(8, 4)
+			r.screen("MATCH LOADING · Ascent · Attackers · Competitive")
+		})
+	}
+}
+
+// Riot zeroes the score a few seconds before the menus - and a final score counts a round that never gets played
+func TestLastMatchShowsTheSideYouFinishedOn(t *testing.T) {
+	for _, final := range []struct{ us, them int }{{13, 9}, {13, 11}, {15, 13}} {
+		t.Run(fmt.Sprintf("%d-%d", final.us, final.them), func(t *testing.T) {
+			r := fromAgentSelect(t)
+			r.enterMatchLoad()
+			r.settled("MATCH LOADING", "Plat2 10", "US - THEM")
+			r.clock.Advance(40 * time.Second)
+			r.screen("IN MATCH")
+
+			r.score(final.us, final.them)
+			frame := r.screen("IN MATCH")
+			r.score(0, 0)
+			if got := r.con.last(); got != frame {
+				t.Errorf("the score going back to 0-0 changed the screen from:\n%s\nto:\n%s", frame, got)
+			}
+			r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
+			r.screen("LAST MATCH · Ascent · Attackers · Competitive")
 		})
 	}
 }

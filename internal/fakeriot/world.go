@@ -119,6 +119,9 @@ type World struct {
 	PresenceVersion string
 	StaticVersion   string
 	Shape           Shape
+	// rounds won in a round mode - presence keeps them up to date through the match
+	AllyScore  int
+	EnemyScore int
 
 	Pregame  *LiveGame
 	CoreGame *LiveGame

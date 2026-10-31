@@ -16,6 +16,7 @@ import (
 )
 
 type recEntry struct {
+	Method  string          `json:"method"`
 	Kind    string          `json:"kind"`
 	Service string          `json:"service"`
 	Path    string          `json:"path"`

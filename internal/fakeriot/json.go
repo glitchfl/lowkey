@@ -254,6 +254,16 @@ func (w *World) matchHistory(puuid, queue string, start, end int) []byte {
 
 func location(x, y int) obj { return obj{"x": x, "y": y} }
 
+// names answers a name lookup - it names a hidden player too so a lookup that asks about one shows up in the tests
+func (w *World) names(puuids []string) []byte {
+	out := []obj{}
+	for _, puuid := range puuids {
+		p := w.Player(puuid)
+		out = append(out, obj{"DisplayName": "", "Subject": puuid, "GameName": p.Name, "TagLine": p.Tag})
+	}
+	return mustJSON(out)
+}
+
 func (w *World) matchDetails(m *Match) []byte {
 	timeField := m.KillTimeField
 	if timeField == "" {
@@ -261,13 +271,9 @@ func (w *World) matchDetails(m *Match) []byte {
 	}
 	players := []obj{}
 	for _, mp := range m.Players {
-		p := w.Player(mp.PUUID)
-		name, tag := p.Name, p.Tag
-		if mp.Name != "" {
-			name, tag = mp.Name, mp.Tag
-		}
 		players = append(players, obj{
-			"subject": mp.PUUID, "gameName": name, "tagLine": tag,
+			// Riot sends these empty now - every name comes from the name service
+			"subject": mp.PUUID, "gameName": "", "tagLine": "",
 			"platformInfo": obj{"platformType": "PC", "platformOS": "Windows", "platformOSVersion": "10.0.19042.1.256.64bit", "platformChipset": "Unknown"},
 			"teamId":       mp.Team, "partyId": "00000000-0000-0000-0000-000000000000", "characterId": mp.Agent,
 			"stats": obj{

@@ -10,11 +10,20 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-var sampleKeys = []string{"name", "kd", "hs", "acs", "adr", "fb", "mains"}
+var sampleKeys = []string{"kd", "hs", "acs", "adr", "fb", "mains"}
+
+// a full Riot ID can reach 22 - 20 is what still fits every stat column in 120 columns
+const nameWidth = 20
 
 // playerRow shows what's known - cells still loading stay blank and cells with no value show "-"
 func playerRow(p *player, mode stats.Mode, acts *stats.Acts, data *static.Data) render.Row {
 	row := render.Row{}
+	if p.nameDone {
+		row["name"] = dash
+		if p.name != "" {
+			row["name"] = render.Cell{Text: cut(p.name, nameWidth)}
+		}
+	}
 	switch {
 	case p.mmrDone && p.mmrErr == nil && acts != nil:
 		rankCells(row, stats.RankOf(p.mmr, *acts, mode.Queue, data.CurrentTier), data, mode)
@@ -50,7 +59,6 @@ func sampleCells(row render.Row, s stats.Sample, mode stats.Mode, data *static.D
 		}
 		return
 	}
-	row["name"] = render.Cell{Text: cut(s.Name, 16)}
 	row["kd"] = render.Cell{Text: fmt.Sprintf("%.2f", s.KD())}
 	row["hs"] = percentCell(s.HS())
 	if mode.Rounds {

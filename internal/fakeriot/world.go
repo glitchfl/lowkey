@@ -200,10 +200,7 @@ type Match struct {
 }
 
 type MatchPlayer struct {
-	PUUID string
-	// the Riot ID at the time of the match - empty uses the player's current one
-	Name   string
-	Tag    string
+	PUUID  string
 	Team   string
 	Agent  string
 	Score  int

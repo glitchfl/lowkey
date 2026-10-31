@@ -312,6 +312,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		} else {
 			lv.guard.Show(rp.PUUID)
 		}
+		lv.guard.KeepNameHidden(rp.PUUID, rp.Incognito)
 	}
 	var members []*member
 	add := func(rp riot.RosterPlayer) {
@@ -351,6 +352,13 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lob.members = members
+	var named []*player
+	for _, m := range members {
+		if m.p != nil && !m.hidden {
+			named = append(named, m.p)
+		}
+	}
+	lv.eng.lookUpNames(named)
 	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && cfg.Shows("skin") {
 		lv.fetchLoadouts(lob)
 	}
@@ -483,14 +491,12 @@ func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 			m.p.useSession(lv.sess)
 		}
 		row = playerRow(m.p, mode, lv.eng.acts, lv.data)
-		if lv.alias != nil && m.p.historyDone {
-			if name := stats.SampleOf(m.p.puuid, m.p.loaded()).Name; name != "" {
-				row["name"] = render.Cell{Text: cut(lv.alias(name), 16)}
-			}
+		if lv.alias != nil && m.p.name != "" {
+			row["name"] = render.Cell{Text: cut(lv.alias(m.p.name), nameWidth)}
 		}
 	}
 	row["agent"] = lv.agentCell(m)
-	// match details can still name them - Riot only allows their stats while the name stays off the screen
+	// a name fetched before they went hidden stays off too - Riot only allows their stats while it does
 	if m.hidden {
 		row["name"] = render.Cell{Text: "hidden"}
 	}

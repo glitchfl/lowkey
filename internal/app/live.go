@@ -387,6 +387,10 @@ func (lv *live) applyPresence(priv riot.Private, present, startup bool) {
 			lv.onPregame("")
 		}
 	case riot.LoopIngame:
+		// Riot zeroes the score a few seconds before the menus - that's the match ending and not a new half
+		if lv.lobby != nil && lv.lobby.kind == lobbyMatchLoad {
+			lv.lobby.rounds = max(lv.lobby.rounds, priv.Rounds)
+		}
 		switch {
 		case priv.InRange():
 			// you can queue from the Range so it counts as the menus - but once an event has moved lowkey

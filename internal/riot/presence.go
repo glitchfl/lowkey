@@ -14,6 +14,7 @@ type Private struct {
 	PartyClientVersion string
 	QueueID            string
 	HasQueueID         bool
+	Rounds             int    // both teams' scores added up - kills in the modes without rounds
 	Shape              string // flat / nested / hybrid
 }
 
@@ -75,6 +76,16 @@ func ParsePrivate(encoded string) (Private, error) {
 	p.PartyID, _ = find("partyId")
 	p.PartyClientVersion, _ = find("partyClientVersion")
 	p.QueueID, p.HasQueueID = find("queueId")
+	score := func(key string) int {
+		for _, m := range append([]map[string]json.RawMessage{top}, nested...) {
+			var n int
+			if json.Unmarshal(m[key], &n) == nil {
+				return n
+			}
+		}
+		return 0
+	}
+	p.Rounds = score("partyOwnerMatchScoreAllyTeam") + score("partyOwnerMatchScoreEnemyTeam")
 	switch {
 	case nestedHits == 0:
 		p.Shape = "flat"

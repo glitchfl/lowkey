@@ -29,6 +29,7 @@ type lobby struct {
 	members []*member
 	party   *party
 	started time.Time
+	rounds  int // rounds played - what picks the side in the header
 	// skins come once per match load and only while the skin column is on
 	skins         riot.Loadouts
 	loadoutsAsked bool
@@ -147,6 +148,8 @@ func (lv *live) stopCutoff() {
 func (lv *live) matchEnded() {
 	if lv.lobby != nil && lv.lobby.kind == lobbyMatchLoad && lv.lobby.known {
 		lv.last = lv.lobby
+		// the final score counts the winning round - there's no next round to show the side of
+		lv.last.rounds = max(lv.last.rounds-1, 0)
 		lv.remember(lv.lobby)
 	}
 	lv.cancelLobby()
@@ -401,6 +404,8 @@ func (lv *live) tracked(queue string) bool {
 // sides is the half each team starts on - Riot's red team always attacks first
 var sides = map[string]string{"Red": "Attackers", "Blue": "Defenders"}
 
+var otherSide = map[string]string{"Attackers": "Defenders", "Defenders": "Attackers"}
+
 func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	if lob.known {
 		mapName, ok := lv.data.MapName(lob.mapURL)
@@ -410,6 +415,9 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 		title += " · " + mapName
 		// only the round modes have sides - deathmatch and TDM show none
 		if side, ok := sides[lob.ownTeam]; ok && lob.mode.Rounds {
+			if lob.mode.Swapped(lob.rounds) {
+				side = otherSide[side]
+			}
 			title += " · " + side
 		}
 		title += " · " + lob.mode.Name

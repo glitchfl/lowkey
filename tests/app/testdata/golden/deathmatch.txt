@@ -3,16 +3,16 @@ PLAYER       AGENT    RANK     PEAK   LAST  WR  W-L   K/D  HS%  ACS  ADR  FB%  N
 Kestrel#EUW  Jett     Dia3 12  Dia3   -      -    -  1.50  40%    -    -    -  2  Reyn       -       Standard
 dm1#DM       Phoenix  Plat2 0  Plat2  -      -    -  1.00  50%    -    -    -  1  Reyn       -       Standard
 dm2#DM       Phoenix  Dia1 0   Dia1   -      -    -  2.00  50%    -    -    -  1  Reyn       -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
--            Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm3#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm4#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm5#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm6#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm7#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm8#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm9#DM       Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm10#DM      Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm11#DM      Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
+dm12#DM      Phoenix  -        -      -      -    -     -    -    -    -    -  0  -          -       Standard
 hidden       Phoenix  -        -      -      -    -  1.50  50%    -    -    -  1  Reyn       -       Standard
 AVERAGE               Dia1     Dia1                  1.50  48%
 SESSION · 0W 0L +0 RR since 06:00

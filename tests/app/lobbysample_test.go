@@ -141,7 +141,7 @@ func TestLobbyRequestsStayWithinTheBudget(t *testing.T) {
 		}
 	}
 	for path, n := range perPath {
-		if n > 1 && !strings.HasSuffix(path, "/competitiveupdates") && !strings.HasPrefix(path, "/pregame/") {
+		if n > 1 && !strings.HasSuffix(path, "/competitiveupdates") && !strings.HasPrefix(path, "/pregame/") && !strings.HasPrefix(path, "/name-service/") {
 			t.Errorf("%s fetched %d times", path, n)
 		}
 	}
@@ -149,10 +149,10 @@ func TestLobbyRequestsStayWithinTheBudget(t *testing.T) {
 	if details != 16 {
 		t.Errorf("fetched %d match details, want 16 with the premade's shared match counted once", details)
 	}
-	// two rosters - your party - content - two session refreshes - the match's loadouts - then rank and trend and
-	// history per player
+	// two rosters - your party - content - two session refreshes - the match's loadouts - two name lookups - then
+	// rank and trend and history per player
 	players := 10
-	budget := 2 + 2 + 1 + 2 + 1 + players*3 + details
+	budget := 2 + 2 + 1 + 2 + 1 + 2 + players*3 + details
 	if n := len(r.fr.RemoteRequests()); n > budget {
 		t.Errorf("%d requests for the lobby, over the budget of %d", n, budget)
 	}

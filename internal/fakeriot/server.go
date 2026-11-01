@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -63,19 +64,22 @@ type Server struct {
 }
 
 type Request struct {
-	Seq      int
-	Service  string // local / pd / glz / shared / static
-	Region   string
-	Shard    string
-	Method   string
-	Path     string
-	Query    url.Values
-	Header   http.Header
-	Status   int
-	Canceled bool
-	Start    time.Time
-	End      time.Time
-	done     bool
+	Seq     int
+	Service string // local / pd / glz / shared / static
+	Region  string
+	Shard   string
+	Method  string
+	Path    string
+	Query   url.Values
+	Header  http.Header
+	Named   []string // who a name lookup asked about
+	// NamedHidden is who on that list was in streamer mode when it arrived
+	NamedHidden []string
+	Status      int
+	Canceled    bool
+	Start       time.Time
+	End         time.Time
+	done        bool
 }
 
 type Fault struct {
@@ -432,12 +436,22 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
 func (s *Server) begin(service, region, shard, path string, r *http.Request) *Request {
+	var named []string
+	if isNameLookup(service, path, r) {
+		json.NewDecoder(r.Body).Decode(&named)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	req := &Request{
 		Seq: len(s.log) + 1, Service: service, Region: region, Shard: shard,
 		Method: r.Method, Path: path, Query: r.URL.Query(), Header: r.Header.Clone(),
+		Named: named,
 		Start: time.Now(),
+	}
+	for _, puuid := range named {
+		if s.world.incognito(puuid) && puuid != s.world.Self {
+			req.NamedHidden = append(req.NamedHidden, puuid)
+		}
 	}
 	s.log = append(s.log, req)
 	if service != "local" {
@@ -447,6 +461,10 @@ func (s *Server) begin(service, region, shard, path string, r *http.Request) *Re
 		}
 	}
 	return req
+}
+
+func isNameLookup(service, path string, r *http.Request) bool {
+	return r.Method == http.MethodPut && service == "pd" && path == namesPath
 }
 
 func (s *Server) end(req *Request, status int, ctx context.Context) {
@@ -632,8 +650,9 @@ func (s *Server) serveRemote(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusNotFound, errorBody(404, "RESOURCE_NOT_FOUND", "fakeriot only serves reads"))
+	lookup := isNameLookup(service, path, r)
+	if r.Method != http.MethodGet && !lookup {
+		writeJSON(w, http.StatusNotFound, errorBody(404, "RESOURCE_NOT_FOUND", "fakeriot only serves reads and name lookups"))
 		return
 	}
 
@@ -641,6 +660,10 @@ func (s *Server) serveRemote(rw http.ResponseWriter, r *http.Request) {
 	defer s.mu.Unlock()
 	if raw, ok := s.raw(service, path, r.URL.RawQuery); ok {
 		writeJSON(w, raw.Status, raw.Body)
+		return
+	}
+	if lookup {
+		writeJSON(w, http.StatusOK, s.world.names(req.Named))
 		return
 	}
 	status, body := s.route(service, path, r.URL.Query())

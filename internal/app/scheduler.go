@@ -17,6 +17,7 @@ const (
 	prioRoster priority = iota
 	prioParty
 	prioLoadouts
+	prioNames
 	prioRank
 	prioTrend
 	prioHistory
@@ -30,6 +31,7 @@ type job struct {
 	svc    remote.Service
 	path   string
 	query  url.Values
+	names  []string // set makes this a name lookup instead of a read
 	// done runs on the worker goroutine - it never runs for work that was cancelled
 	done func(body []byte, err error)
 
@@ -167,7 +169,7 @@ func (s *scheduler) before(a, b *job) bool {
 }
 
 func (s *scheduler) run(j *job, ctx context.Context, gen int) {
-	body, err := s.client.Get(ctx, j.svc, j.path, j.query)
+	body, err := s.send(ctx, j)
 
 	s.mu.Lock()
 	s.inflight--
@@ -208,6 +210,13 @@ func (s *scheduler) run(j *job, ctx context.Context, gen int) {
 		s.outcome(err)
 	}
 	j.done(body, err)
+}
+
+func (s *scheduler) send(ctx context.Context, j *job) ([]byte, error) {
+	if j.names != nil {
+		return s.client.Names(ctx, j.names)
+	}
+	return s.client.Get(ctx, j.svc, j.path, j.query)
 }
 
 // pause stops every dispatch - Riot's limits apply to the account and not one endpoint

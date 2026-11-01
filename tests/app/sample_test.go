@@ -19,7 +19,6 @@ type played struct {
 	score, rounds, kills, dies int
 	head, body, leg, damage    int
 	firstBloods, lateKills     int
-	name, tag                  string
 }
 
 // match builds a match where you make firstBloods opening kills and lateKills kills after an enemy opened
@@ -27,7 +26,7 @@ func match(w *fakeriot.World, p played) *fakeriot.Match {
 	m := &fakeriot.Match{
 		ID: p.id, Queue: p.queue, Map: fakeriot.MapAscent, Mode: fakeriot.ModeBomb, Start: testStart.Add(-p.ago),
 		Players: []fakeriot.MatchPlayer{
-			{PUUID: w.Self, Name: p.name, Tag: p.tag, Team: "Blue", Agent: p.agent, Score: p.score, Rounds: p.rounds, Kills: p.kills, Deaths: p.dies},
+			{PUUID: w.Self, Team: "Blue", Agent: p.agent, Score: p.score, Rounds: p.rounds, Kills: p.kills, Deaths: p.dies},
 			{PUUID: enemy, Team: "Red", Agent: fakeriot.Omen, Score: 3000, Rounds: p.rounds, Kills: 15, Deaths: 15},
 		},
 		Teams: []fakeriot.TeamResult{{ID: "Blue", Won: true, RoundsWon: 13}, {ID: "Red", RoundsWon: 7}},
@@ -55,17 +54,13 @@ func match(w *fakeriot.World, p played) *fakeriot.Match {
 
 func threeCompMatches(w *fakeriot.World) {
 	match(w, played{id: "a0000000-0000-4000-8000-00000000000a", queue: "competitive", ago: time.Hour, agent: fakeriot.Jett,
-		score: 4800, rounds: 20, kills: 20, dies: 15, head: 10, body: 30, leg: 5, damage: 2900, firstBloods: 4, lateKills: 3,
-		name: "Kestrel", tag: "EUW"})
+		score: 4800, rounds: 20, kills: 20, dies: 15, head: 10, body: 30, leg: 5, damage: 2900, firstBloods: 4, lateKills: 3})
 	match(w, played{id: "b0000000-0000-4000-8000-00000000000b", queue: "competitive", ago: 2 * time.Hour, agent: fakeriot.Raze,
-		score: 3000, rounds: 15, kills: 10, dies: 12, head: 4, body: 20, leg: 4, damage: 1700, firstBloods: 1, lateKills: 2,
-		name: "OldName", tag: "OLD"})
+		score: 3000, rounds: 15, kills: 10, dies: 12, head: 4, body: 20, leg: 4, damage: 1700, firstBloods: 1, lateKills: 2})
 	match(w, played{id: "c0000000-0000-4000-8000-00000000000c", queue: "competitive", ago: 3 * time.Hour, agent: fakeriot.Jett,
-		score: 5200, rounds: 25, kills: 22, dies: 18, head: 12, body: 40, leg: 8, damage: 3400, firstBloods: 4,
-		name: "OldName", tag: "OLD"})
+		score: 5200, rounds: 25, kills: 22, dies: 18, head: 12, body: 40, leg: 8, damage: 3400, firstBloods: 4})
 	match(w, played{id: "d0000000-0000-4000-8000-00000000000d", queue: "unrated", ago: 30 * time.Minute, agent: fakeriot.Sage,
-		score: 9999, rounds: 13, kills: 40, dies: 1, head: 50, body: 1, leg: 0, damage: 5000, firstBloods: 13,
-		name: "Kestrel", tag: "EUW"})
+		score: 9999, rounds: 13, kills: 40, dies: 1, head: 50, body: 1, leg: 0, damage: 5000, firstBloods: 13})
 }
 
 func TestMeShowsYourSampleStats(t *testing.T) {
@@ -141,8 +136,6 @@ func TestMeFetchesHistoryThenDetailsNewestFirstOnceEach(t *testing.T) {
 				firstDetailAt = i
 			}
 			seen[req.Path]++
-		case strings.Contains(req.Path, "name-service"):
-			t.Errorf("called the name service: %s", req.Path)
 		}
 	}
 	if historyAt < 0 || firstDetailAt < historyAt {
@@ -161,7 +154,10 @@ func TestPlayersWithoutMatchesInTheModeShowDashes(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("me failed:\n%s", out)
 	}
-	for _, col := range []string{"PLAYER", "K/D", "HS%", "ACS", "ADR", "FB%", "MAINS"} {
+	if got := cell(t, out, "PLAYER"); got != "Kestrel#EUW" {
+		t.Errorf("your name doesn't depend on your matches: got %q\n%s", got, out)
+	}
+	for _, col := range []string{"K/D", "HS%", "ACS", "ADR", "FB%", "MAINS"} {
 		if got := cell(t, out, col); got != "-" {
 			t.Errorf("%s: got %q, want -\n%s", col, got, out)
 		}

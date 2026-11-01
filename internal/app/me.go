@@ -60,6 +60,7 @@ func runMe(ctx context.Context, env Env, opts options) int {
 	eng.fetchActs()
 	me := newPlayer(l.self, mode.Queue, cfg.Matches)
 	eng.lookUp(me, wantRank|wantSample)
+	eng.lookUpNames([]*player{me})
 	sess := newSession(l.self, env.Clock.Now(), cfg.SessionResetHour)
 	eng.refreshSession(sess, nil)
 	if err := lp.run(ctx, func() bool { return eng.busy == 0 }, nil); err != nil {

@@ -113,12 +113,12 @@ func hookRecorder(rec *record.Recorder, local *riot.Local, lockfile []byte, lf r
 	local.Rejected = rec.Chain
 }
 
-func remoteObserver(rec *record.Recorder) func(remote.Service, string, string, int, []byte) {
+func remoteObserver(rec *record.Recorder) func(remote.Service, string, string, string, int, []byte) {
 	if rec == nil {
 		return nil
 	}
-	return func(svc remote.Service, path, query string, status int, body []byte) {
-		rec.Remote(svc.String(), path, query, status, body)
+	return func(svc remote.Service, method, path, query string, status int, body []byte) {
+		rec.Remote(svc.String(), method, path, query, status, body)
 	}
 }
 

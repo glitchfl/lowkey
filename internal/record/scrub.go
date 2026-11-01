@@ -160,6 +160,8 @@ func (s *Scrubber) walk(v any) any {
 	case map[string]any:
 		self := s.isSelf(t)
 		_, presence := t["puuid"]
+		// static data has displayNames too - only a name lookup's are a person's
+		_, named := t["GameName"]
 		out := make(map[string]any, len(t))
 		for k, val := range t {
 			key := s.text(k)
@@ -167,7 +169,7 @@ func (s *Scrubber) walk(v any) any {
 			switch {
 			case tokenKeys[lower]:
 				out[key] = "<scrubbed>"
-			case lower == "gamename" || lower == "game_name" || (lower == "name" && presence):
+			case lower == "gamename" || lower == "game_name" || (lower == "name" && presence) || (lower == "displayname" && named):
 				out[key] = s.fake(s.names, val, self, SelfName, "player")
 			case lower == "tagline" || lower == "game_tag" || lower == "tag_line":
 				out[key] = s.fake(s.tags, val, self, SelfTag, "t")

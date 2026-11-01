@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -83,7 +84,7 @@ type Config struct {
 	Tokens    func(ctx context.Context) (Tokens, error)
 	Guard     *Guard
 	// Observe sees every answered request - record mode hooks in here
-	Observe func(svc Service, path, query string, status int, body []byte)
+	Observe func(svc Service, method, path, query string, status int, body []byte)
 }
 
 type Client struct {
@@ -159,11 +160,35 @@ func (c *Client) Get(ctx context.Context, svc Service, path string, query url.Va
 			return nil, err
 		}
 	}
-	body, used, err := c.do(ctx, svc, u, path)
+	return c.send(ctx, svc, http.MethodGet, u, path, nil)
+}
+
+// NamesPath is the one request that isn't a GET - Riot's name lookup is a PUT but changes nothing
+const NamesPath = "/name-service/v2/players"
+
+func (c *Client) Names(ctx context.Context, puuids []string) ([]byte, error) {
+	u, err := c.URL(PD, NamesPath, nil)
+	if err != nil {
+		return nil, err
+	}
+	if c.cfg.Guard != nil {
+		if err := c.cfg.Guard.CheckNames(puuids); err != nil {
+			return nil, err
+		}
+	}
+	payload, err := json.Marshal(puuids)
+	if err != nil {
+		return nil, err
+	}
+	return c.send(ctx, PD, http.MethodPut, u, NamesPath, payload)
+}
+
+func (c *Client) send(ctx context.Context, svc Service, method string, u *url.URL, path string, payload []byte) ([]byte, error) {
+	body, used, err := c.do(ctx, svc, method, u, path, payload)
 	var se *StatusError
 	if svc != Static && errors.As(err, &se) && rejectedToken(se) {
 		c.invalidate(used)
-		body, _, err = c.do(ctx, svc, u, path)
+		body, _, err = c.do(ctx, svc, method, u, path, payload)
 	}
 	return body, err
 }
@@ -201,13 +226,16 @@ func (c *Client) token(ctx context.Context) (Tokens, error) {
 	return t, nil
 }
 
-func (c *Client) do(ctx context.Context, svc Service, u *url.URL, path string) ([]byte, Tokens, error) {
+func (c *Client) do(ctx context.Context, svc Service, method string, u *url.URL, path string, payload []byte) ([]byte, Tokens, error) {
 	var t Tokens
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), bytes.NewReader(payload))
 	if err != nil {
 		return nil, t, err
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	if svc != Static {
 		if t, err = c.token(ctx); err != nil {
 			return nil, t, fmt.Errorf("riot client tokens: %w", err)
@@ -234,7 +262,7 @@ func (c *Client) do(ctx context.Context, svc Service, u *url.URL, path string) (
 		return nil, t, &UnreachableError{Err: stripURL(err)}
 	}
 	if c.cfg.Observe != nil {
-		c.cfg.Observe(svc, path, u.RawQuery, resp.StatusCode, body)
+		c.cfg.Observe(svc, method, path, u.RawQuery, resp.StatusCode, body)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, t, &StatusError{Status: resp.StatusCode, RetryAfter: retryAfter(resp.Header), Code: errorCode(body)}

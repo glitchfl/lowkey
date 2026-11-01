@@ -12,6 +12,8 @@ type Frame struct {
 	Text string
 }
 
+const namesPath = "/name-service/v2/players"
+
 // Violations lists every request Riot must never see from lowkey whatever it was doing
 func (s *Server) Violations() []string {
 	self := s.Self()
@@ -20,10 +22,14 @@ func (s *Server) Violations() []string {
 		where := strings.ToLower(req.Path + "?" + req.Query.Encode())
 		parts := strings.Split(strings.Trim(req.Path, "/"), "/")
 		switch {
+		case req.Method == "PUT" && req.Path == namesPath:
+			for _, puuid := range req.NamedHidden {
+				out = append(out, "the name service was asked about the hidden player "+puuid)
+			}
 		case req.Method != "GET":
 			out = append(out, fmt.Sprintf("a %s request was sent: %s", req.Method, where))
 		case strings.Contains(where, "name-service"):
-			out = append(out, "the name service was called: "+where)
+			out = append(out, "the name service was called outside a name lookup: "+where)
 		case strings.Contains(where, "/pregame/") && (strings.Contains(where, "/select/") || strings.Contains(where, "/lock/")):
 			out = append(out, "an agent select action was sent: "+where)
 		case len(parts) >= 4 && parts[0] == "parties" && parts[2] == "players" && parts[3] != self:

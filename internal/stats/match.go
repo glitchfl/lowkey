@@ -20,8 +20,6 @@ type Match struct {
 
 type MatchPlayer struct {
 	PUUID       string
-	Name        string
-	Tag         string
 	Team        string
 	Agent       string
 	Score       int
@@ -61,8 +59,6 @@ func DecodeMatch(body []byte) (*Match, error) {
 		} `json:"matchInfo"`
 		Players []struct {
 			Subject     string `json:"subject"`
-			GameName    string `json:"gameName"`
-			TagLine     string `json:"tagLine"`
 			TeamID      string `json:"teamId"`
 			CharacterID string `json:"characterId"`
 			Stats       *struct {
@@ -101,8 +97,7 @@ func DecodeMatch(body []byte) (*Match, error) {
 	}
 	for _, p := range v.Players {
 		mp := &MatchPlayer{
-			PUUID: strings.ToLower(p.Subject), Name: p.GameName, Tag: p.TagLine,
-			Team: p.TeamID, Agent: strings.ToLower(p.CharacterID),
+			PUUID: strings.ToLower(p.Subject), Team: p.TeamID, Agent: strings.ToLower(p.CharacterID),
 		}
 		if p.Stats != nil {
 			mp.Score, mp.Rounds, mp.Kills, mp.Deaths = p.Stats.Score, p.Stats.RoundsPlayed, p.Stats.Kills, p.Stats.Deaths
@@ -142,10 +137,28 @@ func DecodeMatch(body []byte) (*Match, error) {
 	return m, nil
 }
 
+// DecodeNames maps PUUIDs to their name#tag - Riot's match details stopped carrying these
+func DecodeNames(body []byte) (map[string]string, error) {
+	var v []struct {
+		Subject  string `json:"Subject"`
+		GameName string `json:"GameName"`
+		TagLine  string `json:"TagLine"`
+	}
+	if err := json.Unmarshal(body, &v); err != nil {
+		return nil, fmt.Errorf("the name lookup isn't JSON: %w", err)
+	}
+	names := make(map[string]string, len(v))
+	for _, p := range v {
+		if p.GameName != "" {
+			names[strings.ToLower(p.Subject)] = p.GameName + "#" + p.TagLine
+		}
+	}
+	return names, nil
+}
+
 // Sample sums a player's matches - newest first
 type Sample struct {
 	N                                   int
-	Name                                string
 	Kills, Deaths, Score, Rounds        int
 	Head, Body, Leg, Damage, FirstBlood int
 	Mains                               []string
@@ -159,9 +172,6 @@ func SampleOf(puuid string, matches []*Match) Sample {
 		p := m.Players[puuid]
 		if p == nil {
 			continue
-		}
-		if s.N == 0 && p.Name != "" {
-			s.Name = p.Name + "#" + p.Tag
 		}
 		s.N++
 		s.Kills += p.Kills

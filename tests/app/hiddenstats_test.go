@@ -15,7 +15,7 @@ import (
 
 const hiddenStatsOff = "hidden_player_stats = false\n"
 
-// hiddenSamples gives the hidden ally and enemy a record - their match details name them like Riot's used to
+// hiddenSamples gives the hidden ally and enemy a record
 func hiddenSamples(w *fakeriot.World) {
 	playedMatches(w, ally3, "a3a3a3a3", 2, fakeriot.Omen, line5{score: 4000, rounds: 20, kills: 30, deaths: 10, head: 5, body: 15, damage: 3000, firstBloods: 4})
 	playedMatches(w, enemy3, "e3e3e3e3", 1, fakeriot.Viper, line5{score: 3000, rounds: 20, kills: 10, deaths: 10, head: 1, body: 9, damage: 2000})

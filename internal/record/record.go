@@ -71,9 +71,9 @@ func (r *Recorder) Local(path string, status int, body []byte) {
 	r.write(entry{Kind: "local", Method: "GET", Path: r.sc.Text(path), Status: status, Body: r.sc.JSON(body)})
 }
 
-func (r *Recorder) Remote(service, path, query string, status int, body []byte) {
+func (r *Recorder) Remote(service, method, path, query string, status int, body []byte) {
 	r.write(entry{
-		Kind: "remote", Service: service, Method: "GET",
+		Kind: "remote", Service: service, Method: method,
 		Path: r.sc.Text(path), Query: r.sc.Text(query), Status: status, Body: r.sc.JSON(body),
 	})
 }

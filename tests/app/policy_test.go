@@ -132,7 +132,7 @@ func TestIDsFromRiotNeverBecomeForbiddenPaths(t *testing.T) {
 	r.clock.Advance(10 * time.Second)
 	settle()
 	for _, req := range r.fr.RemoteRequests() {
-		if strings.Contains(req.Path, "/select/") || strings.Contains(req.Path, "name-service") || strings.Contains(req.Path, "..") {
+		if strings.Contains(req.Path, "/select/") || req.Method == "GET" && strings.Contains(req.Path, "name-service") || strings.Contains(req.Path, "..") {
 			t.Errorf("an ID from a response became the path %s", req.Path)
 		}
 	}

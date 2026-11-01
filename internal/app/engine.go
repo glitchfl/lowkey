@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -37,6 +38,10 @@ type player struct {
 	puuid      string
 	queue      string
 	sampleSize int
+
+	name      string
+	nameAsked bool
+	nameDone  bool
 
 	mmr     stats.MMR
 	mmrDone bool
@@ -140,6 +145,36 @@ func (e *engine) lookUp(p *player, want parts) {
 	if want&wantSample != 0 {
 		e.lookUpSample(p)
 	}
+}
+
+// lookUpNames asks once for everyone still unnamed - one request whatever the lobby's size
+func (e *engine) lookUpNames(players []*player) {
+	var ask []*player
+	var puuids []string
+	for _, p := range players {
+		if !p.nameAsked {
+			p.nameAsked = true
+			ask, puuids = append(ask, p), append(puuids, p.puuid)
+		}
+	}
+	if len(ask) == 0 {
+		return
+	}
+	e.submit(&job{prio: prioNames, svc: remote.PD, path: remote.NamesPath, names: puuids}, func(body []byte, err error) {
+		var names map[string]string
+		if err == nil {
+			names, err = stats.DecodeNames(body)
+		}
+		var refused *remote.RefusedError
+		for _, p := range ask {
+			// someone went hidden while this waited its turn - the next roster asks again without them
+			if errors.As(err, &refused) {
+				p.nameAsked = false
+				continue
+			}
+			p.name, p.nameDone = names[p.puuid], true
+		}
+	})
 }
 
 func (e *engine) lookUpRank(p *player) {

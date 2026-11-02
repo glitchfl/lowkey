@@ -41,6 +41,7 @@ type member struct {
 	hover  bool // the agent is picked in agent select but not locked in
 	team   string
 	hidden bool
+	level  int // zero when hidden by the player
 	p      *player
 }
 
@@ -329,7 +330,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 				lv.eng.lookUp(m.p, want)
 			}
 		}
-		m.agent, m.hover, m.team = rp.Agent, rp.Hover, rp.Team
+		m.agent, m.hover, m.team, m.level = rp.Agent, rp.Hover, rp.Team, rp.Level
 		// streamer mode can come on between rosters - a name already on screen still has to go
 		m.hidden = m.hidden || rp.Incognito && rp.PUUID != lv.self
 		members = append(members, m)
@@ -359,12 +360,13 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lv.eng.lookUpNames(named)
-	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && cfg.Shows("skin") {
+	// the details list every gun - so with a keyboard the skins come even with the skin column off
+	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.keyboard) {
 		lv.fetchLoadouts(lob)
 	}
 }
 
-// fetchLoadouts asks once for the whole match's skins - one request whatever the lobby's size
+// fetchLoadouts asks once for the whole match's skins and buddies - one request whatever the lobby's size
 func (lv *live) fetchLoadouts(lob *lobby) {
 	lob.loadoutsAsked = true
 	lv.eng.submit(&job{prio: prioLoadouts, svc: remote.GLZ, path: "/core-game/v1/matches/" + lob.matchID + "/loadouts"}, func(body []byte, err error) {
@@ -414,7 +416,7 @@ var sides = map[string]string{"Red": "Attackers", "Blue": "Defenders"}
 
 var otherSide = map[string]string{"Attackers": "Defenders", "Defenders": "Attackers"}
 
-func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
+func (lv *live) lobbyTitle(lob *lobby, title string) string {
 	if lob.known {
 		mapName, ok := lv.data.MapName(lob.mapURL)
 		if !ok {
@@ -430,7 +432,11 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 		}
 		title += " · " + lob.mode.Name
 	}
-	s.Header = title
+	return title
+}
+
+func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
+	s.Header = lv.lobbyTitle(lob, title)
 	if len(lob.members) == 0 {
 		return
 	}
@@ -477,6 +483,9 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 		// like every other stat a skin stays off players lowkey doesn't look up
 		if m.p != nil {
 			maps.Copy(row, skins[m.puuid])
+		}
+		if m.puuid == lv.pick {
+			row["pick"] = render.Cell{Text: pickMarker}
 		}
 		sec.Rows = append(sec.Rows, row)
 	}
@@ -530,22 +539,26 @@ func (lv *live) skinCells(lob *lobby) map[string]render.Row {
 		if !ok {
 			continue
 		}
-		for puuid, skins := range lob.skins {
-			id, ok := skins[weapon]
+		for puuid, guns := range lob.skins {
+			g, ok := guns[weapon]
 			if !ok {
 				continue
 			}
 			if cells[puuid] == nil {
 				cells[puuid] = render.Row{}
 			}
-			cell := render.Cell{Text: "?"}
-			if s, ok := lv.data.Skin(id); ok {
-				cell = render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
-			}
-			cells[puuid][skinKey(gun)] = cell
+			cells[puuid][skinKey(gun)] = lv.skinCell(g.Skin)
 		}
 	}
 	return cells
+}
+
+func (lv *live) skinCell(id string) render.Cell {
+	s, ok := lv.data.Skin(id)
+	if !ok {
+		return render.Cell{Text: "?"}
+	}
+	return render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
 }
 
 // averages are the shown values of a team's average row - the diff subtracts what's on screen

@@ -34,6 +34,7 @@ type snapshot struct {
 	Weapons        map[string]string `json:"weapons"`
 	Skins          map[string]skin   `json:"skins"`
 	Editions       map[string]string `json:"editions"`
+	Buddies        map[string]string `json:"buddies"`
 	IDs            []string          `json:"ids"`
 }
 
@@ -76,6 +77,7 @@ func run(out string) error {
 		Weapons:   map[string]string{},
 		Skins:     map[string]skin{},
 		Editions:  map[string]string{},
+		Buddies:   map[string]string{},
 	}
 	ids := map[string]bool{}
 
@@ -185,6 +187,17 @@ func run(out string) error {
 	}
 	for _, e := range editions {
 		s.Editions[e.UUID] = e.HighlightColor
+	}
+
+	var buddies []struct {
+		UUID        string `json:"uuid"`
+		DisplayName string `json:"displayName"`
+	}
+	if err := get("/v1/buddies", &buddies); err != nil {
+		return err
+	}
+	for _, b := range buddies {
+		s.Buddies[b.UUID] = strings.TrimSuffix(strings.TrimSpace(b.DisplayName), " Buddy")
 	}
 
 	for id := range ids {

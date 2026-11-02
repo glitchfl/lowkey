@@ -36,6 +36,8 @@ type RosterPlayer struct {
 	Incognito bool
 	// Hover is agent select only - the agent is picked but not locked in yet
 	Hover bool
+	// Level is the account level - zero when the player hides it
+	Level int
 }
 
 type rosterPlayer struct {
@@ -44,7 +46,9 @@ type rosterPlayer struct {
 	CharacterID             string `json:"CharacterID"`
 	CharacterSelectionState string `json:"CharacterSelectionState"`
 	PlayerIdentity          struct {
-		Incognito bool `json:"Incognito"`
+		Incognito        bool `json:"Incognito"`
+		AccountLevel     int  `json:"AccountLevel"`
+		HideAccountLevel bool `json:"HideAccountLevel"`
 	} `json:"PlayerIdentity"`
 }
 
@@ -52,10 +56,14 @@ func (p rosterPlayer) decode(team string) RosterPlayer {
 	if team == "" {
 		team = p.TeamID
 	}
-	return RosterPlayer{
+	rp := RosterPlayer{
 		PUUID: strings.ToLower(p.Subject), Team: team, Agent: strings.ToLower(p.CharacterID),
 		Incognito: p.PlayerIdentity.Incognito, Hover: p.CharacterSelectionState == "selected",
 	}
+	if !p.PlayerIdentity.HideAccountLevel {
+		rp.Level = p.PlayerIdentity.AccountLevel
+	}
+	return rp
 }
 
 // DecodeMatchID reads the pregame or core-game players endpoint
@@ -128,11 +136,21 @@ func DecodeCoreGame(body []byte) (Roster, error) {
 	return r, nil
 }
 
-// Loadouts maps each player to the skin on every weapon - player and weapon and skin UUIDs lowercased
-type Loadouts map[string]map[string]string
+// Loadouts maps each player to what they equipped on every weapon - every UUID lowercased
+type Loadouts map[string]map[string]Gun
 
-// skinSocket holds a weapon's skin - its other sockets hold the chroma and level and buddy
-const skinSocket = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
+// Gun is one weapon's skin and buddy - Buddy is empty on a gun without one
+type Gun struct {
+	Skin  string
+	Buddy string
+}
+
+// a weapon's sockets also hold its chroma and skin level and buddy level - the buddy socket carries the
+// buddy's own UUID the way VRY reads it
+const (
+	skinSocket  = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
+	buddySocket = "77258665-71d1-4623-bc72-44db9bd5b3b3"
+)
 
 // DecodeLoadouts reads the core-game loadouts - Riot has sent the player both inside the loadout and beside it
 func DecodeLoadouts(body []byte) (Loadouts, error) {
@@ -163,15 +181,25 @@ func DecodeLoadouts(body []byte) (Loadouts, error) {
 		if !IsUUID(subject) {
 			continue
 		}
-		skins := map[string]string{}
+		guns := map[string]Gun{}
 		for weapon, item := range l.Loadout.Items {
+			var g Gun
 			for socket, s := range item.Sockets {
-				if strings.EqualFold(socket, skinSocket) && IsUUID(s.Item.ID) {
-					skins[strings.ToLower(weapon)] = strings.ToLower(s.Item.ID)
+				if !IsUUID(s.Item.ID) {
+					continue
+				}
+				switch strings.ToLower(socket) {
+				case skinSocket:
+					g.Skin = strings.ToLower(s.Item.ID)
+				case buddySocket:
+					g.Buddy = strings.ToLower(s.Item.ID)
 				}
 			}
+			if g.Skin != "" {
+				guns[strings.ToLower(weapon)] = g
+			}
 		}
-		out[strings.ToLower(subject)] = skins
+		out[strings.ToLower(subject)] = guns
 	}
 	return out, nil
 }

@@ -103,5 +103,7 @@ func (lv *live) pressed(k key) {
 		if lv.tab.press(k) {
 			lv.onSettings = false
 		}
+	default:
+		lv.pressLobby(k)
 	}
 }

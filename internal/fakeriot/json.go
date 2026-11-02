@@ -24,15 +24,22 @@ func mustJSON(v any) []byte {
 
 func millis(t time.Time) int64 { return t.UnixMilli() }
 
-func identity(puuid string, incognito bool) obj {
+func (w *World) identity(puuid string) obj {
+	level, hide := 120, false
+	if p, ok := w.Players[puuid]; ok {
+		if p.Level > 0 {
+			level = p.Level
+		}
+		hide = p.HideLevel
+	}
 	return obj{
 		"Subject":                puuid,
 		"PlayerCardID":           "9fb348bc-41a0-91ad-8a3e-818035c4e561",
 		"PlayerTitleID":          "d13e579c-435e-44d4-cec2-6eae5a3c5ed4",
-		"AccountLevel":           120,
+		"AccountLevel":           level,
 		"PreferredLevelBorderID": "",
-		"Incognito":              incognito,
-		"HideAccountLevel":       false,
+		"Incognito":              w.incognito(puuid),
+		"HideAccountLevel":       hide,
 	}
 }
 
@@ -278,7 +285,7 @@ func (w *World) matchDetails(m *Match) []byte {
 			"teamId":       mp.Team, "partyId": "00000000-0000-0000-0000-000000000000", "characterId": mp.Agent,
 			"stats": obj{
 				"score": mp.Score, "roundsPlayed": mp.Rounds, "kills": mp.Kills, "deaths": mp.Deaths,
-				"assists": 0, "playtimeMillis": 1800000,
+				"assists": mp.Assists, "playtimeMillis": 1800000,
 				"abilityCasts": obj{"grenadeCasts": 0, "ability1Casts": 0, "ability2Casts": 0, "ultimateCasts": 0},
 			},
 			"roundDamage": nil, "competitiveTier": 0, "isObserver": false,
@@ -431,7 +438,7 @@ func (w *World) pregameMatch(g *LiveGame) []byte {
 		players = append(players, obj{
 			"Subject": p.PUUID, "CharacterID": p.Agent, "CharacterSelectionState": p.State,
 			"PregamePlayerState": "joined", "CompetitiveTier": 0,
-			"PlayerIdentity": identity(p.PUUID, w.incognito(p.PUUID)), "SeasonalBadgeInfo": badge(),
+			"PlayerIdentity": w.identity(p.PUUID), "SeasonalBadgeInfo": badge(),
 			"IsCaptain": false,
 		})
 	}
@@ -454,7 +461,7 @@ func (w *World) coreGameMatch(g *LiveGame) []byte {
 	for _, p := range g.Players {
 		players = append(players, obj{
 			"Subject": p.PUUID, "TeamID": p.Team, "CharacterID": p.Agent,
-			"PlayerIdentity": identity(p.PUUID, w.incognito(p.PUUID)), "SeasonalBadgeInfo": badge(),
+			"PlayerIdentity": w.identity(p.PUUID), "SeasonalBadgeInfo": badge(),
 			"IsCoach": false, "IsAssociated": true,
 		})
 	}
@@ -474,11 +481,15 @@ func (w *World) coreGameMatch(g *LiveGame) []byte {
 	})
 }
 
-// loadout sockets - a gun's skin sits beside its chroma and the rest
+// loadout sockets - a gun's skin sits beside its chroma and the rest - the buddy socket holds the buddy and
+// the buddy level socket one of its levels
 const (
-	skinSocket   = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
-	chromaSocket = "3ad1b2b2-acdb-4524-852f-954a76ddae0a"
-	someChroma   = "c4c40000-0000-4000-8000-000000000001"
+	skinSocket       = "bcef87d6-209b-46c6-8b19-fbe40bd95abc"
+	chromaSocket     = "3ad1b2b2-acdb-4524-852f-954a76ddae0a"
+	buddySocket      = "77258665-71d1-4623-bc72-44db9bd5b3b3"
+	buddyLevelSocket = "dd3bf334-87f3-40bd-b043-682a57a8dc3a"
+	someChroma       = "c4c40000-0000-4000-8000-000000000001"
+	someBuddyLevel   = "b0dd0000-0000-4000-8000-000000000001"
 )
 
 func (w *World) coreGameLoadouts(g *LiveGame) []byte {
@@ -490,10 +501,15 @@ func (w *World) coreGameLoadouts(g *LiveGame) []byte {
 			if s, ok := p.Skins[gun]; ok {
 				skin = s
 			}
-			items[gun] = obj{"ID": gun, "Sockets": obj{
+			sockets := obj{
 				skinSocket:   obj{"ID": skinSocket, "Item": obj{"ID": skin, "TypeID": skinSocket}},
 				chromaSocket: obj{"ID": chromaSocket, "Item": obj{"ID": someChroma, "TypeID": chromaSocket}},
-			}}
+			}
+			if buddy, ok := p.Buddies[gun]; ok {
+				sockets[buddySocket] = obj{"ID": buddySocket, "Item": obj{"ID": buddy, "TypeID": buddyLevelSocket}}
+				sockets[buddyLevelSocket] = obj{"ID": buddyLevelSocket, "Item": obj{"ID": someBuddyLevel, "TypeID": buddyLevelSocket}}
+			}
+			items[gun] = obj{"ID": gun, "Sockets": sockets}
 		}
 		loadouts = append(loadouts, obj{"CharacterID": p.Agent, "Loadout": obj{
 			"Subject": p.PUUID, "Sprays": obj{"SpraySelections": []any{}}, "Expressions": obj{"AESSelections": []any{}},
@@ -521,7 +537,7 @@ func (w *World) party() []byte {
 	members := []obj{}
 	for i, puuid := range w.PartyMembers {
 		members = append(members, obj{
-			"Subject": puuid, "CompetitiveTier": 0, "PlayerIdentity": identity(puuid, w.incognito(puuid)),
+			"Subject": puuid, "CompetitiveTier": 0, "PlayerIdentity": w.identity(puuid),
 			"SeasonalBadgeInfo": nil, "IsOwner": i == 0, "QueueEligibleRemainingAccountLevels": 0,
 			"Pings": []any{}, "IsReady": true, "IsModerator": false, "UseBroadcastHUD": false, "PlatformType": "PC",
 		})

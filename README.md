@@ -10,6 +10,8 @@ Download `lowkey.exe` from the [latest release](https://github.com/glitchfl/lowk
 
 Leave it open all day. It idles at about 0% CPU. Press Tab to open the settings and change them with the arrow keys. They save straight away to `lowkey.toml` next to the exe, and you can edit that file by hand too, no restart needed. If something seems off, run `.\lowkey.exe doctor` in PowerShell from that folder.
 
+To see more about one player, pick them with the up and down arrows and press Enter. You get their rank in every act, their record in each mode this act, their recent matches and agents, and the skin and buddy on every gun. Left and right switch players and Esc goes back. It only shows what lowkey already downloaded, so it works mid-match too and never sends anything.
+
 ## What it won't do
 
 - Show the names of players in streamer mode. They show as "hidden" with their agent and stats, and turning off `hidden_player_stats` leaves just the agent. It only asks Riot's name service about everyone else.

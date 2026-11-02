@@ -13,9 +13,12 @@ import (
 type Match struct {
 	ID      string
 	Queue   string
+	Map     string // the map URL like the rosters send
 	Start   time.Time
 	Players map[string]*MatchPlayer
 	Won     map[string]bool
+	// RoundsWon is by team - deathmatch teams are single players
+	RoundsWon map[string]int
 }
 
 type MatchPlayer struct {
@@ -26,6 +29,7 @@ type MatchPlayer struct {
 	Rounds      int
 	Kills       int
 	Deaths      int
+	Assists     int
 	Head        int
 	Body        int
 	Leg         int
@@ -55,6 +59,7 @@ func DecodeMatch(body []byte) (*Match, error) {
 		MatchInfo struct {
 			MatchID         string `json:"matchId"`
 			QueueID         string `json:"queueId"`
+			MapID           string `json:"mapId"`
 			GameStartMillis int64  `json:"gameStartMillis"`
 		} `json:"matchInfo"`
 		Players []struct {
@@ -66,11 +71,13 @@ func DecodeMatch(body []byte) (*Match, error) {
 				RoundsPlayed int `json:"roundsPlayed"`
 				Kills        int `json:"kills"`
 				Deaths       int `json:"deaths"`
+				Assists      int `json:"assists"`
 			} `json:"stats"`
 		} `json:"players"`
 		Teams []struct {
-			TeamID string `json:"teamId"`
-			Won    bool   `json:"won"`
+			TeamID    string `json:"teamId"`
+			Won       bool   `json:"won"`
+			RoundsWon int    `json:"roundsWon"`
 		} `json:"teams"`
 		RoundResults []struct {
 			PlayerStats []struct {
@@ -89,11 +96,13 @@ func DecodeMatch(body []byte) (*Match, error) {
 		return nil, fmt.Errorf("match details aren't JSON: %w", err)
 	}
 	m := &Match{
-		ID:      strings.ToLower(v.MatchInfo.MatchID),
-		Queue:   v.MatchInfo.QueueID,
-		Start:   time.UnixMilli(v.MatchInfo.GameStartMillis),
-		Players: map[string]*MatchPlayer{},
-		Won:     map[string]bool{},
+		ID:        strings.ToLower(v.MatchInfo.MatchID),
+		Queue:     v.MatchInfo.QueueID,
+		Map:       v.MatchInfo.MapID,
+		Start:     time.UnixMilli(v.MatchInfo.GameStartMillis),
+		Players:   map[string]*MatchPlayer{},
+		Won:       map[string]bool{},
+		RoundsWon: map[string]int{},
 	}
 	for _, p := range v.Players {
 		mp := &MatchPlayer{
@@ -101,11 +110,13 @@ func DecodeMatch(body []byte) (*Match, error) {
 		}
 		if p.Stats != nil {
 			mp.Score, mp.Rounds, mp.Kills, mp.Deaths = p.Stats.Score, p.Stats.RoundsPlayed, p.Stats.Kills, p.Stats.Deaths
+			mp.Assists = p.Stats.Assists
 		}
 		m.Players[mp.PUUID] = mp
 	}
 	for _, t := range v.Teams {
 		m.Won[t.TeamID] = t.Won
+		m.RoundsWon[t.TeamID] = t.RoundsWon
 	}
 	for _, round := range v.RoundResults {
 		first, firstAt := "", int64(math.MaxInt64)
@@ -159,7 +170,9 @@ func DecodeNames(body []byte) (map[string]string, error) {
 // Sample sums a player's matches - newest first
 type Sample struct {
 	N                                   int
-	Kills, Deaths, Score, Rounds        int
+	Wins, Losses                        int
+	Kills, Deaths, Assists, Score       int
+	Rounds                              int
 	Head, Body, Leg, Damage, FirstBlood int
 	Mains                               []string
 }
@@ -174,8 +187,15 @@ func SampleOf(puuid string, matches []*Match) Sample {
 			continue
 		}
 		s.N++
+		switch Result(m, p.Team) {
+		case "W":
+			s.Wins++
+		case "L":
+			s.Losses++
+		}
 		s.Kills += p.Kills
 		s.Deaths += p.Deaths
+		s.Assists += p.Assists
 		s.Score += p.Score
 		s.Rounds += p.Rounds
 		s.Head += p.Head
@@ -209,6 +229,11 @@ func SampleOf(puuid string, matches []*Match) Sample {
 
 func (s Sample) KD() float64 {
 	return float64(s.Kills) / math.Max(1, float64(s.Deaths))
+}
+
+// KDA counts assists with kills - the way the game's own scoreboard reads them
+func (s Sample) KDA() float64 {
+	return float64(s.Kills+s.Assists) / math.Max(1, float64(s.Deaths))
 }
 
 func ratio(num, den int, scale float64) (float64, bool) {

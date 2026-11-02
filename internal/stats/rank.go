@@ -12,25 +12,41 @@ import (
 type Acts struct {
 	Current string
 	Last    string
+	// All is every act newest first
+	All []Act
+}
+
+type Act struct {
+	ID string
+	// Label is short like V26 A6 or E4 A3 - act names repeat in every episode
+	Label string
+	Start time.Time
+}
+
+type contentSeason struct {
+	ID        string    `json:"ID"`
+	Name      string    `json:"Name"`
+	Type      string    `json:"Type"`
+	StartTime time.Time `json:"StartTime"`
+	EndTime   time.Time `json:"EndTime"`
+	IsActive  bool      `json:"IsActive"`
 }
 
 // DecodeContent finds the active act - episodes are flagged active too and names repeat
 func DecodeContent(body []byte) (Acts, error) {
 	var v struct {
-		Seasons []struct {
-			ID        string    `json:"ID"`
-			Type      string    `json:"Type"`
-			StartTime time.Time `json:"StartTime"`
-			IsActive  bool      `json:"IsActive"`
-		} `json:"Seasons"`
+		Seasons []contentSeason `json:"Seasons"`
 	}
 	if err := json.Unmarshal(body, &v); err != nil {
 		return Acts{}, fmt.Errorf("content isn't JSON: %w", err)
 	}
-	acts := v.Seasons[:0]
+	var acts, episodes []contentSeason
 	for _, s := range v.Seasons {
-		if strings.EqualFold(s.Type, "act") {
+		switch {
+		case strings.EqualFold(s.Type, "act"):
 			acts = append(acts, s)
+		case strings.EqualFold(s.Type, "episode"):
+			episodes = append(episodes, s)
 		}
 	}
 	sort.Slice(acts, func(i, j int) bool { return acts[i].StartTime.Before(acts[j].StartTime) })
@@ -42,9 +58,49 @@ func DecodeContent(body []byte) (Acts, error) {
 		if i > 0 {
 			out.Last = strings.ToLower(acts[i-1].ID)
 		}
+		for j := len(acts) - 1; j >= 0; j-- {
+			a := acts[j]
+			out.All = append(out.All, Act{ID: strings.ToLower(a.ID), Label: actLabel(a, episodes), Start: a.StartTime})
+		}
 		return out, nil
 	}
 	return Acts{}, fmt.Errorf("content lists no active act")
+}
+
+// actLabel shortens EPISODE 4 + ACT III to E4 A3 and V26 + ACT VI to V26 A6 - an act outside every
+// episode goes by its year
+func actLabel(act contentSeason, episodes []contentSeason) string {
+	name := strings.ToUpper(strings.TrimSpace(act.Name))
+	if n, ok := roman(strings.TrimSpace(strings.TrimPrefix(name, "ACT"))); ok {
+		name = "A" + strconv.Itoa(n)
+	}
+	episode := strconv.Itoa(act.StartTime.Year())
+	for _, e := range episodes {
+		if !act.StartTime.Before(e.StartTime) && act.StartTime.Before(e.EndTime) {
+			episode = strings.ReplaceAll(strings.ToUpper(strings.TrimSpace(e.Name)), " ", "")
+			episode = strings.Replace(episode, "EPISODE", "E", 1)
+			break
+		}
+	}
+	return episode + " " + name
+}
+
+func roman(s string) (int, bool) {
+	values := map[rune]int{'I': 1, 'V': 5, 'X': 10}
+	total, prev := 0, 0
+	for i := len(s) - 1; i >= 0; i-- {
+		v, ok := values[rune(s[i])]
+		if !ok {
+			return 0, false
+		}
+		if v < prev {
+			total -= v
+		} else {
+			total += v
+			prev = v
+		}
+	}
+	return total, total > 0
 }
 
 type Season struct {
@@ -116,11 +172,8 @@ func RankOf(m MMR, acts Acts, queue string, remap Remap) Rank {
 		}
 	}
 	if s, ok := m[queue][acts.Current]; ok && s.Games > 0 {
-		wins := s.WinsWithPlacements
-		if wins == 0 {
-			wins = s.Wins
-		}
-		r.Wins, r.Losses, r.HasRecord = wins, s.Games-wins, true
+		r.Wins, r.Losses = record(s)
+		r.HasRecord = true
 	}
 	return r
 }

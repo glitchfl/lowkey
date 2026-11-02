@@ -30,6 +30,7 @@ const (
 	MaxCutoffSeconds = 600
 	MinDotSeconds    = 1
 	MaxDotSeconds    = 20
+	MaxDots          = 3
 )
 
 type Settings struct {
@@ -44,7 +45,13 @@ type Settings struct {
 	Weapons           []string // the guns the skin column shows left to right - lowercase
 	AgentDot          bool
 	AgentDotSeconds   int
-	AgentDotAt        Spot
+	AgentDots         []DotSlot
+}
+
+// DotSlot is one agent dot - At stays unplaced until place on the settings tab saves it
+type DotSlot struct {
+	Agent string
+	At    Spot
 }
 
 // Spot is a point on the screen in physical pixels - the zero Spot isn't placed
@@ -129,13 +136,21 @@ var fields = []field{
 		func(s Settings) string { return strconv.FormatBool(s.AgentDot) }},
 	{"agent_dot_seconds", []string{"the most seconds the agent dot stays up - it goes as soon as you hover or lock - 1 to 20"},
 		func(s Settings) string { return strconv.Itoa(s.AgentDotSeconds) }},
-	{"agent_dot_at", []string{"where the agent dot goes in screen pixels - place dot on the settings tab fills it in - [] is not placed"},
-		func(s Settings) string {
-			if !s.AgentDotAt.Placed {
-				return "[]"
-			}
-			return fmt.Sprintf("[%d, %d]", s.AgentDotAt.X, s.AgentDotAt.Y)
-		}},
+	{"agent_dots", []string{"up to 3 agents and where each one's icon sits in screen pixels - set them up under agent dots on the settings tab",
+		`like [{agent = "jett", at = [960, 540]}, {agent = "raze", at = []}] - [] is not placed yet`},
+		func(s Settings) string { return tomlDots(s.AgentDots) }},
+}
+
+func tomlDots(dots []DotSlot) string {
+	parts := make([]string, len(dots))
+	for i, d := range dots {
+		at := "[]"
+		if d.At.Placed {
+			at = fmt.Sprintf("[%d, %d]", d.At.X, d.At.Y)
+		}
+		parts[i] = fmt.Sprintf("{agent = %s, at = %s}", strconv.Quote(d.Agent), at)
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
 }
 
 func tomlList(items []string) string {
@@ -185,7 +200,7 @@ type file struct {
 	Weapon            any       `toml:"weapon"` // one gun's name or a list of them
 	AgentDot          *bool     `toml:"agent_dot"`
 	AgentDotSeconds   *int      `toml:"agent_dot_seconds"`
-	AgentDotAt        any       `toml:"agent_dot_at"`
+	AgentDots         any       `toml:"agent_dots"`
 }
 
 // Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
@@ -199,8 +214,13 @@ func Parse(data []byte) (Settings, string, error) {
 	if err != nil {
 		return Settings{}, "", fmt.Errorf("can't read it: %v", firstLine(err))
 	}
-	if extra := md.Undecoded(); len(extra) > 0 {
-		return Settings{}, "", fmt.Errorf("unknown setting %q", extra[0].String())
+	for _, k := range md.Undecoded() {
+		// the toml library counts an inline table's keys as undecoded even when they land in an any -
+		// parseDots checks those itself
+		if len(k) > 1 && k[0] == "agent_dots" {
+			continue
+		}
+		return Settings{}, "", fmt.Errorf("unknown setting %q", k.String())
 	}
 	s := Default()
 	note := ""
@@ -285,14 +305,60 @@ func Parse(data []byte) (Settings, string, error) {
 			s.AgentDotSeconds = d
 		}
 	}
-	if f.AgentDotAt != nil {
-		spot, ok := parseSpot(f.AgentDotAt)
-		if !ok {
-			note = "agent_dot_at isn't two whole numbers like [960, 540] - the agent dot isn't placed"
+	if f.AgentDots != nil {
+		dots, dotsNote := parseDots(f.AgentDots)
+		if dotsNote != "" {
+			note = dotsNote
 		}
-		s.AgentDotAt = spot
+		s.AgentDots = dots
 	}
 	return s, note, nil
+}
+
+// parseDots keeps whatever it can use - a bad spot only unplaces its own dot
+func parseDots(v any) ([]DotSlot, string) {
+	var entries []map[string]any
+	switch list := v.(type) {
+	case []map[string]any:
+		entries = list
+	case []any:
+		for _, item := range list {
+			entry, ok := item.(map[string]any)
+			if !ok {
+				return nil, `agent_dots takes entries like {agent = "jett", at = [960, 540]} - no agent dots`
+			}
+			entries = append(entries, entry)
+		}
+	default:
+		return nil, `agent_dots isn't a list like [{agent = "jett", at = [960, 540]}] - no agent dots`
+	}
+	var dots []DotSlot
+	note := ""
+	for _, entry := range entries {
+		name, _ := entry["agent"].(string)
+		name = strings.TrimSpace(name)
+		if name == "" {
+			note = "an agent_dots entry has no agent - it's left out"
+			continue
+		}
+		d := DotSlot{Agent: name}
+		if at, ok := entry["at"]; ok {
+			if d.At, ok = parseSpot(at); !ok {
+				note = fmt.Sprintf("%s's at isn't two whole numbers like [960, 540] - that dot isn't placed", name)
+			}
+		}
+		for k := range entry {
+			if k != "agent" && k != "at" {
+				note = fmt.Sprintf("agent_dots has no %q - it's ignored", k)
+			}
+		}
+		dots = append(dots, d)
+	}
+	if len(dots) > MaxDots {
+		note = fmt.Sprintf("agent_dots lists %d agents - using the first %d", len(dots), MaxDots)
+		dots = dots[:MaxDots]
+	}
+	return dots, note
 }
 
 // parseSpot takes exactly two whole numbers - an empty list is a spot that was never placed

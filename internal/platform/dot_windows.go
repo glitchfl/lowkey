@@ -26,14 +26,21 @@ var (
 	procEndPaint                     = user32.NewProc("EndPaint")
 	procGetClientRect                = user32.NewProc("GetClientRect")
 	procFillRect                     = user32.NewProc("FillRect")
+	procGetDC                        = user32.NewProc("GetDC")
+	procReleaseDC                    = user32.NewProc("ReleaseDC")
 	procGetCursorPos                 = user32.NewProc("GetCursorPos")
 	procGetDpiForWindow              = user32.NewProc("GetDpiForWindow")
 	procSetThreadDpiAwarenessContext = user32.NewProc("SetThreadDpiAwarenessContext")
 	procCreateSolidBrush             = gdi32.NewProc("CreateSolidBrush")
 	procCreatePen                    = gdi32.NewProc("CreatePen")
+	procCreateFontW                  = gdi32.NewProc("CreateFontW")
 	procSelectObject                 = gdi32.NewProc("SelectObject")
 	procDeleteObject                 = gdi32.NewProc("DeleteObject")
 	procEllipse                      = gdi32.NewProc("Ellipse")
+	procSetBkMode                    = gdi32.NewProc("SetBkMode")
+	procSetTextColor                 = gdi32.NewProc("SetTextColor")
+	procTextOutW                     = gdi32.NewProc("TextOutW")
+	procGetTextExtentPoint32W        = gdi32.NewProc("GetTextExtentPoint32W")
 )
 
 const (
@@ -55,21 +62,27 @@ const (
 	swpNoZOrder      = 0x0004
 	swpNoActivate    = 0x0010
 	lwaColorKey      = 0x1
+	bkTransparent    = 1
+	fwBold           = 700
+	// smoothed edges would blend into the see-through key color and leave pink fringes
+	nonAntialiasedQuality = 3
 
 	// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 is (HANDLE)-4
 	perMonitorAwareV2 = ^uintptr(3)
 	htTransparent     = ^uintptr(0)
 
-	dotSize = 12 // pixels across at 100% scaling
+	// sizes in pixels at 100% scaling
+	dotSize   = 12
+	labelSize = 14
+	labelGap  = 2
 )
 
-var (
-	keyColor     = rgb(255, 0, 255) // painted where the window should be see-through
-	fillColor    = rgb(0, 255, 170)
-	outlineColor = rgb(16, 16, 16)
-)
+var keyColor = rgb(255, 0, 255) // painted where the window should be see-through
 
 func rgb(r, g, b byte) uintptr { return uintptr(r) | uintptr(g)<<8 | uintptr(b)<<16 }
+
+// colorRef turns 0xRRGGBB into the 0x00BBGGRR Windows draws with
+func colorRef(c uint32) uintptr { return rgb(byte(c>>16), byte(c>>8), byte(c)) }
 
 type wndClassEx struct {
 	size       uint32
@@ -87,6 +100,8 @@ type wndClassEx struct {
 }
 
 type point struct{ x, y int32 }
+
+type size struct{ cx, cy int32 }
 
 type msg struct {
 	hwnd    uintptr
@@ -110,53 +125,76 @@ type paintStruct struct {
 }
 
 type dotWindow struct {
-	hwnd uintptr
-	done chan struct{}
+	mark  Mark
+	label []uint16
+	hwnd  uintptr
+	font  uintptr
+	done  chan struct{}
+	// layout in physical pixels once the monitor's scaling is known
+	dot, outline, textW, textH, gap int
 }
 
 var (
 	dotMu      sync.Mutex
-	shownDot   *dotWindow
+	shownDots  []*dotWindow
+	byHandle   = map[uintptr]*dotWindow{}
 	classOnce  sync.Once
 	classErr   error
 	className  = windows.StringToUTF16Ptr("lowkeyAgentDot")
 	dotProcPtr = windows.NewCallback(dotProc)
 )
 
-// ShowDot draws the agent dot centered on a point in physical pixels - its window and thread live
-// only until HideDot so nothing of it is left over the game afterwards
-func ShowDot(x, y int) error {
-	HideDot()
-	w := &dotWindow{done: make(chan struct{})}
-	created := make(chan error, 1)
-	go w.run(x, y, created)
-	if err := <-created; err != nil {
-		return err
+// ShowDots replaces whatever dots are up with these - each window and its thread live only until
+// HideDots or the next ShowDots so nothing of them is left over the game afterwards
+func ShowDots(marks []Mark) error {
+	HideDots()
+	var opened []*dotWindow
+	for _, m := range marks {
+		label, err := windows.UTF16FromString(m.Label)
+		if err != nil {
+			closeDots(opened)
+			return err
+		}
+		w := &dotWindow{mark: m, label: label[:len(label)-1], done: make(chan struct{})}
+		created := make(chan error, 1)
+		go w.run(created)
+		if err := <-created; err != nil {
+			closeDots(opened)
+			return err
+		}
+		opened = append(opened, w)
 	}
 	dotMu.Lock()
-	shownDot = w
+	shownDots = opened
 	dotMu.Unlock()
 	return nil
 }
 
-// HideDot destroys the window rather than hiding it - an invisible window over a game can still
+// HideDots destroys the windows rather than hiding them - an invisible window over a game can still
 // keep Windows compositing it
-func HideDot() {
+func HideDots() {
 	dotMu.Lock()
-	w := shownDot
-	shownDot = nil
+	ws := shownDots
+	shownDots = nil
 	dotMu.Unlock()
-	if w == nil {
-		return
+	closeDots(ws)
+}
+
+func closeDots(ws []*dotWindow) {
+	for _, w := range ws {
+		procPostMessageW.Call(w.hwnd, wmClose, 0, 0)
 	}
-	procPostMessageW.Call(w.hwnd, wmClose, 0, 0)
-	select {
-	case <-w.done:
-	case <-time.After(time.Second):
+	deadline := time.After(time.Second)
+	for _, w := range ws {
+		select {
+		case <-w.done:
+		case <-deadline:
+			return
+		}
 	}
 }
 
-// CursorPos reads the cursor in physical pixels so it matches where ShowDot draws on a scaled display
+// CursorPos reads the cursor in physical pixels so it matches where ShowDots draws on a scaled display
 func CursorPos() (int, int, bool) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -168,7 +206,7 @@ func CursorPos() (int, int, bool) {
 	return int(p.x), int(p.y), r != 0
 }
 
-func (w *dotWindow) run(x, y int, created chan<- error) {
+func (w *dotWindow) run(created chan<- error) {
 	// never unlocked - a goroutine that ends while locked takes its thread with it
 	runtime.LockOSThread()
 	defer close(w.done)
@@ -177,12 +215,11 @@ func (w *dotWindow) run(x, y int, created chan<- error) {
 		return
 	}
 	perMonitorDPI()
-	hwnd, err := createDot(x, y)
-	if err != nil {
+	if err := w.open(); err != nil {
 		created <- err
 		return
 	}
-	w.hwnd = hwnd
+	defer procDeleteObject.Call(w.font)
 	created <- nil
 	var m msg
 	for {
@@ -208,27 +245,49 @@ func registerDotClass() error {
 	return classErr
 }
 
-func createDot(x, y int) (uintptr, error) {
+// open makes the window at its final size - it has to exist first to learn its monitor's scaling
+func (w *dotWindow) open() error {
 	exStyle := uintptr(wsExTopmost | wsExTransparent | wsExToolWindow | wsExLayered | wsExNoActivate)
 	hwnd, _, err := procCreateWindowExW.Call(exStyle, uintptr(unsafe.Pointer(className)), 0, wsPopup,
-		uintptr(x-dotSize/2), uintptr(y-dotSize/2), dotSize, dotSize, 0, 0, 0, 0)
+		uintptr(w.mark.X), uintptr(w.mark.Y), 1, 1, 0, 0, 0, 0)
 	if hwnd == 0 {
-		return 0, err
+		return err
 	}
-	size := dotSize
+	w.hwnd = hwnd
+	dpi := 96
 	if procGetDpiForWindow.Find() == nil {
-		if dpi, _, _ := procGetDpiForWindow.Call(hwnd); dpi > 0 {
-			size = dotSize * int(dpi) / 96
+		if d, _, _ := procGetDpiForWindow.Call(hwnd); d > 0 {
+			dpi = int(d)
 		}
 	}
-	procSetWindowPos.Call(hwnd, 0, uintptr(x-size/2), uintptr(y-size/2), uintptr(size), uintptr(size), swpNoZOrder|swpNoActivate)
+	scale := func(px int) int { return max(1, px*dpi/96) }
+	w.dot, w.outline = scale(dotSize), scale(1)
+	if len(w.label) > 0 {
+		face := windows.StringToUTF16Ptr("Segoe UI")
+		w.font, _, _ = procCreateFontW.Call(uintptr(-scale(labelSize)), 0, 0, 0, fwBold, 0, 0, 0, 1, 0, 0,
+			nonAntialiasedQuality, 0, uintptr(unsafe.Pointer(face)))
+		var sz size
+		hdc, _, _ := procGetDC.Call(hwnd)
+		old, _, _ := procSelectObject.Call(hdc, w.font)
+		procGetTextExtentPoint32W.Call(hdc, uintptr(unsafe.Pointer(&w.label[0])), uintptr(len(w.label)), uintptr(unsafe.Pointer(&sz)))
+		procSelectObject.Call(hdc, old)
+		procReleaseDC.Call(hwnd, hdc)
+		w.textW, w.textH, w.gap = int(sz.cx), int(sz.cy)+2*w.outline, scale(labelGap)
+	}
+	width := max(w.dot, w.textW+2*w.outline)
+	height := w.textH + w.gap + w.dot
+	left, top := w.mark.X-width/2, w.mark.Y-w.textH-w.gap-w.dot/2
+	procSetWindowPos.Call(hwnd, 0, uintptr(left), uintptr(top), uintptr(width), uintptr(height), swpNoZOrder|swpNoActivate)
+	dotMu.Lock()
+	byHandle[hwnd] = w
+	dotMu.Unlock()
 	// a layered window stays invisible until it has its attributes
 	if r, _, err := procSetLayeredWindowAttributes.Call(hwnd, keyColor, 0, lwaColorKey); r == 0 {
 		procPostMessageW.Call(hwnd, wmClose, 0, 0)
-		return 0, err
+		return err
 	}
 	procShowWindow.Call(hwnd, swShowNoActivate)
-	return hwnd, nil
+	return nil
 }
 
 func perMonitorDPI() uintptr {
@@ -242,13 +301,21 @@ func perMonitorDPI() uintptr {
 func dotProc(hwnd, message, wParam, lParam uintptr) uintptr {
 	switch message {
 	case wmPaint:
-		paintDot(hwnd)
-		return 0
+		dotMu.Lock()
+		w := byHandle[hwnd]
+		dotMu.Unlock()
+		if w != nil {
+			w.paint()
+			return 0
+		}
 	case wmNcHitTest:
 		return htTransparent
 	case wmMouseActivate:
 		return maNoActivate
 	case wmDestroy:
+		dotMu.Lock()
+		delete(byHandle, hwnd)
+		dotMu.Unlock()
 		procPostQuitMessage.Call(0)
 		return 0
 	}
@@ -256,26 +323,46 @@ func dotProc(hwnd, message, wParam, lParam uintptr) uintptr {
 	return r
 }
 
-func paintDot(hwnd uintptr) {
+func (w *dotWindow) paint() {
 	var ps paintStruct
-	hdc, _, _ := procBeginPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
+	hdc, _, _ := procBeginPaint.Call(w.hwnd, uintptr(unsafe.Pointer(&ps)))
 	if hdc == 0 {
 		return
 	}
-	defer procEndPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
+	defer procEndPaint.Call(w.hwnd, uintptr(unsafe.Pointer(&ps)))
 	var rc rect
-	procGetClientRect.Call(hwnd, uintptr(unsafe.Pointer(&rc)))
+	procGetClientRect.Call(w.hwnd, uintptr(unsafe.Pointer(&rc)))
 	key, _, _ := procCreateSolidBrush.Call(keyColor)
 	procFillRect.Call(hdc, uintptr(unsafe.Pointer(&rc)), key)
 	procDeleteObject.Call(key)
-	width := max(2, int(rc.right)/6)
-	pen, _, _ := procCreatePen.Call(0, uintptr(width), outlineColor)
-	brush, _, _ := procCreateSolidBrush.Call(fillColor)
+	fill, ring := colorRef(w.mark.Fill), colorRef(w.mark.Ring)
+	if len(w.label) > 0 {
+		oldFont, _, _ := procSelectObject.Call(hdc, w.font)
+		procSetBkMode.Call(hdc, bkTransparent)
+		x, y := (int(rc.right)-w.textW)/2, w.outline
+		text, n := uintptr(unsafe.Pointer(&w.label[0])), uintptr(len(w.label))
+		// the ring color drawn around the name first is its outline
+		procSetTextColor.Call(hdc, ring)
+		for dx := -w.outline; dx <= w.outline; dx++ {
+			for dy := -w.outline; dy <= w.outline; dy++ {
+				if dx != 0 || dy != 0 {
+					procTextOutW.Call(hdc, uintptr(x+dx), uintptr(y+dy), text, n)
+				}
+			}
+		}
+		procSetTextColor.Call(hdc, fill)
+		procTextOutW.Call(hdc, uintptr(x), uintptr(y), text, n)
+		procSelectObject.Call(hdc, oldFont)
+	}
+	width := max(2, w.dot/6)
+	pen, _, _ := procCreatePen.Call(0, uintptr(width), ring)
+	brush, _, _ := procCreateSolidBrush.Call(fill)
 	oldPen, _, _ := procSelectObject.Call(hdc, pen)
 	oldBrush, _, _ := procSelectObject.Call(hdc, brush)
 	// the pen straddles the edge it draws - pull it in by half so the outline isn't clipped
 	in := width / 2
-	procEllipse.Call(hdc, uintptr(in), uintptr(in), uintptr(int(rc.right)-in), uintptr(int(rc.bottom)-in))
+	left, top := (int(rc.right)-w.dot)/2, w.textH+w.gap
+	procEllipse.Call(hdc, uintptr(left+in), uintptr(top+in), uintptr(left+w.dot-in), uintptr(top+w.dot-in))
 	procSelectObject.Call(hdc, oldPen)
 	procSelectObject.Call(hdc, oldBrush)
 	procDeleteObject.Call(pen)

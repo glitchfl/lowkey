@@ -12,30 +12,33 @@ import (
 
 	"github.com/glitchfl/lowkey/internal/app"
 	"github.com/glitchfl/lowkey/internal/fakeriot"
+	"github.com/glitchfl/lowkey/internal/platform"
 )
 
 const (
 	agentDotRow = weaponRow + 1 + iota
 	dotTimeRow
-	placeDotRow
+	agentDotsRow
 )
 
-const dotOn = "agent_dot = true\nagent_dot_at = [800, 450]\n"
+// nobody in the test lobbies plays Raze so a teammate's pick never takes this dot down
+const dotOn = "agent_dot = true\nagent_dots = [{agent = \"Raze\", at = [800, 450]}]\n"
+
+func dotsOn(dots string) string { return "agent_dot = true\nagent_dots = [" + dots + "]\n" }
 
 type dotCall struct {
-	shown bool
-	x, y  int
+	marks []platform.Mark // nil is a hide
 	at    time.Time
 }
 
-// fakeDot stands in for the window - it keeps every show and hide with the fake clock's time
+// fakeDot stands in for the windows - it keeps every show and hide with the fake clock's time
 type fakeDot struct {
 	t     *testing.T
 	clock *fakeriot.Clock
 
 	mu       sync.Mutex
 	calls    []dotCall
-	up       bool
+	up       []platform.Mark
 	cursorOK bool
 }
 
@@ -47,24 +50,24 @@ func (r *rig) withDot() *fakeDot {
 	return d
 }
 
-func (d *fakeDot) show(x, y int) error {
+func (d *fakeDot) show(marks []platform.Mark) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.up {
-		d.t.Errorf("a second dot at %d, %d while one was still up", x, y)
+	if len(marks) == 0 {
+		d.t.Error("showed no dots - that's a hide")
 	}
-	d.up = true
-	d.calls = append(d.calls, dotCall{shown: true, x: x, y: y, at: d.clock.Now()})
+	d.up = slices.Clone(marks)
+	d.calls = append(d.calls, dotCall{marks: d.up, at: d.clock.Now()})
 	return nil
 }
 
 func (d *fakeDot) hide() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if !d.up {
-		d.t.Error("hid a dot that wasn't up")
+	if d.up == nil {
+		d.t.Error("hid dots that weren't up")
 	}
-	d.up = false
+	d.up = nil
 	d.calls = append(d.calls, dotCall{at: d.clock.Now()})
 }
 
@@ -77,55 +80,77 @@ func (d *fakeDot) cursor() (int, int, bool) {
 func (d *fakeDot) isUp() bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.up
+	return d.up != nil
 }
 
-func (d *fakeDot) shows() []dotCall {
+func (d *fakeDot) marksUp() []platform.Mark {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	var out []dotCall
-	for _, c := range d.calls {
-		if c.shown {
-			out = append(out, c)
-		}
-	}
-	return out
+	return slices.Clone(d.up)
 }
 
-// upFor is how long the last dot stayed up on the fake clock
+func (d *fakeDot) labelsUp() []string {
+	var labels []string
+	for _, m := range d.marksUp() {
+		labels = append(labels, m.Label)
+	}
+	return labels
+}
+
+func (d *fakeDot) shows() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	n := 0
+	for i, c := range d.calls {
+		// a redraw with fewer dots doesn't count as going up again
+		if c.marks != nil && (i == 0 || d.calls[i-1].marks == nil) {
+			n++
+		}
+	}
+	return n
+}
+
+// upFor is how long the last dots stayed up on the fake clock - redraws with fewer dots included
 func (d *fakeDot) upFor() time.Duration {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	n := len(d.calls)
-	if n < 2 || d.calls[n-1].shown || !d.calls[n-2].shown {
-		d.t.Fatalf("no dot that went up and came down in %v", d.calls)
+	if n < 2 || d.calls[n-1].marks != nil {
+		d.t.Fatalf("no dots that went up and came down in %v", d.calls)
 	}
-	return d.calls[n-1].at.Sub(d.calls[n-2].at)
+	start := n - 2
+	for start > 0 && d.calls[start-1].marks != nil {
+		start--
+	}
+	return d.calls[n-1].at.Sub(d.calls[start].at)
 }
 
 func (d *fakeDot) wantUpAt(x, y int) {
 	d.t.Helper()
-	eventually(d.t, fmt.Sprintf("the dot at %d, %d", x, y), d.isUp)
-	shows := d.shows()
-	if last := shows[len(shows)-1]; last.x != x || last.y != y {
-		d.t.Errorf("dot at %d, %d - want %d, %d", last.x, last.y, x, y)
-	}
+	eventually(d.t, fmt.Sprintf("a dot at %d, %d", x, y), func() bool {
+		return slices.ContainsFunc(d.marksUp(), func(m platform.Mark) bool { return m.X == x && m.Y == y })
+	})
+}
+
+func (d *fakeDot) wantLabels(labels ...string) {
+	d.t.Helper()
+	eventually(d.t, fmt.Sprintf("dots for %v", labels), func() bool { return slices.Equal(d.labelsUp(), labels) })
 }
 
 func (d *fakeDot) wantDown(why string) {
 	d.t.Helper()
-	eventually(d.t, "the dot to go "+why, func() bool { return !d.isUp() })
+	eventually(d.t, "the dots to go "+why, func() bool { return !d.isUp() })
 }
 
 func (d *fakeDot) wantNone() {
 	d.t.Helper()
 	settle()
-	if shows := d.shows(); len(shows) != 0 {
-		d.t.Errorf("the dot went up %d times, want never", len(shows))
+	if n := d.shows(); n != 0 {
+		d.t.Errorf("the dots went up %d times, want never", n)
 	}
 }
 
-// dotLobby starts lowkey in the menus with the given settings and a dot it can draw
+// dotLobby starts lowkey in the menus with the given settings and dots it can draw
 func dotLobby(t *testing.T, settings string, setup ...func(w *fakeriot.World)) (*rig, *fakeDot) {
 	t.Helper()
 	r := newRig(t, append([]func(w *fakeriot.World){agentSelectLobby}, setup...)...)
@@ -151,6 +176,26 @@ func (r *rig) self() string {
 	return self
 }
 
+// openSlots goes from the main list to the agent dots list - it's the last row so up wraps to it
+func (r *rig) openSlots() {
+	r.t.Helper()
+	r.press(upKey)
+	r.screen("> agent dots", "(enter)")
+	r.press(enterKey)
+	r.screen("agent dots - up to 3", "> 1  ")
+}
+
+// countdown steps the place countdown down to zero on the fake clock
+func (r *rig) countdown() {
+	r.t.Helper()
+	r.screen("point at your agent - 5")
+	for left := 4; left >= 1; left-- {
+		r.clock.Advance(time.Second)
+		r.screen(fmt.Sprintf("point at your agent - %d", left))
+	}
+	r.clock.Advance(time.Second)
+}
+
 func TestTheAgentDotShowsWhenAMatchIsFoundUntilItsTimeLimit(t *testing.T) {
 	r, d := dotInAgentSelect(t, dotOn+"agent_dot_seconds = 4\n")
 	d.wantUpAt(800, 450)
@@ -160,7 +205,7 @@ func TestTheAgentDotShowsWhenAMatchIsFoundUntilItsTimeLimit(t *testing.T) {
 		t.Fatal("the dot went before its 4 s were up")
 	}
 	r.clock.Advance(time.Second)
-	d.wantDown("at its time limit")
+	d.wantDown("at their time limit")
 	if got := d.upFor(); got != 4*time.Second {
 		t.Errorf("the dot stayed up %v, want 4s", got)
 	}
@@ -176,34 +221,76 @@ func TestTheAgentDotTimeLimitIsFifteenSecondsByDefault(t *testing.T) {
 		t.Fatal("the dot went before agent select could be clicked")
 	}
 	r.clock.Advance(2 * time.Second)
-	d.wantDown("at its time limit")
+	d.wantDown("at their time limit")
 	if got := d.upFor(); got != 15*time.Second {
 		t.Errorf("the dot stayed up %v, want 15s", got)
 	}
 }
 
-func TestTheAgentDotGoesOnceYouPickAnAgent(t *testing.T) {
+func TestUpToThreeDotsShowTogetherNamedInTheirAgentsColors(t *testing.T) {
+	_, d := dotInAgentSelect(t, dotsOn(`{agent = "jett", at = [700, 450]}, {agent = "Fade", at = [760, 450]}, {agent = "Raze", at = [820, 450]}`))
+	d.wantLabels("Jett", "Fade", "Raze")
+	want := []platform.Mark{
+		// two colors - the second rings the dot
+		{X: 700, Y: 450, Label: "Jett", Fill: 0x00E5FF, Ring: 0xF4F7FA},
+		// too dark for agent select's background without a light ring
+		{X: 760, Y: 450, Label: "Fade", Fill: 0x3A3F44, Ring: 0xF2F2F2},
+		{X: 820, Y: 450, Label: "Raze", Fill: 0xFF8A00, Ring: 0x101010},
+	}
+	if got := d.marksUp(); !slices.Equal(got, want) {
+		t.Errorf("dots:\n got %+v\nwant %+v", got, want)
+	}
+}
+
+func TestYourPickTakesEveryDotDown(t *testing.T) {
 	for _, locked := range []bool{false, true} {
 		t.Run(map[bool]string{false: "hover", true: "lock"}[locked], func(t *testing.T) {
-			r, d := dotInAgentSelect(t, dotOn)
-			d.wantUpAt(800, 450)
+			r, d := dotInAgentSelect(t, dotsOn(`{agent = "Raze", at = [800, 450]}, {agent = "Fade", at = [860, 450]}`))
+			d.wantLabels("Raze", "Fade")
 			r.fr.Hover(r.self(), fakeriot.Sova, locked)
 			settle()
 			if !d.isUp() {
-				t.Fatal("the dot went before lowkey saw your pick")
+				t.Fatal("the dots went before lowkey saw your pick")
 			}
 			r.clock.Advance(3 * time.Second)
 			d.wantDown("after your pick")
 			if got := d.upFor(); got > 3*time.Second {
-				t.Errorf("the dot stayed up %v after the pick, want at most the 3 s roster refresh", got)
+				t.Errorf("the dots stayed up %v after the pick, want at most the 3 s roster refresh", got)
 			}
 		})
 	}
 }
 
+func TestATeammatesLockTakesDownOnlyThatAgentsDot(t *testing.T) {
+	// ally one only hovers Jett - a hover can still change so it leaves Jett's dot up
+	r, d := dotInAgentSelect(t, dotsOn(`{agent = "Killjoy", at = [700, 450]}, {agent = "Jett", at = [760, 450]}, {agent = "Raze", at = [820, 450]}`))
+	d.wantLabels("Killjoy", "Jett", "Raze")
+	r.fr.Hover(ally2, fakeriot.Killjoy, true)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	d.wantLabels("Jett", "Raze")
+	r.fr.Hover(ally1, fakeriot.Jett, true)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	d.wantLabels("Raze")
+	if n := d.shows(); n != 1 {
+		t.Errorf("the dots went up %d times - a teammate's lock should only redraw the rest", n)
+	}
+	r.fr.Hover(r.self(), fakeriot.Sova, true)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	d.wantDown("after your pick")
+}
+
+func TestADotForAnAgentATeammateAlreadyLockedGoesWithTheFirstRoster(t *testing.T) {
+	// the streamer-mode ally and the unranked one locked Omen and Sage before agent select reached lowkey
+	_, d := dotInAgentSelect(t, dotsOn(`{agent = "Sage", at = [700, 450]}, {agent = "Raze", at = [760, 450]}`))
+	d.wantLabels("Raze")
+}
+
 // the stats lookups fill both request slots right after a match is found - your pick's roster fetch
-// has to jump them or the dot would stay up through the whole burst
-func TestAPickDuringTheStatsLookupsStillTakesTheAgentDotDown(t *testing.T) {
+// has to jump them or the dots would stay up through the whole burst
+func TestAPickDuringTheStatsLookupsStillTakesTheDotsDown(t *testing.T) {
 	r, d := dotLobby(t, dotOn, func(w *fakeriot.World) {
 		line := line5{score: 3000, rounds: 20, kills: 15, deaths: 15, head: 3, body: 12, damage: 2500}
 		playedMatches(w, ally1, "b1b1b1b1", 8, fakeriot.Jett, line)
@@ -236,19 +323,7 @@ func TestAPickDuringTheStatsLookupsStillTakesTheAgentDotDown(t *testing.T) {
 	r.fr.ReleaseHeld()
 }
 
-func TestATeammatesPickLeavesTheAgentDotUp(t *testing.T) {
-	r, d := dotInAgentSelect(t, dotOn)
-	d.wantUpAt(800, 450)
-	r.fr.Hover(ally2, fakeriot.Killjoy, true)
-	settle()
-	r.clock.Advance(3 * time.Second)
-	r.screen("Killjoy")
-	if !d.isUp() {
-		t.Error("a teammate's lock took your dot down")
-	}
-}
-
-func TestADodgeTakesTheAgentDotDownAndTheNextMatchBringsItBack(t *testing.T) {
+func TestADodgeTakesTheDotsDownAndTheNextMatchBringsThemBack(t *testing.T) {
 	r, d := dotInAgentSelect(t, dotOn)
 	d.wantUpAt(800, 450)
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
@@ -259,12 +334,12 @@ func TestADodgeTakesTheAgentDotDownAndTheNextMatchBringsItBack(t *testing.T) {
 	r.enterAgentSelect()
 	r.screen("AGENT SELECT")
 	d.wantUpAt(800, 450)
-	if n := len(d.shows()); n != 2 {
+	if n := d.shows(); n != 2 {
 		t.Errorf("the dot went up %d times over two agent selects", n)
 	}
 }
 
-func TestTheAgentDotIsNeverUpOnceTheMatchLoads(t *testing.T) {
+func TestTheDotsAreNeverUpOnceTheMatchLoads(t *testing.T) {
 	r := newRig(t, matchLobby, func(w *fakeriot.World) {
 		for i := range w.Pregame.Players {
 			if w.Pregame.Players[i].PUUID == w.Self {
@@ -291,7 +366,7 @@ func TestTheAgentDotIsNeverUpOnceTheMatchLoads(t *testing.T) {
 	r.screen("IN MATCH")
 	r.presence(func(w *fakeriot.World) { w.Loop = fakeriot.LoopMenus })
 	r.screen("LAST MATCH")
-	if n := len(d.shows()); n != 1 {
+	if n := d.shows(); n != 1 {
 		t.Errorf("the dot went up %d times in one match", n)
 	}
 	if d.isUp() {
@@ -299,11 +374,12 @@ func TestTheAgentDotIsNeverUpOnceTheMatchLoads(t *testing.T) {
 	}
 }
 
-func TestNoAgentDotUnlessItsOnAndPlaced(t *testing.T) {
+func TestNoDotsUnlessTheyreOnAndPlaced(t *testing.T) {
 	for name, file := range map[string]string{
-		"off":        "agent_dot = false\nagent_dot_at = [800, 450]\n",
-		"not placed": "agent_dot = true\n",
-		"bad spot":   "agent_dot = true\nagent_dot_at = [800]\n",
+		"off":        "agent_dot = false\nagent_dots = [{agent = \"Raze\", at = [800, 450]}]\n",
+		"none set":   "agent_dot = true\n",
+		"not placed": dotsOn(`{agent = "Raze"}`),
+		"bad spot":   dotsOn(`{agent = "Raze", at = [800]}`),
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, d := dotInAgentSelect(t, file)
@@ -312,7 +388,7 @@ func TestNoAgentDotUnlessItsOnAndPlaced(t *testing.T) {
 	}
 }
 
-func TestNoAgentDotInModesLowkeyDoesntTrack(t *testing.T) {
+func TestNoDotsInModesLowkeyDoesntTrack(t *testing.T) {
 	cases := map[string]struct {
 		file, queue, status string
 	}{
@@ -330,7 +406,7 @@ func TestNoAgentDotInModesLowkeyDoesntTrack(t *testing.T) {
 	}
 }
 
-func TestNoAgentDotWhenLowkeyOpensMidAgentSelect(t *testing.T) {
+func TestNoDotsWhenLowkeyOpensMidAgentSelect(t *testing.T) {
 	r := newRig(t, agentSelectLobby, func(w *fakeriot.World) { w.Loop = fakeriot.LoopPregame })
 	d := r.withDot()
 	r.writeSettings(dotOn)
@@ -339,14 +415,14 @@ func TestNoAgentDotWhenLowkeyOpensMidAgentSelect(t *testing.T) {
 	d.wantNone()
 }
 
-func TestTurningTheAgentDotOffTakesItDown(t *testing.T) {
+func TestTurningTheDotsOffTakesThemDown(t *testing.T) {
 	r, d := dotInAgentSelect(t, dotOn)
 	d.wantUpAt(800, 450)
-	r.writeSettings("agent_dot = false\nagent_dot_at = [800, 450]\n")
-	d.wantDown("when it's turned off")
+	r.writeSettings("agent_dot = false\nagent_dots = [{agent = \"Raze\", at = [800, 450]}]\n")
+	d.wantDown("when they're turned off")
 }
 
-func TestTheAgentDotGoesWhenLowkeyCloses(t *testing.T) {
+func TestTheDotsGoWhenLowkeyCloses(t *testing.T) {
 	r, d := dotInAgentSelect(t, dotOn)
 	d.wantUpAt(800, 450)
 	r.stop()
@@ -355,7 +431,7 @@ func TestTheAgentDotGoesWhenLowkeyCloses(t *testing.T) {
 	}
 }
 
-func TestTheAgentDotMakesNoRequests(t *testing.T) {
+func TestTheDotsMakeNoRequests(t *testing.T) {
 	requests := func(file string) []string {
 		r, _ := dotInAgentSelect(t, file)
 		r.fr.Hover(r.self(), fakeriot.Sova, true)
@@ -370,39 +446,88 @@ func TestTheAgentDotMakesNoRequests(t *testing.T) {
 		slices.Sort(paths)
 		return paths
 	}
-	on, off := requests(dotOn), requests("agent_dot = false\n")
+	on, off := requests(dotsOn(`{agent = "Raze", at = [800, 450]}, {agent = "Jett", at = [860, 450]}`)), requests("agent_dot = false\n")
 	if strings.Join(on, "\n") != strings.Join(off, "\n") {
-		t.Errorf("agent select with the dot made %d requests, without it %d:\n%v\n%v", len(on), len(off), on, off)
+		t.Errorf("agent select with dots made %d requests, without them %d:\n%v\n%v", len(on), len(off), on, off)
 	}
 }
 
-func TestPlacingTheDotSavesWhereTheCursorRestsAfterFiveSecondsAndTurnsItOn(t *testing.T) {
+func TestTheAgentDotsListPicksAgentsWithLeftAndRight(t *testing.T) {
+	r := newRig(t)
+	r.withDot()
+	r.settingsTab()
+	r.openSlots()
+	r.screen("> 1  none")
+	r.press(enterKey)
+	r.screen("pick an agent with left/right first")
+	r.press(rightKey)
+	r.saved(`agent_dots = [{agent = "Astra", at = []}]`)
+	r.screen("> 1  Astra", "not placed", "  2  none")
+	r.press(rightKey)
+	r.saved(`agent_dots = [{agent = "Breach", at = []}]`)
+	r.press(leftKey, leftKey)
+	r.saved(`agent_dots = []`)
+	r.screen("> 1  none")
+
+	r.press(rightKey, downKey, leftKey, downKey, rightKey, rightKey)
+	r.saved(`agent_dots = [{agent = "Astra", at = []}, {agent = "Yoru", at = []}, {agent = "Breach", at = []}]`)
+	frame := r.screen("> 3  Breach")
+	if strings.Contains(frame, "4  ") {
+		t.Errorf("a fourth slot with three agents set:\n%s", frame)
+	}
+	r.press(downKey)
+	r.screen("> 1  Astra")
+	r.press(escKey)
+	r.screen("> agent dots", "Astra (not placed), Yoru (not placed), Breach (not placed)")
+}
+
+func TestPlacingASlotSavesWhereTheCursorRestsAndTurnsTheDotsOn(t *testing.T) {
 	r := newRig(t)
 	d := r.withDot()
 	frame := r.settingsTab()
 	if !regexp.MustCompile(`agent dot +off`).MatchString(frame) {
-		t.Fatalf("want the dot off before placing:\n%s", frame)
+		t.Fatalf("want the dots off before placing:\n%s", frame)
 	}
-	r.press(upKey)
-	r.screen("> place dot", "not placed  (enter)", "rest the cursor on your agent")
+	r.openSlots()
+	r.press(rightKey)
+	r.screen("> 1  Astra", "rest the cursor on that agent")
 	before := len(r.fr.RemoteRequests())
 	r.press(enterKey)
-	r.screen("point at your agent - 5")
-	for left := 4; left >= 1; left-- {
-		r.clock.Advance(time.Second)
-		r.screen(fmt.Sprintf("point at your agent - %d", left))
-	}
-	r.clock.Advance(time.Second)
-	r.saved(fmt.Sprintf("agent_dot_at = [%d, %d]", cursorX, cursorY))
+	r.countdown()
+	r.saved(fmt.Sprintf(`agent_dots = [{agent = "Astra", at = [%d, %d]}]`, cursorX, cursorY))
 	r.saved("agent_dot = true")
-	r.screen(fmt.Sprintf("%d, %d", cursorX, cursorY))
-	eventually(t, "the agent dot row to say on", func() bool { return regexp.MustCompile(`agent dot +on`).MatchString(r.con.last()) })
+	r.screen(fmt.Sprintf("> 1  Astra       %d, %d", cursorX, cursorY))
+	d.wantLabels("Astra")
 	d.wantUpAt(cursorX, cursorY)
 	r.clock.Advance(3 * time.Second)
-	d.wantDown("after its 3 s check")
+	d.wantDown("after their 3 s check")
+	r.press(escKey)
+	eventually(t, "the agent dot row to say on", func() bool { return regexp.MustCompile(`agent dot +on`).MatchString(r.con.last()) })
 	if after := len(r.fr.RemoteRequests()); after != before {
-		t.Errorf("placing the dot made %d requests", after-before)
+		t.Errorf("placing made %d requests", after-before)
 	}
+}
+
+func TestPlacingTheSecondSlotKeepsTheFirst(t *testing.T) {
+	r := newRig(t)
+	r.withDot()
+	r.writeSettings(dotOn)
+	r.settingsTab()
+	r.openSlots()
+	r.screen("> 1  Raze        800, 450", "  2  none")
+	r.press(downKey, rightKey, enterKey)
+	r.countdown()
+	r.saved(fmt.Sprintf(`agent_dots = [{agent = "Raze", at = [800, 450]}, {agent = "Astra", at = [%d, %d]}]`, cursorX, cursorY))
+}
+
+func TestChangingASlotsAgentForgetsItsSpot(t *testing.T) {
+	r := newRig(t)
+	r.withDot()
+	r.writeSettings(dotOn)
+	r.settingsTab()
+	r.openSlots()
+	r.press(rightKey)
+	r.saved(`agent_dots = [{agent = "Reyna", at = []}]`)
 }
 
 func TestPlacingKeepsCountingWhenANewLobbyTakesTheScreen(t *testing.T) {
@@ -410,7 +535,8 @@ func TestPlacingKeepsCountingWhenANewLobbyTakesTheScreen(t *testing.T) {
 	d := r.withDot()
 	r.settingsTab()
 	r.subscribed()
-	r.press(upKey, enterKey)
+	r.openSlots()
+	r.press(rightKey, enterKey)
 	r.screen("point at your agent - 5")
 	r.enterAgentSelect()
 	r.settled("[LOBBY]", "AGENT SELECT", "Dia1 50")
@@ -418,7 +544,7 @@ func TestPlacingKeepsCountingWhenANewLobbyTakesTheScreen(t *testing.T) {
 		r.clock.Advance(time.Second)
 		settle()
 	}
-	r.saved(fmt.Sprintf("agent_dot_at = [%d, %d]", cursorX, cursorY))
+	r.saved(fmt.Sprintf(`agent_dots = [{agent = "Astra", at = [%d, %d]}]`, cursorX, cursorY))
 	d.wantUpAt(cursorX, cursorY)
 }
 
@@ -431,14 +557,12 @@ func TestPlacingDuringAMatchSavesButDrawsNothing(t *testing.T) {
 	r.screen("AGENT SELECT")
 	r.enterMatchLoad()
 	r.settled("[LOBBY]", "MATCH LOADING", "US - THEM")
-	r.press(tabKey, upKey, enterKey)
-	r.screen("point at your agent - 5")
-	for left := 4; left >= 1; left-- {
-		r.clock.Advance(time.Second)
-		r.screen(fmt.Sprintf("point at your agent - %d", left))
-	}
-	r.clock.Advance(time.Second)
-	r.saved(fmt.Sprintf("agent_dot_at = [%d, %d]", cursorX, cursorY))
+	r.press(tabKey)
+	r.screen("[SETTINGS]")
+	r.openSlots()
+	r.press(rightKey, enterKey)
+	r.countdown()
+	r.saved(fmt.Sprintf(`agent_dots = [{agent = "Astra", at = [%d, %d]}]`, cursorX, cursorY))
 	d.wantNone()
 }
 
@@ -447,22 +571,17 @@ func TestAnUnreadableCursorSaysSoAndSavesNothing(t *testing.T) {
 	d := r.withDot()
 	d.cursorOK = false
 	r.settingsTab()
-	r.press(upKey, enterKey)
-	r.screen("point at your agent - 5")
-	for left := 4; left >= 0; left-- {
-		r.clock.Advance(time.Second)
-		if left > 0 {
-			r.screen(fmt.Sprintf("point at your agent - %d", left))
-		}
-	}
-	r.screen("can't read where the cursor is", "not placed")
-	if file := r.settingsFile(); !strings.Contains(file, "agent_dot_at = []") {
+	r.openSlots()
+	r.press(rightKey, enterKey)
+	r.countdown()
+	r.screen("can't read where the cursor is", "> 1  Astra       not placed")
+	if file := r.settingsFile(); !strings.Contains(file, `agent_dots = [{agent = "Astra", at = []}]`) {
 		t.Errorf("an unread cursor changed the spot:\n%s", file)
 	}
 	d.wantNone()
 }
 
-func TestTheAgentDotRowsChangeTheFile(t *testing.T) {
+func TestTheDotRowsChangeTheFile(t *testing.T) {
 	r := newRig(t)
 	r.withDot()
 	r.settingsTab()
@@ -480,38 +599,48 @@ func TestTheAgentDotRowsChangeTheFile(t *testing.T) {
 		r.press(leftKey)
 	}
 	r.saved("agent_dot_seconds = 1")
+	r.press(downKey)
+	r.screen("> agent dots", "none  (enter)", "up to 3 agents whose dots show together")
 }
 
 func TestWithoutADotThereAreNoDotRows(t *testing.T) {
 	r := newRig(t)
 	frame := r.settingsTab()
-	for _, row := range []string{"agent dot", "dot time", "place dot"} {
+	for _, row := range []string{"agent dot", "dot time", "agent dots"} {
 		if strings.Contains(frame, row) {
-			t.Errorf("a build that can't draw the dot shows %q:\n%s", row, frame)
+			t.Errorf("a build that can't draw dots shows %q:\n%s", row, frame)
 		}
 	}
 }
 
-func TestARecordingSaysWhenTheAgentDotWentUpAndDown(t *testing.T) {
+func TestARecordingSaysWhenEachDotWentUpAndDown(t *testing.T) {
 	r := newRig(t, agentSelectLobby)
 	d := r.withDot()
-	r.writeSettings(dotOn + "agent_dot_seconds = 4\n")
+	r.writeSettings(dotsOn(`{agent = "Killjoy", at = [700, 450]}, {agent = "Raze", at = [800, 450]}`) + "agent_dot_seconds = 6\n")
 	r.live("--record")
 	r.screen("waiting for the next match")
 	r.subscribed()
 	r.enterAgentSelect()
 	r.settled("AGENT SELECT", "Dia1 50")
-	d.wantUpAt(800, 450)
-	r.clock.Advance(4 * time.Second)
-	d.wantDown("at its time limit")
+	d.wantLabels("Killjoy", "Raze")
+	r.fr.Hover(ally2, fakeriot.Killjoy, true)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	d.wantLabels("Raze")
+	r.clock.Advance(3 * time.Second)
+	d.wantDown("at their time limit")
 	r.stop()
 
 	entries, _ := readRecording(t, recordingDir(t, r.dir))
-	type dotEntry struct {
-		Shown bool   `json:"shown"`
-		Why   string `json:"why"`
+	type dotMark struct {
+		Agent string `json:"agent"`
 		X     int    `json:"x"`
 		Y     int    `json:"y"`
+	}
+	type dotEntry struct {
+		Shown bool      `json:"shown"`
+		Why   string    `json:"why"`
+		Dots  []dotMark `json:"dots"`
 	}
 	var got []dotEntry
 	for _, e := range entries {
@@ -524,8 +653,12 @@ func TestARecordingSaysWhenTheAgentDotWentUpAndDown(t *testing.T) {
 		}
 		got = append(got, de)
 	}
-	want := []dotEntry{{true, "match found", 800, 450}, {false, "time limit", 800, 450}}
+	want := []dotEntry{
+		{true, "match found", []dotMark{{"Killjoy", 700, 450}, {"Raze", 800, 450}}},
+		{false, "taken by a teammate", []dotMark{{"Killjoy", 700, 450}}},
+		{false, "time limit", []dotMark{{"Raze", 800, 450}}},
+	}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
-		t.Errorf("dot entries: got %v, want %v", got, want)
+		t.Errorf("dot entries:\n got %v\nwant %v", got, want)
 	}
 }

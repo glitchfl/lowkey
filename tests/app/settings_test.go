@@ -45,7 +45,7 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		`weapon = "vandal"`,
 		`agent_dot = false`,
 		`agent_dot_seconds = 15`,
-		`agent_dot_at = []`,
+		`agent_dots = []`,
 	}
 	lines := strings.Split(file, "\n")
 	for _, d := range defaults {

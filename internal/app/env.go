@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/platform"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
 )
@@ -49,9 +50,10 @@ type Console struct {
 	Keyboard func() (keys io.Reader, restore func(), ok bool)
 }
 
-// Dot draws the agent dot outside the console - a build without Show has no agent dot at all
+// Dot draws the agent dots outside the console - a build without Show has no agent dots at all
 type Dot struct {
-	Show func(x, y int) error
+	// Show replaces whatever dots are up with these
+	Show func(marks []platform.Mark) error
 	Hide func()
 	// Cursor reads where the mouse is - placing the dot is the only time lowkey asks
 	Cursor func() (x, y int, ok bool)

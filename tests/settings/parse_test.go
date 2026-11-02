@@ -1,6 +1,7 @@
 package settings_test
 
 import (
+	"os"
 	"slices"
 	"testing"
 
@@ -30,20 +31,28 @@ func TestWeaponTakesOneGunOrAList(t *testing.T) {
 	}
 }
 
-func TestTheAgentDotSpotTakesTwoWholeNumbers(t *testing.T) {
+func TestAgentDotsKeepWhatTheyCanUse(t *testing.T) {
+	raze := settings.DotSlot{Agent: "Raze", At: settings.Spot{X: 800, Y: 450, Placed: true}}
 	cases := []struct {
 		name, file string
-		want       settings.Spot
+		want       []settings.DotSlot
 		noted      bool
 	}{
-		{"left out", "", settings.Spot{}, false},
-		{"empty", "agent_dot_at = []", settings.Spot{}, false},
-		{"placed", "agent_dot_at = [1920, 1080]", settings.Spot{X: 1920, Y: 1080, Placed: true}, false},
-		{"on a screen left of the main one", "agent_dot_at = [-1200, 300]", settings.Spot{X: -1200, Y: 300, Placed: true}, false},
-		{"one number", "agent_dot_at = [800]", settings.Spot{}, true},
-		{"three numbers", "agent_dot_at = [1, 2, 3]", settings.Spot{}, true},
-		{"not whole", "agent_dot_at = [1.5, 2]", settings.Spot{}, true},
-		{"words", `agent_dot_at = "center"`, settings.Spot{}, true},
+		{"left out", "", nil, false},
+		{"empty", "agent_dots = []", nil, false},
+		{"one placed", `agent_dots = [{agent = "Raze", at = [800, 450]}]`, []settings.DotSlot{raze}, false},
+		{"not placed yet", `agent_dots = [{agent = "Raze", at = []}, {agent = "Jett"}]`,
+			[]settings.DotSlot{{Agent: "Raze"}, {Agent: "Jett"}}, false},
+		{"on a screen left of the main one", `agent_dots = [{agent = "Raze", at = [-1200, 300]}]`,
+			[]settings.DotSlot{{Agent: "Raze", At: settings.Spot{X: -1200, Y: 300, Placed: true}}}, false},
+		{"a bad spot unplaces only its own dot", `agent_dots = [{agent = "Raze", at = [800, 450]}, {agent = "Jett", at = [1.5, 2]}]`,
+			[]settings.DotSlot{raze, {Agent: "Jett"}}, true},
+		{"one number", `agent_dots = [{agent = "Raze", at = [800]}]`, []settings.DotSlot{{Agent: "Raze"}}, true},
+		{"no agent", `agent_dots = [{at = [800, 450]}, {agent = "Raze", at = [800, 450]}]`, []settings.DotSlot{raze}, true},
+		{"an unknown key", `agent_dots = [{agent = "Raze", at = [800, 450], color = "red"}]`, []settings.DotSlot{raze}, true},
+		{"more than three", `agent_dots = [{agent = "Raze", at = [800, 450]}, {agent = "Jett"}, {agent = "Sova"}, {agent = "Omen"}]`,
+			[]settings.DotSlot{raze, {Agent: "Jett"}, {Agent: "Sova"}}, true},
+		{"not a list", `agent_dots = "raze"`, nil, true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -51,13 +60,32 @@ func TestTheAgentDotSpotTakesTwoWholeNumbers(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if s.AgentDotAt != c.want {
-				t.Errorf("got %+v, want %+v", s.AgentDotAt, c.want)
+			if !slices.Equal(s.AgentDots, c.want) {
+				t.Errorf("got %+v, want %+v", s.AgentDots, c.want)
 			}
 			if (note != "") != c.noted {
 				t.Errorf("note %q - want one: %v", note, c.noted)
 			}
 		})
+	}
+}
+
+func TestAgentDotsWriteBackTheWayTheyRead(t *testing.T) {
+	f := settings.Open(t.TempDir())
+	want := []settings.DotSlot{{Agent: "KAY/O", At: settings.Spot{X: 800, Y: 450, Placed: true}}, {Agent: "Jett"}}
+	if _, err := f.Change(func(s *settings.Settings) { s.AgentDots = want }); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(f.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, note, err := settings.Parse(data)
+	if err != nil || note != "" {
+		t.Fatalf("the written file reads back with %v %q:\n%s", err, note, data)
+	}
+	if !slices.Equal(s.AgentDots, want) {
+		t.Errorf("after a round trip got %+v, want %+v", s.AgentDots, want)
 	}
 }
 

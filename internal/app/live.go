@@ -124,7 +124,7 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 	}
 	lv.tab.cfg, lv.tab.rows = lv.cfg, settingRows
 	if lv.hasDot() {
-		lv.tab.place = lv.placeDot
+		lv.tab.place, lv.tab.agents = lv.placeDot, lv.data.AgentNames
 		lv.tab.rows = append(slices.Clip(settingRows), lv.tab.dotRows()...)
 	}
 	if env.Console.Keyboard != nil {

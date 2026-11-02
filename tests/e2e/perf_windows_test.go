@@ -98,8 +98,8 @@ func TestIdleUsesAlmostNoCPU(t *testing.T) {
 
 func TestPeakMemoryStaysUnder100MB(t *testing.T) {
 	fr := startRiot(t, fakeriot.LobbyWorld(time.Now(), true))
-	// the agent dot on too so its window comes and goes in every agent select
-	lk := startLowkey(t, fr, "cutoff_seconds = 300\nagent_dot = true\nagent_dot_at = [100, 100]\n")
+	// agent dots on too so their windows come and go in every agent select
+	lk := startLowkey(t, fr, "cutoff_seconds = 300\nagent_dot = true\nagent_dots = [{agent = \"Raze\", at = [100, 100]}, {agent = \"Jett\", at = [160, 100]}]\n")
 	lk.screen("waiting for the next match", "SESSION")
 	subscribed(t, fr)
 	h := handle(t, lk.cmd.Process.Pid)

@@ -1,9 +1,14 @@
 package app
 
 import (
+	"slices"
+	"strings"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/platform"
+	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/settings"
+	"github.com/glitchfl/lowkey/internal/static"
 )
 
 type dotKind int
@@ -20,36 +25,60 @@ const (
 )
 
 type agentDot struct {
-	kind dotKind
-	spot settings.Spot
-	// seq moves on every show and hide so a time limit that fires late can't take down a newer dot
+	kind  dotKind
+	marks []dotMark
+	// seq moves on every show and hide so a time limit that fires late can't take down newer dots
 	seq  int
 	stop func() bool
 }
 
+type dotMark struct {
+	agent string // the display name - it labels the dot and picks its colors
+	spot  settings.Spot
+}
+
 func (lv *live) hasDot() bool { return lv.env.Dot.Show != nil }
 
-// matchFound puts the dot up for a match lowkey saw being found - connecting mid agent select is too late for it
+// matchFound puts the dots up for a match lowkey saw being found - connecting mid agent select is too late for them
 func (lv *live) matchFound() {
 	cfg := lv.cfg.Settings()
-	if cfg.AgentDot && cfg.AgentDotAt.Placed {
-		lv.showDot(dotMatchFound, "match found", cfg.AgentDotAt, time.Duration(cfg.AgentDotSeconds)*time.Second)
+	if !cfg.AgentDot {
+		return
+	}
+	var marks []dotMark
+	for _, d := range cfg.AgentDots {
+		if d.At.Placed {
+			marks = append(marks, dotMark{agent: lv.agentLabel(d.Agent), spot: d.At})
+		}
+	}
+	if len(marks) > 0 {
+		lv.showDots(dotMatchFound, "match found", marks, time.Duration(cfg.AgentDotSeconds)*time.Second)
 	}
 }
 
-// showDot is the only way the dot goes up - never once a match loads so it can't be on screen in a round
-func (lv *live) showDot(kind dotKind, why string, spot settings.Spot, limit time.Duration) {
+// agentLabel writes a hand-typed name the way the game does - one lowkey doesn't know yet stays as typed
+func (lv *live) agentLabel(name string) string {
+	for _, known := range lv.data.AgentNames() {
+		if strings.EqualFold(known, name) {
+			return known
+		}
+	}
+	return name
+}
+
+// showDots is the only way dots go up - never once a match loads so they can't be on screen in a round
+func (lv *live) showDots(kind dotKind, why string, marks []dotMark, limit time.Duration) {
 	if !lv.hasDot() || lv.phase == phaseMatchLoad || lv.phase == phaseInRound {
 		return
 	}
 	lv.hideDot("replaced")
-	if err := lv.env.Dot.Show(spot.X, spot.Y); err != nil {
+	if err := lv.env.Dot.Show(platformMarks(marks)); err != nil {
 		lv.log.printf("agent dot: %v", err)
 		return
 	}
 	lv.dot.seq++
 	seq := lv.dot.seq
-	lv.dot.kind, lv.dot.spot = kind, spot
+	lv.dot.kind, lv.dot.marks = kind, marks
 	lv.dot.stop = lv.env.Clock.AfterFunc(limit, func() {
 		lv.loop.post(func() {
 			if seq == lv.dot.seq {
@@ -57,7 +86,7 @@ func (lv *live) showDot(kind dotKind, why string, spot settings.Spot, limit time
 			}
 		})
 	})
-	lv.recordDot(true, why)
+	lv.recordDots(true, why, marks)
 }
 
 func (lv *live) hideDot(why string) {
@@ -66,22 +95,78 @@ func (lv *live) hideDot(why string) {
 	}
 	lv.dot.stop()
 	lv.dot.seq++
-	lv.dot.kind, lv.dot.stop = dotDown, nil
+	marks := lv.dot.marks
+	lv.dot.kind, lv.dot.marks, lv.dot.stop = dotDown, nil, nil
 	lv.env.Dot.Hide()
-	lv.recordDot(false, why)
+	lv.recordDots(false, why, marks)
 }
 
-func (lv *live) recordDot(shown bool, why string) {
-	if lv.rec != nil {
-		lv.rec.Dot(shown, why, lv.dot.spot.X, lv.dot.spot.Y)
+// dropDots takes some agents' dots down and leaves the rest up on the same time limit
+func (lv *live) dropDots(agents []string, why string) {
+	var keep, gone []dotMark
+	for _, m := range lv.dot.marks {
+		if slices.ContainsFunc(agents, func(a string) bool { return strings.EqualFold(a, m.agent) }) {
+			gone = append(gone, m)
+		} else {
+			keep = append(keep, m)
+		}
 	}
+	switch {
+	case len(gone) == 0:
+		return
+	case len(keep) == 0:
+		lv.hideDot(why)
+		return
+	}
+	if err := lv.env.Dot.Show(platformMarks(keep)); err != nil {
+		lv.log.printf("agent dot: %v", err)
+		lv.hideDot("couldn't redraw")
+		return
+	}
+	lv.dot.marks = keep
+	lv.recordDots(false, why, gone)
 }
 
-// pickedAgent takes the dot down once your own row has an agent - hovered or locked - it's done its job
+func platformMarks(marks []dotMark) []platform.Mark {
+	out := make([]platform.Mark, len(marks))
+	for i, m := range marks {
+		fill, ring := static.AgentColors(m.agent)
+		out[i] = platform.Mark{X: m.spot.X, Y: m.spot.Y, Label: m.agent, Fill: fill, Ring: ring}
+	}
+	return out
+}
+
+func (lv *live) recordDots(shown bool, why string, marks []dotMark) {
+	if lv.rec == nil {
+		return
+	}
+	dots := make([]record.DotMark, len(marks))
+	for i, m := range marks {
+		dots[i] = record.DotMark{Agent: m.agent, X: m.spot.X, Y: m.spot.Y}
+	}
+	lv.rec.Dots(shown, why, dots)
+}
+
+// pickedAgent reacts to a roster - your own hover or lock means the dots did their job - a teammate
+// locking one of your agents leaves the rest up as your backups
 func (lv *live) pickedAgent(lob *lobby) {
-	if me := lob.member(lv.self); lv.dot.kind == dotMatchFound && me != nil && me.agent != "" {
-		lv.hideDot("picked an agent")
+	if lv.dot.kind != dotMatchFound {
+		return
 	}
+	if me := lob.member(lv.self); me != nil && me.agent != "" {
+		lv.hideDot("picked an agent")
+		return
+	}
+	var taken []string
+	for _, m := range lob.members {
+		if m.puuid == lv.self || m.team != lob.ownTeam || m.agent == "" || m.hover {
+			continue
+		}
+		if name, ok := lv.data.AgentName(m.agent); ok {
+			taken = append(taken, name)
+		}
+	}
+	lv.dropDots(taken, "taken by a teammate")
 }
 
 func (lv *live) checkDotSetting() {
@@ -90,31 +175,42 @@ func (lv *live) checkDotSetting() {
 	}
 }
 
-// placeDot counts down so there's time to switch to Valorant - wherever the cursor rests at zero is the spot
-func (lv *live) placeDot() {
-	if lv.tab.placing > 0 || !lv.hasDot() {
+// placeDot counts down so there's time to switch to Valorant - wherever the cursor rests at zero is the slot's spot
+func (lv *live) placeDot(slot int) {
+	dots := lv.cfg.Settings().AgentDots
+	if lv.tab.placing > 0 || !lv.hasDot() || slot >= len(dots) {
 		return
 	}
-	lv.tab.placing = placeCountdown
-	lv.tickPlacing()
+	lv.tab.placing, lv.tab.placingSlot = placeCountdown, slot
+	lv.tickPlacing(dots[slot].Agent)
 }
 
-func (lv *live) tickPlacing() {
+func (lv *live) tickPlacing(agent string) {
 	lv.env.Clock.AfterFunc(time.Second, func() {
 		lv.loop.post(func() {
 			if lv.tab.placing--; lv.tab.placing > 0 {
-				lv.tickPlacing()
+				lv.tickPlacing(agent)
 				return
 			}
 			x, y, ok := lv.env.Dot.Cursor()
 			if !ok {
-				lv.tab.notice = "can't read where the cursor is - try place dot again"
+				lv.tab.notice = "can't read where the cursor is - try placing again"
+				return
+			}
+			slot := lv.tab.placingSlot
+			if dots := lv.cfg.Settings().AgentDots; slot >= len(dots) || !strings.EqualFold(dots[slot].Agent, agent) {
+				lv.tab.notice = "that slot changed while placing - nothing saved"
 				return
 			}
 			spot := settings.Spot{X: x, Y: y, Placed: true}
 			// placing means the dot is wanted - leaving it off would look like placing didn't work
-			lv.tab.change(func(s *settings.Settings) { s.AgentDotAt, s.AgentDot = spot, true })
-			lv.showDot(dotCheck, "placed", spot, dotCheckFor)
+			lv.tab.change(func(s *settings.Settings) {
+				if slot < len(s.AgentDots) {
+					s.AgentDots[slot].At = spot
+				}
+				s.AgentDot = true
+			})
+			lv.showDots(dotCheck, "placed", []dotMark{{agent: lv.agentLabel(agent), spot: spot}}, dotCheckFor)
 		})
 	})
 }

@@ -48,7 +48,7 @@ func dot() app.Dot {
 	if !platform.Windows {
 		return app.Dot{}
 	}
-	return app.Dot{Show: platform.ShowDot, Hide: platform.HideDot, Cursor: platform.CursorPos}
+	return app.Dot{Show: platform.ShowDots, Hide: platform.HideDots, Cursor: platform.CursorPos}
 }
 
 // the LOWKEY_* overrides point the real exe at the fakeriot program

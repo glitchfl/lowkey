@@ -1,0 +1,802 @@
+{
+ "functions": [
+  {
+   "arguments": [],
+   "deprecated": false,
+   "deprecatedHelp": "",
+   "description": "Get the status of the voice-chat plugin to know whether or not to expect if the feature is usable.",
+   "help": "\n**Description**\nGet the status of the voice-chat plugin to know whether or not to expect if the feature is usable. Game teams are encouraged to subscribe\nto this endpoint so that the game can behave correctly depending on what the current state of the plugin is. For example, if the status of\nthe plugin is `permissionDenied`, game teams should not attempt to join voice sessions since the player does not have permissions to do so,\npossibly due to behavioural restrictions or parental control settings.\n\n** Returns **\n\nA PluginStatus value representing the current status of the plugin.\n* `PluginStatus` values:\n    * `unknown`: The status of the plugin is currently unknown. This is the default value while the plugin is initializing and its status has yet to be determined.\n    * `awaitingAuth`: The player has not signed in, so the plugin does not have the information required to join a voice session.\n    * `permissionUnknown`: The player has signed in, but the plugin is unable to look up whether or not the player has permission to use voice chat.\n         Attempting to join a voice session will not work until the permission query succeeds.\n    * `permissionDenied`: The player has signed in, but the player does not have permission to use voice chat. Attempting to join a voice session will always\n         return an error and existing sessions will be left.\n    * `networkUnavailable`: The player has signed in, but network connection is not available. Attempting to join a voice session will return an error\n    * `noProviders`: No voice providers available. Provider libraries are missing or not loadable on this build/platform.\n         Attempting to join a voice session will return an error.\n    * `ready`: Voice chat is usable and voice sessions can be joined.\n",
+   "internal": false,
+   "name": "GetVoiceChatV1Status",
+   "nameSpace": "",
+   "returns": {
+    "elementType": "",
+    "type": "VoiceChatPluginStatus"
+   },
+   "subscribable": false,
+   "tags": [
+    "$remoting-binding-module"
+   ],
+   "threadSafe": false
+  },
+  {
+   "arguments": [],
+   "deprecated": false,
+   "deprecatedHelp": "",
+   "description": "Get the current active product",
+   "help": "",
+   "internal": false,
+   "name": "GetVoiceChatV1ActiveProduct",
+   "nameSpace": "",
+   "returns": {
+    "elementType": "",
+    "type": "string"
+   },
+   "subscribable": false,
+   "tags": [
+    "$remoting-binding-module"
+   ],
+   "threadSafe": false
+  },
+  {
+   "arguments": [],
+   "deprecated": false,
+   "deprecatedHelp": "",
+   "description": "Get the list of all current voice sessions",
+   "help": "Endpoint deleted March 2021.",
+   "internal": false,
+   "name": "GetVoiceChatV2Sessions",
+   "nameSpace": "",
+   "returns": {
+    "elementType": "VoiceChatSessionResource",
+    "type": "vector"
+   },
+   "subscribable": false,
+   "tags": [
+    "$remoting-binding-module"
+   ],
+   "threadSafe": false
+  },
+  {
+   "arguments": [
+    {
+     "description": "",
+     "name": "productName",
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    }
+   ],
+   "deprecated": false,
+   "deprecatedHelp": "",
+   "description": "Get the list of all current voice sessions",
+   "help": "",
+   "internal": false,
+   "name": "GetVoiceChatV4SessionsByProductName",
+   "nameSpace": "",
+   "returns": {
+    "elementType": "VoiceChatSessionResource",
+    "type": "vector"
+   },
+   "subscribable": false,
+   "tags": [
+    "$remoting-binding-module"
+   ],
+   "threadSafe": false
+  },
+  {
+   "arguments": [
+    {
+     "description": "",
+     "name": "productName",
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "id",
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    }
+   ],
+   "deprecated": false,
+   "deprecatedHelp": "",
+   "description": "Get session details",
+   "help": "",
+   "internal": false,
+   "name": "GetVoiceChatV4SessionsByProductNameById",
+   "nameSpace": "",
+   "returns": {
+    "elementType": "",
+    "type": "VoiceChatSessionResource"
+   },
+   "subscribable": false,
+   "tags": [
+    "$remoting-binding-module"
+   ],
+   "threadSafe": false
+  },
+  {
+   "arguments": [
+    {
+     "description": "",
+     "name": "productName",
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "sessionId",
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "participantId",
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    }
+   ],
+   "deprecated": false,
+   "deprecatedHelp": "",
+   "description": "Get participant details",
+   "help": "",
+   "internal": false,
+   "name": "GetVoiceChatV4SessionsByProductNameBySessionIdParticipantsByParticipantId",
+   "nameSpace": "",
+   "returns": {
+    "elementType": "",
+    "type": "VoiceChatParticipantResource"
+   },
+   "subscribable": false,
+   "tags": [
+    "$remoting-binding-module"
+   ],
+   "threadSafe": false
+  }
+ ],
+ "types": [
+  {
+   "description": "",
+   "fields": [
+    {
+     "description": "",
+     "name": "id",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "isFocused",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isMuted",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isRestricted",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isTranscriptionEnabled",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isTransmitEnabled",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isVoiceFontEnabled",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "participants",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "VoiceChatParticipantResource",
+      "type": "vector"
+     }
+    },
+    {
+     "description": "",
+     "name": "product",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "provider",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "status",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "VoiceChatSessionStatus"
+     }
+    },
+    {
+     "description": "",
+     "name": "terminationReason",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "VoiceChatSessionTerminationReason"
+     }
+    },
+    {
+     "description": "",
+     "name": "volume",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    }
+   ],
+   "name": "VoiceChatSessionResource",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": []
+  },
+  {
+   "description": "",
+   "fields": [
+    {
+     "description": "",
+     "name": "energy",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    },
+    {
+     "description": "",
+     "name": "id",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "isInteractionAllowed",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isMuted",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isRestricted",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "isSpeaking",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "name",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "platform",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "speakingTimestamp",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    },
+    {
+     "description": "",
+     "name": "uri",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "volume",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    }
+   ],
+   "name": "VoiceChatParticipantResource",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": []
+  },
+  {
+   "description": "",
+   "fields": [],
+   "name": "VoiceChatSessionStatus",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": [
+    {
+     "description": "",
+     "name": "active",
+     "value": 0
+    },
+    {
+     "description": "",
+     "name": "connected",
+     "value": 4
+    },
+    {
+     "description": "",
+     "name": "connecting",
+     "value": 3
+    },
+    {
+     "description": "",
+     "name": "disconnected",
+     "value": 7
+    },
+    {
+     "description": "",
+     "name": "disconnecting",
+     "value": 6
+    },
+    {
+     "description": "",
+     "name": "finalizing",
+     "value": 5
+    },
+    {
+     "description": "",
+     "name": "initializing",
+     "value": 2
+    },
+    {
+     "description": "",
+     "name": "onHold",
+     "value": 1
+    },
+    {
+     "description": "",
+     "name": "reconnecting",
+     "value": 8
+    }
+   ]
+  },
+  {
+   "description": "",
+   "fields": [
+    {
+     "description": "",
+     "name": "patchlineFullName",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "patchlineId",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "productId",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "version",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    }
+   ],
+   "name": "VoiceChatProductSession",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": []
+  },
+  {
+   "description": "",
+   "fields": [],
+   "name": "VoiceChatSessionTerminationReason",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": [
+    {
+     "description": "",
+     "name": "AloneTimeout",
+     "value": 1
+    },
+    {
+     "description": "",
+     "name": "AuthenticationEnded",
+     "value": 2
+    },
+    {
+     "description": "",
+     "name": "Requested",
+     "value": 0
+    },
+    {
+     "description": "",
+     "name": "UnexpectedProviderRemoval",
+     "value": 3
+    },
+    {
+     "description": "",
+     "name": "Unknown",
+     "value": 4
+    }
+   ]
+  },
+  {
+   "description": "",
+   "fields": [],
+   "name": "VoiceChatPluginStatus",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": [
+    {
+     "description": "",
+     "name": "awaitingAuth",
+     "value": 1
+    },
+    {
+     "description": "",
+     "name": "networkUnavailable",
+     "value": 4
+    },
+    {
+     "description": "",
+     "name": "noProviders",
+     "value": 5
+    },
+    {
+     "description": "",
+     "name": "permissionDenied",
+     "value": 3
+    },
+    {
+     "description": "",
+     "name": "permissionUnknown",
+     "value": 2
+    },
+    {
+     "description": "",
+     "name": "ready",
+     "value": 6
+    },
+    {
+     "description": "",
+     "name": "unknown",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "description": "",
+   "fields": [
+    {
+     "description": "",
+     "name": "isMuted",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "volume",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    }
+   ],
+   "name": "VoiceChatUpdateParticipantResource",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": []
+  },
+  {
+   "description": "",
+   "fields": [
+    {
+     "description": "",
+     "name": "currentCaptureDeviceHandle",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "currentRenderDeviceHandle",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    },
+    {
+     "description": "",
+     "name": "localMicMuted",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "loopbackEnabled",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "micLevel",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    },
+    {
+     "description": "",
+     "name": "noiseSuppressionAlgorithm",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "VoiceChatNoiseSuppressionAlgorithm"
+     }
+    },
+    {
+     "description": "",
+     "name": "noiseSuppressionLevel",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "VoiceChatNoiseSuppressionLevel"
+     }
+    },
+    {
+     "description": "",
+     "name": "speakerLevel",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    },
+    {
+     "description": "",
+     "name": "vadAuto",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    },
+    {
+     "description": "",
+     "name": "vadHangoverTime",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    },
+    {
+     "description": "",
+     "name": "vadSensitivity",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "uint32"
+     }
+    },
+    {
+     "description": "",
+     "name": "voiceFontId",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "string"
+     }
+    }
+   ],
+   "name": "VoiceChatSettingsResource",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": []
+  },
+  {
+   "description": "",
+   "fields": [
+    {
+     "description": "",
+     "name": "connected",
+     "offset": 0,
+     "optional": false,
+     "type": {
+      "elementType": "",
+      "type": "bool"
+     }
+    }
+   ],
+   "name": "VoiceChatStateResource",
+   "nameSpace": "",
+   "size": 0,
+   "tags": [],
+   "values": []
+  }
+ ]
+}

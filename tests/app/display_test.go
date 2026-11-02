@@ -209,6 +209,12 @@ func TestGoldenScreens(t *testing.T) {
 		r.clock.Advance(15 * time.Second)
 		golden(t, "last-match", r.settled("LAST MATCH", "SESSION"))
 	})
+	t.Run("match load in the 150 columns lowkey asks for", func(t *testing.T) {
+		r := fromAgentSelect(t, lobbySamples)
+		r.con.setWidth(150)
+		r.enterMatchLoad()
+		golden(t, "match-load-wide", r.settled("MATCH LOADING", "EnemyTwo#E2", "US - THEM"))
+	})
 	t.Run("deathmatch", func(t *testing.T) {
 		r := newRig(t, deathmatch)
 		r.live()

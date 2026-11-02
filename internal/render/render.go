@@ -181,9 +181,9 @@ func table(cols []Column, sections []Section, maxWidth int, ansi bool) []string 
 		}
 		return t
 	}
-	gap, hidden := 2, 0
-	if total(gap) > maxWidth {
-		gap = 1
+	gap, hidden := 3, 0
+	for gap > 1 && total(gap) > maxWidth {
+		gap--
 	}
 	for len(shown) > 1 && total(gap) > maxWidth {
 		shown = shown[:len(shown)-1]

@@ -33,6 +33,7 @@ const (
 	recentEvents    = 32
 	finishedMatches = 8
 	redrawEvery     = 250 * time.Millisecond
+	wideColumns     = 150
 )
 
 var phaseTitles = map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}
@@ -122,6 +123,10 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
 	lv.tab.cfg = lv.cfg
+	// a new window opens 120 columns wide and a full lobby wants more - a terminal that can't resize ignores it
+	if env.Console.Terminal && env.Console.Width() < wideColumns {
+		fmt.Fprintf(env.Console.Out, "\x1b[8;%d;%dt", env.Console.Height(), wideColumns)
+	}
 	if env.Console.Keyboard != nil {
 		if keys, restore, ok := env.Console.Keyboard(); ok {
 			defer restore()

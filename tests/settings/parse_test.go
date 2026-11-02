@@ -67,7 +67,7 @@ func TestTheAgentDotTimeLimitStaysBetweenOneAndTwentySeconds(t *testing.T) {
 		want       int
 		noted      bool
 	}{
-		{"left out", "", 10, false},
+		{"left out", "", 15, false},
 		{"in range", "agent_dot_seconds = 5", 5, false},
 		{"too short", "agent_dot_seconds = 0", 1, true},
 		{"too long", "agent_dot_seconds = 60", 20, true},

@@ -112,7 +112,8 @@ func (lv *live) tickPlacing() {
 				return
 			}
 			spot := settings.Spot{X: x, Y: y, Placed: true}
-			lv.tab.change(func(s *settings.Settings) { s.AgentDotAt = spot })
+			// placing means the dot is wanted - leaving it off would look like placing didn't work
+			lv.tab.change(func(s *settings.Settings) { s.AgentDotAt, s.AgentDot = spot, true })
 			lv.showDot(dotCheck, "placed", spot, dotCheckFor)
 		})
 	})

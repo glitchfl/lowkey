@@ -63,7 +63,7 @@ func Default() Settings {
 		EnemyLookups:      true,
 		HiddenPlayerStats: true,
 		Weapons:           []string{"vandal"},
-		AgentDotSeconds:   10,
+		AgentDotSeconds:   15,
 	}
 }
 

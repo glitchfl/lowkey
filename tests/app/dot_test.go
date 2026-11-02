@@ -3,6 +3,7 @@ package app_test
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -165,13 +166,19 @@ func TestTheAgentDotShowsWhenAMatchIsFoundUntilItsTimeLimit(t *testing.T) {
 	}
 }
 
-func TestTheAgentDotTimeLimitIsTenSecondsByDefault(t *testing.T) {
+// the Windows session measured 12.8 s from the match found to the first click
+func TestTheAgentDotTimeLimitIsFifteenSecondsByDefault(t *testing.T) {
 	r, d := dotInAgentSelect(t, dotOn)
 	d.wantUpAt(800, 450)
-	r.clock.Advance(10 * time.Second)
+	r.clock.Advance(13 * time.Second)
+	settle()
+	if !d.isUp() {
+		t.Fatal("the dot went before agent select could be clicked")
+	}
+	r.clock.Advance(2 * time.Second)
 	d.wantDown("at its time limit")
-	if got := d.upFor(); got != 10*time.Second {
-		t.Errorf("the dot stayed up %v, want 10s", got)
+	if got := d.upFor(); got != 15*time.Second {
+		t.Errorf("the dot stayed up %v, want 15s", got)
 	}
 }
 
@@ -192,6 +199,41 @@ func TestTheAgentDotGoesOnceYouPickAnAgent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// the stats lookups fill both request slots right after a match is found - your pick's roster fetch
+// has to jump them or the dot would stay up through the whole burst
+func TestAPickDuringTheStatsLookupsStillTakesTheAgentDotDown(t *testing.T) {
+	r, d := dotLobby(t, dotOn, func(w *fakeriot.World) {
+		line := line5{score: 3000, rounds: 20, kills: 15, deaths: 15, head: 3, body: 12, damage: 2500}
+		playedMatches(w, ally1, "b1b1b1b1", 8, fakeriot.Jett, line)
+		playedMatches(w, ally2, "b2b2b2b2", 8, fakeriot.Killjoy, line)
+	})
+	r.fr.AddFault(fakeriot.Fault{Service: "pd", Path: "/match-details/", Hold: true})
+	r.enterAgentSelect()
+	held := waitHeld(t, r.fr, 2)
+	d.wantUpAt(800, 450)
+	r.fr.Hover(r.self(), fakeriot.Sova, true)
+	settle()
+	r.clock.Advance(3 * time.Second)
+	settle()
+	if !d.isUp() {
+		t.Fatal("the dot went before any request slot was free for the roster")
+	}
+	mark := len(r.fr.RemoteRequests())
+	r.fr.Release(held[0])
+	d.wantDown("after your pick")
+	// other top-priority work like the content service may go first - a stats lookup may not
+	for _, req := range r.fr.RemoteRequests()[mark:] {
+		if strings.HasPrefix(req.Path, "/pregame/v1/matches/") {
+			break
+		}
+		if strings.HasPrefix(req.Path, "/match-details/") {
+			t.Errorf("%s went out ahead of the roster with your pick", req.Path)
+		}
+	}
+	r.fr.RemoveFaults()
+	r.fr.ReleaseHeld()
 }
 
 func TestATeammatesPickLeavesTheAgentDotUp(t *testing.T) {
@@ -334,10 +376,13 @@ func TestTheAgentDotMakesNoRequests(t *testing.T) {
 	}
 }
 
-func TestPlacingTheDotSavesWhereTheCursorRestsAfterFiveSeconds(t *testing.T) {
+func TestPlacingTheDotSavesWhereTheCursorRestsAfterFiveSecondsAndTurnsItOn(t *testing.T) {
 	r := newRig(t)
 	d := r.withDot()
-	r.settingsTab()
+	frame := r.settingsTab()
+	if !regexp.MustCompile(`agent dot +off`).MatchString(frame) {
+		t.Fatalf("want the dot off before placing:\n%s", frame)
+	}
 	r.press(upKey)
 	r.screen("> place dot", "not placed  (enter)", "rest the cursor on your agent")
 	before := len(r.fr.RemoteRequests())
@@ -349,7 +394,9 @@ func TestPlacingTheDotSavesWhereTheCursorRestsAfterFiveSeconds(t *testing.T) {
 	}
 	r.clock.Advance(time.Second)
 	r.saved(fmt.Sprintf("agent_dot_at = [%d, %d]", cursorX, cursorY))
+	r.saved("agent_dot = true")
 	r.screen(fmt.Sprintf("%d, %d", cursorX, cursorY))
+	eventually(t, "the agent dot row to say on", func() bool { return regexp.MustCompile(`agent dot +on`).MatchString(r.con.last()) })
 	d.wantUpAt(cursorX, cursorY)
 	r.clock.Advance(3 * time.Second)
 	d.wantDown("after its 3 s check")
@@ -424,7 +471,7 @@ func TestTheAgentDotRowsChangeTheFile(t *testing.T) {
 	r.press(enterKey)
 	r.saved("agent_dot = true")
 	r.press(downKey)
-	r.screen("> dot time", "< 10s >")
+	r.screen("> dot time", "< 15s >")
 	for range 12 {
 		r.press(rightKey)
 	}

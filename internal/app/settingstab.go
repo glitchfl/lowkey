@@ -92,7 +92,7 @@ func (t *settingsTab) dotRows() []settingRow {
 				s.AgentDotSeconds = max(settings.MinDotSeconds, min(s.AgentDotSeconds+dir, settings.MaxDotSeconds))
 			}},
 		{key: "agent_dot_at", label: "place dot", act: func() { t.place() },
-			help: "enter - then within 5 s rest the cursor on your agent in the game - lowkey saves where it is",
+			help: "enter - then within 5 s rest the cursor on your agent in the game - lowkey saves where it is and turns the dot on",
 			value: func(s settings.Settings) string {
 				switch {
 				case t.placing > 0:

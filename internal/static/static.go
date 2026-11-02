@@ -1,4 +1,4 @@
-// Package static is lowkey's built-in knowledge of agents and maps and rank tiers and weapon skins
+// Package static is lowkey's built-in knowledge of agents and maps and rank tiers and weapon skins and buddies
 package static
 
 import (
@@ -39,6 +39,7 @@ type snapshot struct {
 	Weapons        map[string]string `json:"weapons"`
 	Skins          map[string]Skin   `json:"skins"`
 	Editions       map[string]string `json:"editions"`
+	Buddies        map[string]string `json:"buddies"`
 	IDs            []string          `json:"ids"`
 }
 
@@ -66,7 +67,7 @@ func Embedded() *Data {
 		d.ids[strings.ToLower(id)] = true
 		d.ids[strings.ToLower(set)] = true
 	}
-	for _, ids := range []map[string]string{s.Weapons, s.Editions} {
+	for _, ids := range []map[string]string{s.Weapons, s.Editions, s.Buddies} {
 		for id := range ids {
 			d.ids[strings.ToLower(id)] = true
 		}
@@ -154,6 +155,24 @@ func (d *Data) Skin(id string) (Skin, bool) {
 	defer d.mu.RUnlock()
 	s, ok := d.s.Skins[strings.ToLower(id)]
 	return s, ok
+}
+
+// Buddy names a gun buddy without the word Buddy - a buddy newer than the snapshot has no name
+func (d *Data) Buddy(id string) (string, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	name, ok := d.s.Buddies[strings.ToLower(id)]
+	return name, ok
+}
+
+func (d *Data) Guns() map[string]string {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	guns := make(map[string]string, len(d.s.Weapons))
+	for id, name := range d.s.Weapons {
+		guns[strings.ToLower(id)] = name
+	}
+	return guns
 }
 
 // AddSkins merges skins a refresh found on valorant-api.com

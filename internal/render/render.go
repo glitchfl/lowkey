@@ -85,40 +85,80 @@ type Section struct {
 	Rows  []Row
 }
 
+// Table is a block with its own columns - the player details stack several under the header
+type Table struct {
+	Columns []Column
+	Rows    []Row
+	Note    string // a plain line under the rows
+}
+
 type Screen struct {
 	Status   []string
 	Header   string
 	Sections []Section
+	Tables   []Table
 	Session  string
+	// Height lets everything under the header scroll by Scroll lines once it doesn't fit - zero never scrolls
+	Height int
+	Scroll int
 }
 
 func width(s string) int { return utf8.RuneCountInString(s) }
 
 // Lines lays the screen out for the console width - columns that don't fit drop from the end
 func (s Screen) Lines(cols []Column, maxWidth int, ansi bool) []string {
-	var lines []string
-	lines = append(lines, s.Status...)
-	if s.Header != "" {
-		lines = append(lines, s.Header)
-	}
-	if len(s.Sections) > 0 {
-		lines = append(lines, s.table(cols, maxWidth, ansi)...)
-	}
-	if s.Session != "" {
-		lines = append(lines, s.Session)
-	}
-	for i, l := range lines {
-		lines[i] = clip(strings.TrimRight(l, " "), maxWidth)
-	}
+	lines, _ := s.Layout(cols, maxWidth, ansi)
 	return lines
 }
 
-func (s Screen) table(cols []Column, maxWidth int, ansi bool) []string {
+// Layout is Lines plus how far it really scrolled - never past the last line
+func (s Screen) Layout(cols []Column, maxWidth int, ansi bool) ([]string, int) {
+	var head, body []string
+	head = append(head, s.Status...)
+	if s.Header != "" {
+		head = append(head, s.Header)
+	}
+	if len(s.Sections) > 0 {
+		body = append(body, table(cols, s.Sections, maxWidth, ansi)...)
+	}
+	for _, t := range s.Tables {
+		body = append(body, "")
+		if len(t.Rows) > 0 {
+			body = append(body, table(t.Columns, []Section{{Rows: t.Rows}}, maxWidth, ansi)...)
+		}
+		if t.Note != "" {
+			body = append(body, t.Note)
+		}
+	}
+	if s.Session != "" {
+		body = append(body, s.Session)
+	}
+	scroll := 0
+	// the last row goes to saying what's off screen
+	if room := s.Height - len(head) - 1; s.Height > 0 && len(body) > room+1 && room > 0 {
+		scroll = max(0, min(s.Scroll, len(body)-room))
+		var more []string
+		if scroll > 0 {
+			more = append(more, fmt.Sprintf("↑ %d above", scroll))
+		}
+		if below := len(body) - room - scroll; below > 0 {
+			more = append(more, fmt.Sprintf("↓ %d below", below))
+		}
+		body = append(body[scroll:scroll+room:scroll+room], strings.Join(more, " · "))
+	}
+	lines := append(head, body...)
+	for i, l := range lines {
+		lines[i] = clip(strings.TrimRight(l, " "), maxWidth)
+	}
+	return lines, scroll
+}
+
+func table(cols []Column, sections []Section, maxWidth int, ansi bool) []string {
 	widths := map[string]int{}
 	var shown []Column
 	for _, c := range cols {
 		w, filled := width(c.Header), false
-		for _, sec := range s.Sections {
+		for _, sec := range sections {
 			for _, row := range sec.Rows {
 				n := width(row[c.Key].Text)
 				w, filled = max(w, n), filled || n > 0
@@ -153,7 +193,7 @@ func (s Screen) table(cols []Column, maxWidth int, ansi bool) []string {
 		header[i] = pad(c.Header, widths[c.Key], c.Align)
 	}
 	lines = append(lines, strings.Join(header, strings.Repeat(" ", gap)))
-	for _, sec := range s.Sections {
+	for _, sec := range sections {
 		if sec.Title != "" {
 			lines = append(lines, sec.Title)
 		}

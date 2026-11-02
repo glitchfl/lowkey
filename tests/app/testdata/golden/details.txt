@@ -1,0 +1,26 @@
+[LOBBY]  SETTINGS          tab to switch · esc back · ←→ other players · ↑↓ scroll
+MATCH LOADING · Ascent · Defenders · Competitive
+
+PLAYER      AGENT  TEAM  LEVEL  RANK     PEAK  LAST  TREND
+AllyOne#A1  Jett   ally     87  Dia1 50  Asc1  Dia3     +4
+
+THIS ACT     GAMES    W-L   WR
+Competitive     20  10-10  50%
+Unrated          8    5-3  63%
+
+COMPETITIVE  N  W-L   K/D   KDA  HS%  ACS  ADR  FB%
+all          2  1-1  1.23  1.65  27%  152  136  10%
+Jett         1  1-0  2.00  2.64  30%  200  150  14%
+Sova         1  0-1  0.67  0.93  20%  100  120   5%
+
+WHEN  MAP    AGENT  RESULT    K/D/A   K/D  HS%  ACS  ADR  FB   RR
+  2h  Haven  Jett   W 13-9  22/11/7  2.00  30%  200  150   3  +21
+  1d  Lotus  Sova   L 7-13  10/15/4  0.67  20%  100  120   1  -17
+
+GUN     SKIN        BUDDY
+Vandal  Elderflame  Sentinels of Light
+standard: Classic, Sheriff, Phantom, Operator, Melee
+
+ACT     RANK  PEAK    W-L   WR
+V26 A6  Dia1  Dia1  10-10  50%
+V26 A5  Dia3  Asc1  18-12  60%

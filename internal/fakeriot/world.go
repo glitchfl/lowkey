@@ -53,6 +53,10 @@ const (
 	ActEp5      = "67e373c7-48f7-b422-641b-079ace30b427"
 	EpisodeV26  = "3737c391-497a-6e82-aeb5-cc9f701f72e2"
 	EpisodeV26a = "15a01c8a-4637-7b7b-de7b-9f906719c020"
+	Episode1    = "fcf2c8f4-4324-e50b-2e23-718e4a3ab046"
+	Episode2    = "71c81c67-4fae-ceb1-844c-aab2bb8710fa"
+	Episode4    = "808202d6-4f2b-a8ff-1feb-b3a0590ad79f"
+	Episode5    = "79f9d00f-433a-85d6-dfc3-60aef115e699"
 )
 
 // guns and skins the embedded snapshot knows - each skin with its edition
@@ -69,6 +73,8 @@ const (
 	ElderflameVandal = "18609205-4edb-5966-cff8-0fba0230ba1e" // Ultra
 	SakuraVandal     = "f946ef5c-46ab-e146-a712-1d99a1651356" // Deluxe
 	IonPhantom       = "e86bf7e4-4dd3-fbee-533b-fa875344bbaf" // Premium
+
+	SentinelsBuddy = "72a48d20-40b8-8a99-1c96-c7a549af4640" // Sentinels of Light
 )
 
 // StandardSkins is what each gun carries for a player who never equipped anything else
@@ -156,6 +162,8 @@ type Player struct {
 	Name      string
 	Tag       string
 	Incognito bool
+	Level     int // zero sends the usual 120
+	HideLevel bool
 	Ranks     map[string]map[string]SeasonInfo
 	Updates   []Update // newest first like the real endpoint
 }
@@ -200,13 +208,14 @@ type Match struct {
 }
 
 type MatchPlayer struct {
-	PUUID  string
-	Team   string
-	Agent  string
-	Score  int
-	Rounds int
-	Kills  int
-	Deaths int
+	PUUID   string
+	Team    string
+	Agent   string
+	Score   int
+	Rounds  int
+	Kills   int
+	Deaths  int
+	Assists int
 }
 
 type TeamResult struct {
@@ -252,6 +261,8 @@ type LivePlayer struct {
 	State string
 	// Skins by gun - a gun left out carries its standard skin
 	Skins map[string]string
+	// Buddies by gun - a gun left out has none
+	Buddies map[string]string
 }
 
 func NewWorld(now time.Time) *World {
@@ -290,6 +301,10 @@ func DefaultSeasons() []Season {
 		return t
 	}
 	return []Season{
+		{ID: Episode1, Name: "EPISODE 1", Type: "episode", Start: d("2020-06-01T00:00:00Z"), End: d("2021-01-12T00:00:00Z")},
+		{ID: Episode2, Name: "EPISODE 2", Type: "episode", Start: d("2021-01-12T00:00:00Z"), End: d("2021-06-22T00:00:00Z")},
+		{ID: Episode4, Name: "EPISODE 4", Type: "episode", Start: d("2022-01-11T00:00:00Z"), End: d("2022-06-21T00:00:00Z")},
+		{ID: Episode5, Name: "EPISODE 5", Type: "episode", Start: d("2022-06-21T00:00:00Z"), End: d("2023-01-10T00:00:00Z")},
 		{ID: ActEp1, Name: "ACT II", Type: "act", Start: d("2020-08-04T00:00:00Z"), End: d("2020-10-13T00:00:00Z")},
 		{ID: ActEp2, Name: "ACT I", Type: "act", Start: d("2021-01-12T00:00:00Z"), End: d("2021-03-02T00:00:00Z")},
 		{ID: ActEp4, Name: "ACT III", Type: "act", Start: d("2022-04-26T00:00:00Z"), End: d("2022-06-21T00:00:00Z")},

@@ -95,6 +95,9 @@ type live struct {
 	keyboard   bool // someone can type - so there's a tab bar
 	onSettings bool
 	tab        settingsTab
+	pick       string // the player highlighted on the lobby tab - by PUUID so rosters can reorder
+	details    bool   // the picked player's details fill the lobby tab
+	scroll     int
 }
 
 type rateState int
@@ -464,7 +467,15 @@ func (lv *live) onCoreGame(matchID string) {
 func (lv *live) setPhase(p phase) {
 	// the table only matters for about a minute and edits are already saved - so a new lobby takes the screen back
 	if p != lv.phase && (p == phaseAgentSelect || p == phaseMatchLoad) {
-		lv.onSettings = false
+		lv.onSettings, lv.details = false, false
+		// your allies stay picked from agent select into the match
+		if p == phaseAgentSelect || lv.phase != phaseAgentSelect {
+			lv.pick = ""
+		}
+	}
+	// a dodge goes back to last match's table - a pick from agent select means nothing there
+	if p == phaseMenus && lv.phase == phaseAgentSelect {
+		lv.pick, lv.details = "", false
 	}
 	lv.phase = p
 }
@@ -529,6 +540,7 @@ func (lv *live) ensureTarget(then func()) {
 
 func (lv *live) screen() render.Screen {
 	var s render.Screen
+	lob, title := lv.shownLobby()
 	switch {
 	case lv.phase == phaseIdle && lv.notReady:
 		s.Status = []string{"waiting for the Riot Client to log in"}
@@ -538,20 +550,13 @@ func (lv *live) screen() render.Screen {
 		s.Status = []string{"waiting for Valorant"}
 	case lv.phase == phaseMenus:
 		s.Status = []string{"waiting for the next match"}
-		if lv.last != nil {
-			lv.lobbyScreen(&s, lv.last, "LAST MATCH")
-		}
-		s.Session = lv.sess.line()
+		lv.lobbyTab(&s, lob, title)
 	case lv.untracked != "":
 		s.Status = []string{"not tracking " + lv.untracked + " - waiting for the next match"}
 	case lv.midMatch:
 		s.Status = []string{"match in progress - lowkey waits for it to end"}
-	case lv.lobby != nil && len(lv.lobby.members) == 0 && lv.unreachable && lv.last != nil:
-		lv.lobbyScreen(&s, lv.last, "LAST MATCH")
-		s.Session = lv.sess.line()
-	case lv.lobby != nil:
-		lv.lobbyScreen(&s, lv.lobby, phaseTitles[lv.phase])
-		s.Session = lv.sess.line()
+	case lob != nil:
+		lv.lobbyTab(&s, lob, title)
 	default:
 		s.Header = phaseTitles[lv.phase]
 	}
@@ -573,10 +578,14 @@ func (lv *live) screen() render.Screen {
 	return s
 }
 
-// columns follow the settings - the skin column is one column per gun headed by its name
+// columns follow the settings - the skin column is one column per gun headed by its name - the pick
+// marker's column stays empty and so hidden until someone presses an arrow
 func (lv *live) columns() []render.Column {
 	cfg := lv.cfg.Settings()
 	var cols []render.Column
+	if lv.keyboard {
+		cols = append(cols, render.Column{Key: "pick"})
+	}
 	for _, c := range render.Columns(cfg.Columns) {
 		if c.Key != "skin" {
 			cols = append(cols, c)
@@ -600,7 +609,11 @@ func (lv *live) shown() render.Screen {
 		return render.Screen{Status: append([]string{tabBarSettings}, lv.tab.lines(lv.env.Console.Height()-2)...)}
 	}
 	s := lv.screen()
-	s.Status = append([]string{tabBarLobby}, s.Status...)
+	s.Status = append([]string{tabBarLobby + lv.tabHint()}, s.Status...)
+	if len(s.Tables) > 0 {
+		// the newline after the last line takes a row
+		s.Height, s.Scroll = lv.env.Console.Height()-1, lv.scroll
+	}
 	return s
 }
 
@@ -611,7 +624,11 @@ func (lv *live) redraw() {
 		lv.recordScreen()
 	}
 	screen := lv.shown()
-	lines := screen.Lines(lv.columns(), lv.env.Console.Width(), lv.env.Console.Terminal)
+	lines, scroll := screen.Layout(lv.columns(), lv.env.Console.Width(), lv.env.Console.Terminal)
+	// scrolling past the end stops there so the first press back up moves again
+	if len(screen.Tables) > 0 {
+		lv.scroll = scroll
+	}
 	var frame string
 	if lv.env.Console.Terminal {
 		var b strings.Builder

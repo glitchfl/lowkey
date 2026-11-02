@@ -69,6 +69,9 @@ var settingRows = []settingRow{
 	{key: "voice_check", label: "voice check", flips: true,
 		value: func(s settings.Settings) string { return onOff(s.VoiceCheck) },
 		step:  func(s *settings.Settings, _ int) { s.VoiceCheck = !s.VoiceCheck }},
+	{key: "player_details", label: "player details", flips: true,
+		value: func(s settings.Settings) string { return onOff(s.PlayerDetails) },
+		step:  func(s *settings.Settings, _ int) { s.PlayerDetails = !s.PlayerDetails }},
 	{key: "region", label: "region", nextLobby: true,
 		value: func(s settings.Settings) string {
 			if s.Region == "" {

@@ -16,7 +16,7 @@ const pickMarker = "▸"
 // a press never asks Riot for anything
 func (lv *live) pressLobby(k key) {
 	lob, _ := lv.shownLobby()
-	if lob == nil || len(lob.members) == 0 {
+	if !lv.canPick() || lob == nil || len(lob.members) == 0 {
 		return
 	}
 	n := len(lob.members)
@@ -65,6 +65,10 @@ func (lv *live) shownLobby() (*lobby, string) {
 	return lv.lobby, phaseTitles[lv.phase]
 }
 
+func (lv *live) canPick() bool {
+	return lv.keyboard && lv.cfg.Settings().PlayerDetails
+}
+
 func (lv *live) picked(lob *lobby) *member {
 	if lob == nil || lv.pick == "" {
 		return nil
@@ -86,7 +90,7 @@ func (lv *live) lobbyTab(s *render.Screen, lob *lobby, title string) {
 func (lv *live) tabHint() string {
 	lob, _ := lv.shownLobby()
 	switch {
-	case lob == nil || len(lob.members) == 0:
+	case !lv.canPick() || lob == nil || len(lob.members) == 0:
 		return ""
 	case lv.details && lv.picked(lob) != nil:
 		return " · esc back · ←→ other players · ↑↓ scroll"

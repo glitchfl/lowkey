@@ -370,8 +370,8 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lv.eng.lookUpNames(named)
-	// the details list every gun - so with a keyboard the skins come even with the skin column off
-	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.keyboard) {
+	// the details list every gun - so while they can be opened the skins come even with the skin column off
+	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.canPick()) {
 		lv.fetchLoadouts(lob)
 	}
 }

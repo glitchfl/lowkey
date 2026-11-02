@@ -584,7 +584,7 @@ func (lv *live) screen() render.Screen {
 func (lv *live) columns() []render.Column {
 	cfg := lv.cfg.Settings()
 	var cols []render.Column
-	if lv.keyboard {
+	if lv.canPick() {
 		cols = append(cols, render.Column{Key: "pick"})
 	}
 	for _, c := range render.Columns(cfg.Columns) {
@@ -629,6 +629,10 @@ func (lv *live) shown() render.Screen {
 // redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
+	// switching player details off closes an open one - and turning it back on later starts with nobody picked
+	if !lv.canPick() {
+		lv.pick, lv.details = "", false
+	}
 	if lv.rec != nil && lv.onSettings {
 		lv.recordScreen()
 	}

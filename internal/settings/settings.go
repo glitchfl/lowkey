@@ -40,6 +40,7 @@ type Settings struct {
 	ExactEnemyParties bool
 	ServerPod         bool
 	VoiceCheck        bool
+	PlayerDetails     bool
 	Region            string   // empty means detect it
 	Weapons           []string // the guns the skin column shows left to right - lowercase
 }
@@ -104,6 +105,8 @@ var fields = []field{
 		func(s Settings) string { return strconv.FormatBool(s.ServerPod) }},
 	{"voice_check", []string{"show which teammates are in team voice during agent select"},
 		func(s Settings) string { return strconv.FormatBool(s.VoiceCheck) }},
+	{"player_details", []string{"pick a player on the lobby tab with the up and down arrows and press enter for their details"},
+		func(s Settings) string { return strconv.FormatBool(s.PlayerDetails) }},
 	{"region", []string{"auto reads the region from the game - na latam br eu ap kr or pbe overrides it"},
 		func(s Settings) string {
 			if s.Region == "" {
@@ -168,6 +171,7 @@ type file struct {
 	ExactEnemyParties *bool     `toml:"exact_enemy_parties"`
 	ServerPod         *bool     `toml:"server_pod"`
 	VoiceCheck        *bool     `toml:"voice_check"`
+	PlayerDetails     *bool     `toml:"player_details"`
 	Region            *string   `toml:"region"`
 	Weapon            any       `toml:"weapon"` // one gun's name or a list of them
 }
@@ -248,6 +252,9 @@ func Parse(data []byte) (Settings, string, error) {
 	}
 	if f.VoiceCheck != nil {
 		s.VoiceCheck = *f.VoiceCheck
+	}
+	if f.PlayerDetails != nil {
+		s.PlayerDetails = *f.PlayerDetails
 	}
 	if f.Region != nil {
 		r := strings.ToLower(strings.TrimSpace(*f.Region))

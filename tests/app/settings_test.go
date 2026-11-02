@@ -44,6 +44,7 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		`exact_enemy_parties = false`,
 		`server_pod = false`,
 		`voice_check = false`,
+		`player_details = false`,
 		`region = "auto"`,
 		`weapon = "vandal"`,
 	}

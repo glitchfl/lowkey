@@ -40,6 +40,7 @@ const (
 	enemyPartiesRow
 	serverPodRow
 	voiceRow
+	playerDetailsRow
 	regionRow
 	weaponRow
 )
@@ -167,6 +168,7 @@ func TestEveryRowChangesTheFileAtOnce(t *testing.T) {
 		{"enemy parties by space", enemyPartiesRow, []string{spaceKey}, "> enemy parties        < on >", "exact_enemy_parties = true\n"},
 		{"server pod by arrow", serverPodRow, []string{rightKey}, "> server pod           < on >", "server_pod = true\n"},
 		{"voice check by enter", voiceRow, []string{enterKey}, "> voice check          < on >", "voice_check = true\n"},
+		{"player details by space", playerDetailsRow, []string{spaceKey}, "> player details       < on >", "player_details = true\n"},
 		{"region forward", regionRow, []string{rightKey}, "< ap >", `region = "ap"` + "\n"},
 		{"region backward", regionRow, []string{leftKey}, "< pbe >", `region = "pbe"` + "\n"},
 	}
@@ -294,6 +296,7 @@ func TestTheHelpLineSaysWhatARowDoesAndWhenItApplies(t *testing.T) {
 		{"mark enemies who queued together", false},
 		{"show the game server's city", false},
 		{"show which teammates are in team voice", false},
+		{"pick a player on the lobby tab", false},
 		{"auto reads the region", true},
 		{"the gun the skin column shows", false},
 	} {

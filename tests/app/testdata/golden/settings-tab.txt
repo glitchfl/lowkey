@@ -10,6 +10,7 @@
   enemy parties        off
   server pod           off
   voice check          off
+  player details       off
   region               auto
   skin weapons         vandal
 

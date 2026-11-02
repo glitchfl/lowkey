@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/glitchfl/lowkey/internal/fakeriot"
+	"github.com/glitchfl/lowkey/internal/riot"
 )
 
 const (
@@ -336,4 +337,92 @@ func TestUntrackedModesDoNothingAtMatchLoad(t *testing.T) {
 	if n := len(r.fr.RemoteRequests()); n != before {
 		t.Errorf("%d requests at an untracked match load", n-before)
 	}
+}
+
+func TestPodNames(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"", ""},
+		{"   ", ""},
+		{"aresriot.aws-euc1-prod.eu-gp-frankfurt-1", "Frankfurt 1"},
+		{"eu-gp-frankfurt-1", "Frankfurt 1"},
+		{"aresriot.aws-euc1-prod.eu-gp-frankfurt-2", "Frankfurt 2"},
+		{"eu-gp-london-1", "London"},
+		{"aresriot.aws-euc1-prod.eu-gp-madrid-1", "Madrid"},
+		{"eu-gp-paris-1", "Paris"},
+		{"eu-gp-warsaw-1", "Warsaw"},
+		{"eu-gp-stockholm-1", "Stockholm"},
+		{"eu-gp-istanbul-1", "Istanbul"},
+		{"aresriot.aws-rclusterprod.us-gp-virginia-1", "Virginia 1"},
+		{"us-gp-virginia-2", "Virginia 2"},
+		{"us-gp-california-1", "California"},
+		{"us-gp-texas-1", "Texas"},
+		{"us-gp-chicago-1", "Chicago"},
+		{"us-gp-oregon-1", "Oregon"},
+		{"ap-gp-tokyo-1", "Tokyo"},
+		{"ap-gp-singapore-1", "Singapore"},
+		{"ap-gp-sydney-1", "Sydney"},
+		{"ap-gp-mumbai-1", "Mumbai"},
+		{"ap-gp-seoul-1", "Seoul"},
+		{"ap-gp-hongkong-1", "Hong Kong"},
+		{"latam-gp-santiago-1", "Santiago"},
+		{"latam-gp-mexico-1", "Mexico City"},
+		{"br-gp-saopaulo-1", "Sao Paulo"},
+		{"aresriot.aws-euc1-prod.some-unknown-cluster", "some-unknown-cluster"},
+		{"aresriot.aws-rclusterprod-use1-1.na-gp-ashburn-1", "Ashburn"},
+		{"na-gp-norcal-2", "Norcal 2"},
+		{"eu-gp-frankfurt-awsedge-3", "Frankfurt 3"},
+		{"latam-gp-sao-paulo-1", "Sao Paulo"},
+		{"eu-gp-1", "eu-gp-1"},
+		{"na-gp--1", "na-gp--1"},
+	}
+	for _, c := range cases {
+		if got := riot.PodName(c.in); got != c.want {
+			t.Errorf("PodName(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestServerPodInTheHeader(t *testing.T) {
+	t.Run("disabled shows no pod", func(t *testing.T) {
+		r := newRig(t, matchLobby)
+		r.live()
+		r.screen("waiting for the next match")
+		r.subscribed()
+		r.enterMatchLoad()
+		frame := r.settled("MATCH LOADING · Ascent · Defenders · Competitive")
+		if strings.Contains(frame, "POD:") {
+			t.Errorf("disabled routing shouldn't show POD:\n%s", frame)
+		}
+	})
+
+	t.Run("enabled shows pod in match load and in match but not agent select", func(t *testing.T) {
+		r := newRig(t, matchLobby)
+		r.writeSettings("server_pod = true\n")
+		r.live()
+		r.screen("waiting for the next match")
+		r.subscribed()
+		r.enterAgentSelect()
+		if frame := r.settled("AGENT SELECT · Ascent"); strings.Contains(frame, "POD:") {
+			t.Errorf("agent select shouldn't show POD:\n%s", frame)
+		}
+		r.enterMatchLoad()
+		r.settled("MATCH LOADING · Ascent · Defenders · Competitive · POD: Frankfurt 1")
+		r.clock.Advance(40 * time.Second)
+		r.screen("IN MATCH · Ascent · Defenders · Competitive · POD: Frankfurt 1")
+	})
+}
+
+func TestGamePodIDParsing(t *testing.T) {
+	t.Run("DecodeCoreGame parses GamePodID", func(t *testing.T) {
+		body := []byte(`{"MatchID":"c9000000-0000-4000-8000-000000000001","GamePodID":"aresriot.aws-euc1-prod.eu-gp-frankfurt-1","Players":[]}`)
+		r, err := riot.DecodeCoreGame(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.GamePodID != "aresriot.aws-euc1-prod.eu-gp-frankfurt-1" {
+			t.Errorf("got %q, want aresriot.aws-euc1-prod.eu-gp-frankfurt-1", r.GamePodID)
+		}
+	})
 }

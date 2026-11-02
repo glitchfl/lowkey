@@ -7,6 +7,9 @@
   cutoff               40s
   enemy lookups        on
   hidden player stats  on
+  enemy parties        off
+  server pod           off
+  voice check          off
   region               auto
   skin weapons         vandal
 

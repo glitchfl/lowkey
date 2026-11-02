@@ -60,6 +60,15 @@ var settingRows = []settingRow{
 	{key: "hidden_player_stats", label: "hidden player stats", nextLobby: true, flips: true,
 		value: func(s settings.Settings) string { return onOff(s.HiddenPlayerStats) },
 		step:  func(s *settings.Settings, _ int) { s.HiddenPlayerStats = !s.HiddenPlayerStats }},
+	{key: "exact_enemy_parties", label: "enemy parties", flips: true,
+		value: func(s settings.Settings) string { return onOff(s.ExactEnemyParties) },
+		step:  func(s *settings.Settings, _ int) { s.ExactEnemyParties = !s.ExactEnemyParties }},
+	{key: "server_pod", label: "server pod", flips: true,
+		value: func(s settings.Settings) string { return onOff(s.ServerPod) },
+		step:  func(s *settings.Settings, _ int) { s.ServerPod = !s.ServerPod }},
+	{key: "voice_check", label: "voice check", flips: true,
+		value: func(s settings.Settings) string { return onOff(s.VoiceCheck) },
+		step:  func(s *settings.Settings, _ int) { s.VoiceCheck = !s.VoiceCheck }},
 	{key: "region", label: "region", nextLobby: true,
 		value: func(s settings.Settings) string {
 			if s.Region == "" {

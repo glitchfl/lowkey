@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -595,6 +596,14 @@ func (lv *live) columns() []render.Column {
 			c.Key, c.Header = skinKey(gun), strings.ToUpper(gun)
 			cols = append(cols, c)
 		}
+	}
+	// the voice column has no place in the columns setting - outside agent select it has no cells and so hides
+	if cfg.VoiceCheck {
+		at := slices.IndexFunc(cols, func(c render.Column) bool { return c.Key == "agent" })
+		if at < 0 {
+			at = len(cols) - 1
+		}
+		cols = slices.Insert(cols, at+1, render.ColumnVoice)
 	}
 	return cols
 }

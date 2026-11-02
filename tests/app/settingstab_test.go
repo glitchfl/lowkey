@@ -37,6 +37,9 @@ const (
 	cutoffRow
 	enemyRow
 	hiddenStatsRow
+	enemyPartiesRow
+	serverPodRow
+	voiceRow
 	regionRow
 	weaponRow
 )
@@ -161,6 +164,9 @@ func TestEveryRowChangesTheFileAtOnce(t *testing.T) {
 		{"hidden stats by arrow", hiddenStatsRow, []string{rightKey}, "< off >", "hidden_player_stats = false\n"},
 		{"hidden stats by space", hiddenStatsRow, []string{spaceKey}, "< off >", "hidden_player_stats = false\n"},
 		{"hidden stats by enter", hiddenStatsRow, []string{enterKey}, "< off >", "hidden_player_stats = false\n"},
+		{"enemy parties by space", enemyPartiesRow, []string{spaceKey}, "> enemy parties        < on >", "exact_enemy_parties = true\n"},
+		{"server pod by arrow", serverPodRow, []string{rightKey}, "> server pod           < on >", "server_pod = true\n"},
+		{"voice check by enter", voiceRow, []string{enterKey}, "> voice check          < on >", "voice_check = true\n"},
 		{"region forward", regionRow, []string{rightKey}, "< ap >", `region = "ap"` + "\n"},
 		{"region backward", regionRow, []string{leftKey}, "< pbe >", `region = "pbe"` + "\n"},
 	}
@@ -285,6 +291,9 @@ func TestTheHelpLineSaysWhatARowDoesAndWhenItApplies(t *testing.T) {
 		{"when every lookup stops", true},
 		{"look up the enemy team", true},
 		{"show the stats of hidden players", true},
+		{"mark enemies who queued together", false},
+		{"show the game server's city", false},
+		{"show which teammates are in team voice", false},
 		{"auto reads the region", true},
 		{"the gun the skin column shows", false},
 	} {

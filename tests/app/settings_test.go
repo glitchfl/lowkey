@@ -41,6 +41,9 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		`cutoff_seconds = 40`,
 		`enemy_lookups = true`,
 		`hidden_player_stats = true`,
+		`exact_enemy_parties = false`,
+		`server_pod = false`,
+		`voice_check = false`,
 		`region = "auto"`,
 		`weapon = "vandal"`,
 	}

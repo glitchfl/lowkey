@@ -13,6 +13,7 @@ type Align int
 const (
 	Left Align = iota
 	Right
+	Center
 )
 
 type Column struct {
@@ -52,6 +53,8 @@ func Keys() []string {
 	}
 	return keys
 }
+
+var ColumnVoice = Column{Key: "voice", Header: "VOICE", Align: Center, HideEmpty: true}
 
 func Lookup(key string) (Column, bool) {
 	for _, c := range catalog {
@@ -221,10 +224,16 @@ func pad(s string, w int, a Align) string {
 	if n <= 0 {
 		return s
 	}
-	if a == Right {
+	switch a {
+	case Right:
 		return strings.Repeat(" ", n) + s
+	case Center:
+		left := n / 2
+		right := n - left
+		return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
+	default:
+		return s + strings.Repeat(" ", n)
 	}
-	return s + strings.Repeat(" ", n)
 }
 
 // colorize wraps only the text inside its padding so the colors never bleed into the gaps

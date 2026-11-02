@@ -37,6 +37,9 @@ type Settings struct {
 	Cutoff            time.Duration
 	EnemyLookups      bool
 	HiddenPlayerStats bool
+	ExactEnemyParties bool
+	ServerPod         bool
+	VoiceCheck        bool
 	Region            string   // empty means detect it
 	Weapons           []string // the guns the skin column shows left to right - lowercase
 }
@@ -95,6 +98,12 @@ var fields = []field{
 		func(s Settings) string { return strconv.FormatBool(s.EnemyLookups) }},
 	{"hidden_player_stats", []string{"show the stats of hidden players - never their names - off shows them by agent only"},
 		func(s Settings) string { return strconv.FormatBool(s.HiddenPlayerStats) }},
+	{"exact_enemy_parties", []string{"mark enemies who queued together in a recent match with a party letter - off shows likely parties only"},
+		func(s Settings) string { return strconv.FormatBool(s.ExactEnemyParties) }},
+	{"server_pod", []string{"show the game server's city in the header at match load and during the match"},
+		func(s Settings) string { return strconv.FormatBool(s.ServerPod) }},
+	{"voice_check", []string{"show which teammates are in team voice during agent select"},
+		func(s Settings) string { return strconv.FormatBool(s.VoiceCheck) }},
 	{"region", []string{"auto reads the region from the game - na latam br eu ap kr or pbe overrides it"},
 		func(s Settings) string {
 			if s.Region == "" {
@@ -156,6 +165,9 @@ type file struct {
 	CutoffSeconds     *int      `toml:"cutoff_seconds"`
 	EnemyLookups      *bool     `toml:"enemy_lookups"`
 	HiddenPlayerStats *bool     `toml:"hidden_player_stats"`
+	ExactEnemyParties *bool     `toml:"exact_enemy_parties"`
+	ServerPod         *bool     `toml:"server_pod"`
+	VoiceCheck        *bool     `toml:"voice_check"`
 	Region            *string   `toml:"region"`
 	Weapon            any       `toml:"weapon"` // one gun's name or a list of them
 }
@@ -227,6 +239,15 @@ func Parse(data []byte) (Settings, string, error) {
 	}
 	if f.HiddenPlayerStats != nil {
 		s.HiddenPlayerStats = *f.HiddenPlayerStats
+	}
+	if f.ExactEnemyParties != nil {
+		s.ExactEnemyParties = *f.ExactEnemyParties
+	}
+	if f.ServerPod != nil {
+		s.ServerPod = *f.ServerPod
+	}
+	if f.VoiceCheck != nil {
+		s.VoiceCheck = *f.VoiceCheck
 	}
 	if f.Region != nil {
 		r := strings.ToLower(strings.TrimSpace(*f.Region))

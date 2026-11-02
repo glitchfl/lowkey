@@ -293,6 +293,7 @@ func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
 		s.Cutoff = 5 * time.Second
 		s.EnemyLookups = false
 		s.HiddenPlayerStats = false
+		s.ExactEnemyParties, s.ServerPod, s.VoiceCheck = true, true, true
 		s.Region = "kr"
 		s.Weapons = []string{"ghost", "vandal"}
 	}); err != nil {
@@ -303,7 +304,8 @@ func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
 		t.Fatalf("note %q err %v", note, err)
 	}
 	if strings.Join(s.Columns, ",") != "rank,name" || s.Matches != 3 || len(s.Modes) != 0 || s.SessionResetHour != 0 ||
-		s.Cutoff != 5*time.Second || s.EnemyLookups || s.HiddenPlayerStats || s.Region != "kr" || strings.Join(s.Weapons, ",") != "ghost,vandal" {
+		s.Cutoff != 5*time.Second || s.EnemyLookups || s.HiddenPlayerStats ||
+		!s.ExactEnemyParties || !s.ServerPod || !s.VoiceCheck || s.Region != "kr" || strings.Join(s.Weapons, ",") != "ghost,vandal" {
 		t.Errorf("got %+v", s)
 	}
 }

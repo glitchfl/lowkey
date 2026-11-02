@@ -4,6 +4,7 @@ package settings
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -27,6 +28,8 @@ const (
 	MaxMatches       = 25
 	MinCutoffSeconds = 1
 	MaxCutoffSeconds = 600
+	MinDotSeconds    = 1
+	MaxDotSeconds    = 20
 )
 
 type Settings struct {
@@ -39,6 +42,15 @@ type Settings struct {
 	HiddenPlayerStats bool
 	Region            string   // empty means detect it
 	Weapons           []string // the guns the skin column shows left to right - lowercase
+	AgentDot          bool
+	AgentDotSeconds   int
+	AgentDotAt        Spot
+}
+
+// Spot is a point on the screen in physical pixels - the zero Spot isn't placed
+type Spot struct {
+	X, Y   int
+	Placed bool
 }
 
 func Default() Settings {
@@ -51,6 +63,7 @@ func Default() Settings {
 		EnemyLookups:      true,
 		HiddenPlayerStats: true,
 		Weapons:           []string{"vandal"},
+		AgentDotSeconds:   10,
 	}
 }
 
@@ -111,6 +124,18 @@ var fields = []field{
 			}
 			return tomlList(s.Weapons)
 		}},
+	{"agent_dot", []string{"draw a small dot on your agent for a few seconds after a match is found - needs windowed or windowed fullscreen",
+		"it never picks or locks anything - place dot on the settings tab sets where it goes"},
+		func(s Settings) string { return strconv.FormatBool(s.AgentDot) }},
+	{"agent_dot_seconds", []string{"the most seconds the agent dot stays up - it goes as soon as you hover or lock - 1 to 20"},
+		func(s Settings) string { return strconv.Itoa(s.AgentDotSeconds) }},
+	{"agent_dot_at", []string{"where the agent dot goes in screen pixels - place dot on the settings tab fills it in - [] is not placed"},
+		func(s Settings) string {
+			if !s.AgentDotAt.Placed {
+				return "[]"
+			}
+			return fmt.Sprintf("[%d, %d]", s.AgentDotAt.X, s.AgentDotAt.Y)
+		}},
 }
 
 func tomlList(items []string) string {
@@ -158,6 +183,9 @@ type file struct {
 	HiddenPlayerStats *bool     `toml:"hidden_player_stats"`
 	Region            *string   `toml:"region"`
 	Weapon            any       `toml:"weapon"` // one gun's name or a list of them
+	AgentDot          *bool     `toml:"agent_dot"`
+	AgentDotSeconds   *int      `toml:"agent_dot_seconds"`
+	AgentDotAt        any       `toml:"agent_dot_at"`
 }
 
 // Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
@@ -244,7 +272,50 @@ func Parse(data []byte) (Settings, string, error) {
 		}
 		s.Weapons = weapons
 	}
+	if f.AgentDot != nil {
+		s.AgentDot = *f.AgentDot
+	}
+	if f.AgentDotSeconds != nil {
+		switch d := *f.AgentDotSeconds; {
+		case d < MinDotSeconds:
+			s.AgentDotSeconds, note = MinDotSeconds, fmt.Sprintf("agent_dot_seconds %d is below %d - using %d", d, MinDotSeconds, MinDotSeconds)
+		case d > MaxDotSeconds:
+			s.AgentDotSeconds, note = MaxDotSeconds, fmt.Sprintf("agent_dot_seconds %d is above %d - using %d", d, MaxDotSeconds, MaxDotSeconds)
+		default:
+			s.AgentDotSeconds = d
+		}
+	}
+	if f.AgentDotAt != nil {
+		spot, ok := parseSpot(f.AgentDotAt)
+		if !ok {
+			note = "agent_dot_at isn't two whole numbers like [960, 540] - the agent dot isn't placed"
+		}
+		s.AgentDotAt = spot
+	}
 	return s, note, nil
+}
+
+// parseSpot takes exactly two whole numbers - an empty list is a spot that was never placed
+func parseSpot(v any) (Spot, bool) {
+	list, ok := v.([]any)
+	if !ok {
+		return Spot{}, false
+	}
+	if len(list) == 0 {
+		return Spot{}, true
+	}
+	if len(list) != 2 {
+		return Spot{}, false
+	}
+	var xy [2]int
+	for i, n := range list {
+		whole, ok := n.(int64)
+		if !ok || whole < math.MinInt32 || whole > math.MaxInt32 {
+			return Spot{}, false
+		}
+		xy[i] = int(whole)
+	}
+	return Spot{X: xy[0], Y: xy[1], Placed: true}, true
 }
 
 func parseWeapons(v any) ([]string, error) {

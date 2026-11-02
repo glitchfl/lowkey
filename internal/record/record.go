@@ -82,6 +82,17 @@ func (r *Recorder) Event(name string, frame []byte) {
 	r.write(entry{Kind: "event", Event: name, Body: r.sc.JSON(frame)})
 }
 
+// Dot logs the agent dot going up or down and why - so its timing can be lined up with a screen recording
+func (r *Recorder) Dot(shown bool, why string, x, y int) {
+	body, _ := json.Marshal(struct {
+		Shown bool   `json:"shown"`
+		Why   string `json:"why"`
+		X     int    `json:"x"`
+		Y     int    `json:"y"`
+	}{shown, why, x, y})
+	r.write(entry{Kind: "dot", Body: body})
+}
+
 // Screen appends a frame as plain text to screens.txt - names must already be aliased
 func (r *Recorder) Screen(lines []string) {
 	r.mu.Lock()

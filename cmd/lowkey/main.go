@@ -24,6 +24,7 @@ func main() {
 		Servers:  servers(),
 		Clock:    app.RealClock(),
 		Console:  app.Console{Out: os.Stdout, Width: platform.ConsoleWidth, Height: platform.ConsoleHeight, Terminal: platform.EnableANSI(), Keyboard: platform.Keyboard},
+		Dot:      dot(),
 		Dir:      override("LOWKEY_DIR", platform.ExeDir()),
 		GameLog:  override("LOWKEY_GAME_LOG", platform.GameLogPath()),
 		Version:  version,
@@ -41,6 +42,13 @@ func main() {
 	code := app.Run(ctx, env, os.Args[1:])
 	stop()
 	os.Exit(code)
+}
+
+func dot() app.Dot {
+	if !platform.Windows {
+		return app.Dot{}
+	}
+	return app.Dot{Show: platform.ShowDot, Hide: platform.HideDot, Cursor: platform.CursorPos}
 }
 
 // the LOWKEY_* overrides point the real exe at the fakeriot program

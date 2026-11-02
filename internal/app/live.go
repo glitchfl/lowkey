@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -95,6 +96,7 @@ type live struct {
 	keyboard   bool // someone can type - so there's a tab bar
 	onSettings bool
 	tab        settingsTab
+	dot        agentDot
 	pick       string // the player highlighted on the lobby tab - by PUUID so rosters can reorder
 	details    bool   // the picked player's details fill the lobby tab
 	scroll     int
@@ -120,7 +122,11 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 	if err := lv.cfg.Create(); err != nil {
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
-	lv.tab.cfg = lv.cfg
+	lv.tab.cfg, lv.tab.rows = lv.cfg, settingRows
+	if lv.hasDot() {
+		lv.tab.place = lv.placeDot
+		lv.tab.rows = append(slices.Clip(settingRows), lv.tab.dotRows()...)
+	}
 	if env.Console.Keyboard != nil {
 		if keys, restore, ok := env.Console.Keyboard(); ok {
 			defer restore()
@@ -149,7 +155,11 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		lv.log.printf("can't watch %s: %v", lv.cfg.Path(), err)
 	}
 	lv.loop.post(lv.checkLockfile)
-	lv.loop.run(ctx, func() bool { return false }, lv.redraw)
+	lv.loop.run(ctx, func() bool { return false }, func() {
+		lv.redraw()
+		lv.checkDotSetting()
+	})
+	lv.hideDot("quit")
 	lv.disconnect()
 	return 0
 }
@@ -465,6 +475,10 @@ func (lv *live) onCoreGame(matchID string) {
 }
 
 func (lv *live) setPhase(p phase) {
+	// every way out of a phase passes here - so no path can leave the dot up into the next one
+	if p != lv.phase {
+		lv.hideDot("phase changed")
+	}
 	// the table only matters for about a minute and edits are already saved - so a new lobby takes the screen back
 	if p != lv.phase && (p == phaseAgentSelect || p == phaseMatchLoad) {
 		lv.onSettings, lv.details = false, false

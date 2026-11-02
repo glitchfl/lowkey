@@ -24,9 +24,13 @@ const (
 // can't fire a burst of requests - lookups pick the new values up at the next lobby
 type settingsTab struct {
 	cfg    *settings.File
+	rows   []settingRow
 	row    int
 	list   *optionList // the open sub-list - nil on the main list
 	notice string      // what the last press couldn't do or what it did to a broken file
+	// place starts the place dot countdown and placing is the seconds it has left
+	place   func()
+	placing int
 }
 
 type settingRow struct {
@@ -36,6 +40,8 @@ type settingRow struct {
 	step       func(s *settings.Settings, dir int)
 	flips      bool // space and enter work too - stepping anything else by accident would be saved at once
 	open       func(settings.Settings) *optionList
+	act        func()
+	help       string // shown instead of the file's comment - for a row whose enter does more than change its key
 }
 
 var settingRows = []settingRow{
@@ -72,6 +78,31 @@ var settingRows = []settingRow{
 		}},
 	{key: "weapon", label: "skin weapons", open: weaponsList,
 		value: func(s settings.Settings) string { return strings.Join(s.Weapons, ", ") }},
+}
+
+// dotRows only exist in a build that can draw the agent dot
+func (t *settingsTab) dotRows() []settingRow {
+	return []settingRow{
+		{key: "agent_dot", label: "agent dot", nextLobby: true, flips: true,
+			value: func(s settings.Settings) string { return onOff(s.AgentDot) },
+			step:  func(s *settings.Settings, _ int) { s.AgentDot = !s.AgentDot }},
+		{key: "agent_dot_seconds", label: "dot time", nextLobby: true,
+			value: func(s settings.Settings) string { return fmt.Sprintf("%ds", s.AgentDotSeconds) },
+			step: func(s *settings.Settings, dir int) {
+				s.AgentDotSeconds = max(settings.MinDotSeconds, min(s.AgentDotSeconds+dir, settings.MaxDotSeconds))
+			}},
+		{key: "agent_dot_at", label: "place dot", act: func() { t.place() },
+			help: "enter - then within 5 s rest the cursor on your agent in the game - lowkey saves where it is",
+			value: func(s settings.Settings) string {
+				switch {
+				case t.placing > 0:
+					return fmt.Sprintf("point at your agent - %d", t.placing)
+				case !s.AgentDotAt.Placed:
+					return "not placed"
+				}
+				return fmt.Sprintf("%d, %d", s.AgentDotAt.X, s.AgentDotAt.Y)
+			}},
+	}
 }
 
 // stepCutoff lands on multiples of 5 so a hand-set 37 goes to 40 or 35 - the limits can be off that grid
@@ -112,12 +143,12 @@ func (t *settingsTab) press(k key) bool {
 		t.pressList(k)
 		return false
 	}
-	row := settingRows[t.row]
+	row := t.rows[t.row]
 	switch k {
 	case keyUp:
-		t.row = (t.row - 1 + len(settingRows)) % len(settingRows)
+		t.row = (t.row - 1 + len(t.rows)) % len(t.rows)
 	case keyDown:
-		t.row = (t.row + 1) % len(settingRows)
+		t.row = (t.row + 1) % len(t.rows)
 	case keyLeft, keyRight:
 		if row.step != nil {
 			t.change(func(s *settings.Settings) { row.step(s, direction(k)) })
@@ -126,6 +157,8 @@ func (t *settingsTab) press(k key) bool {
 		switch {
 		case row.open != nil:
 			t.list = row.open(t.cfg.Settings())
+		case row.act != nil:
+			row.act()
 		case row.flips:
 			t.change(func(s *settings.Settings) { row.step(s, 1) })
 		}
@@ -198,11 +231,15 @@ func (t *settingsTab) lines(rows int) []string {
 		body, row, foot = l.rows(*l.field(&cfg)), l.row, []string{l.hint}
 	} else {
 		body, row = t.mainRows(cfg), t.row
-		note := ""
-		if settingRows[t.row].nextLobby {
+		r := t.rows[t.row]
+		note, help := "", r.help
+		if r.nextLobby {
 			note = nextLobbyNote
 		}
-		foot = []string{settings.Help(settingRows[t.row].key), note, "up/down move · left/right change · enter open · saved at once"}
+		if help == "" {
+			help = settings.Help(r.key)
+		}
+		foot = []string{help, note, "up/down move · left/right change · enter open · saved at once"}
 	}
 	from, to := window(len(body), row, rows-len(lines)-1-len(foot))
 	lines = append(lines, body[from:to]...)
@@ -212,16 +249,16 @@ func (t *settingsTab) lines(rows int) []string {
 
 func (t *settingsTab) mainRows(cfg settings.Settings) []string {
 	width := 0
-	for _, r := range settingRows {
+	for _, r := range t.rows {
 		width = max(width, len(r.label))
 	}
-	out := make([]string, len(settingRows))
-	for i, r := range settingRows {
+	out := make([]string, len(t.rows))
+	for i, r := range t.rows {
 		value := r.value(cfg)
 		mark := " "
 		if i == t.row {
 			mark = ">"
-			if r.open != nil {
+			if r.open != nil || r.act != nil {
 				value += "  (enter)"
 			} else {
 				value = "< " + value + " >"

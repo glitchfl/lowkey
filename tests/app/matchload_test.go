@@ -399,7 +399,7 @@ func TestServerPodInTheHeader(t *testing.T) {
 
 	t.Run("enabled shows pod in match load and in match but not agent select", func(t *testing.T) {
 		r := newRig(t, matchLobby)
-		r.writeSettings("server_pod = true\n")
+		r.writeSettings("[match]\nserver_pod = true\n")
 		r.live()
 		r.screen("waiting for the next match")
 		r.subscribed()

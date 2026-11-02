@@ -27,6 +27,8 @@ type settingsTab struct {
 	row    int
 	list   *optionList // the open sub-list - nil on the main list
 	notice string      // what the last press couldn't do or what it did to a broken file
+	// firstOpen is what the tab says the first time it opens - what lowkey did to an old lowkey.toml at start
+	firstOpen string
 }
 
 type settingRow struct {
@@ -38,9 +40,12 @@ type settingRow struct {
 	open       func(settings.Settings) *optionList
 }
 
+// settingRows keep each section's rows together so every heading shows once
 var settingRows = []settingRow{
 	{key: "columns", label: "columns", open: columnsList,
 		value: func(s settings.Settings) string { return fmt.Sprintf("%d of %d", len(s.Columns), len(render.Keys())) }},
+	{key: "weapon", label: "skin weapons", open: weaponsList,
+		value: func(s settings.Settings) string { return strings.Join(s.Weapons, ", ") }},
 	{key: "matches", label: "matches", nextLobby: true,
 		value: func(s settings.Settings) string { return strconv.Itoa(s.Matches) },
 		step: func(s *settings.Settings, dir int) {
@@ -48,12 +53,6 @@ var settingRows = []settingRow{
 		}},
 	{key: "modes", label: "modes", nextLobby: true, open: modesList,
 		value: func(s settings.Settings) string { return fmt.Sprintf("%d of %d", len(s.Modes), len(stats.ModeKeys())) }},
-	{key: "session_reset_hour", label: "session starts at", nextLobby: true,
-		value: func(s settings.Settings) string { return fmt.Sprintf("%02d:00", s.SessionResetHour) },
-		step:  func(s *settings.Settings, dir int) { s.SessionResetHour = (s.SessionResetHour + dir + 24) % 24 }},
-	{key: "cutoff_seconds", label: "cutoff", nextLobby: true,
-		value: func(s settings.Settings) string { return fmt.Sprintf("%ds", int(s.Cutoff/time.Second)) },
-		step:  stepCutoff},
 	{key: "enemy_lookups", label: "enemy lookups", nextLobby: true, flips: true,
 		value: func(s settings.Settings) string { return onOff(s.EnemyLookups) },
 		step:  func(s *settings.Settings, _ int) { s.EnemyLookups = !s.EnemyLookups }},
@@ -63,15 +62,21 @@ var settingRows = []settingRow{
 	{key: "exact_enemy_parties", label: "enemy parties", flips: true,
 		value: func(s settings.Settings) string { return onOff(s.ExactEnemyParties) },
 		step:  func(s *settings.Settings, _ int) { s.ExactEnemyParties = !s.ExactEnemyParties }},
+	{key: "player_details", label: "player details", flips: true,
+		value: func(s settings.Settings) string { return onOff(s.PlayerDetails) },
+		step:  func(s *settings.Settings, _ int) { s.PlayerDetails = !s.PlayerDetails }},
 	{key: "server_pod", label: "server pod", flips: true,
 		value: func(s settings.Settings) string { return onOff(s.ServerPod) },
 		step:  func(s *settings.Settings, _ int) { s.ServerPod = !s.ServerPod }},
 	{key: "voice_check", label: "voice check", flips: true,
 		value: func(s settings.Settings) string { return onOff(s.VoiceCheck) },
 		step:  func(s *settings.Settings, _ int) { s.VoiceCheck = !s.VoiceCheck }},
-	{key: "player_details", label: "player details", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.PlayerDetails) },
-		step:  func(s *settings.Settings, _ int) { s.PlayerDetails = !s.PlayerDetails }},
+	{key: "session_reset_hour", label: "session starts at", nextLobby: true,
+		value: func(s settings.Settings) string { return fmt.Sprintf("%02d:00", s.SessionResetHour) },
+		step:  func(s *settings.Settings, dir int) { s.SessionResetHour = (s.SessionResetHour + dir + 24) % 24 }},
+	{key: "cutoff_seconds", label: "cutoff", nextLobby: true,
+		value: func(s settings.Settings) string { return fmt.Sprintf("%ds", int(s.Cutoff/time.Second)) },
+		step:  stepCutoff},
 	{key: "region", label: "region", nextLobby: true,
 		value: func(s settings.Settings) string {
 			if s.Region == "" {
@@ -82,8 +87,6 @@ var settingRows = []settingRow{
 		step: func(s *settings.Settings, dir int) {
 			s.Region = cycle(append([]string{""}, riot.Regions()...), s.Region, dir)
 		}},
-	{key: "weapon", label: "skin weapons", open: weaponsList,
-		value: func(s settings.Settings) string { return strings.Join(s.Weapons, ", ") }},
 }
 
 // stepCutoff lands on multiples of 5 so a hand-set 37 goes to 40 or 35 - the limits can be off that grid
@@ -209,7 +212,7 @@ func (t *settingsTab) lines(rows int) []string {
 		lines = append(lines, l.title)
 		body, row, foot = l.rows(*l.field(&cfg)), l.row, []string{l.hint}
 	} else {
-		body, row = t.mainRows(cfg), t.row
+		body, row = t.mainRows(cfg)
 		note := ""
 		if settingRows[t.row].nextLobby {
 			note = nextLobbyNote
@@ -222,26 +225,34 @@ func (t *settingsTab) lines(rows int) []string {
 	return append(lines, foot...)
 }
 
-func (t *settingsTab) mainRows(cfg settings.Settings) []string {
+// mainRows puts each section's heading over its rows - at is the highlighted row's line
+func (t *settingsTab) mainRows(cfg settings.Settings) (out []string, at int) {
 	width := 0
 	for _, r := range settingRows {
 		width = max(width, len(r.label))
 	}
-	out := make([]string, len(settingRows))
+	section := ""
 	for i, r := range settingRows {
+		if s := settings.Section(r.key); s != section {
+			if section != "" {
+				out = append(out, "")
+			}
+			section = s
+			out = append(out, strings.ToUpper(s))
+		}
 		value := r.value(cfg)
 		mark := " "
 		if i == t.row {
-			mark = ">"
+			at, mark = len(out), ">"
 			if r.open != nil {
 				value += "  (enter)"
 			} else {
 				value = "< " + value + " >"
 			}
 		}
-		out[i] = fmt.Sprintf("%s %-*s  %s", mark, width, r.label, value)
+		out = append(out, fmt.Sprintf("%s %-*s  %s", mark, width, r.label, value))
 	}
-	return out
+	return out, at
 }
 
 func window(total, row, room int) (from, to int) {

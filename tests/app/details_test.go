@@ -82,7 +82,7 @@ func pickedRow(frame string) string {
 	return ""
 }
 
-const detailsOn = "player_details = true\n"
+const detailsOn = "[players]\nplayer_details = true\n"
 
 // inMatchLoad walks a keyboard-driven lowkey with player details on into a match load and waits for the full table
 func inMatchLoad(t *testing.T, setup ...func(w *fakeriot.World)) *rig {
@@ -202,7 +202,7 @@ func TestAHiddenAccountLevelStaysHidden(t *testing.T) {
 
 func TestPlayersLowkeyDidntLookUpSayWhy(t *testing.T) {
 	r := newRig(t, matchLobby)
-	r.writeSettings("enemy_lookups = false\n" + detailsOn)
+	r.writeSettings("[players]\nenemy_lookups = false\nplayer_details = true\n")
 	r.keyboard()
 	r.live()
 	r.screen("[LOBBY]", "waiting for the next match")
@@ -307,7 +307,7 @@ func TestLongDetailsScrollAndStopAtTheEnd(t *testing.T) {
 }
 
 func TestTheDetailsGunsComeEvenWithTheSkinColumnOff(t *testing.T) {
-	noSkins := `columns = ["name", "agent", "rank"]` + "\n"
+	noSkins := "[table]\n" + `columns = ["name", "agent", "rank"]` + "\n"
 	t.Run("with player details on", func(t *testing.T) {
 		r := newRig(t, matchLobby, lobbySkins)
 		r.writeSettings(noSkins + detailsOn)
@@ -385,7 +385,7 @@ func TestTheArrowsPickNobodyUntilPlayerDetailsAreSwitchedOn(t *testing.T) {
 	r.press(downKey, downKey, enterKey)
 	r.settled("esc back", "AllyOne#A1", "THIS ACT")
 
-	r.writeSettings("player_details = false\n")
+	r.writeSettings("[players]\nplayer_details = false\n")
 	frame = r.screen("US - THEM")
 	if strings.Contains(frame, "▸") || strings.Contains(frame, "esc back") || strings.Contains(frame, "pick a player") {
 		t.Errorf("switching player details off should close them and drop the pick:\n%s", frame)

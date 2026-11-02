@@ -168,7 +168,7 @@ func TestExactEnemyParties(t *testing.T) {
 		})
 		return func(line int) string { return marker(t, frame, line) }
 	}
-	on := "exact_enemy_parties = true\n"
+	on := "[players]\nexact_enemy_parties = true\n"
 
 	t.Run("a shared party ID gives a letter and shared teams still give a shape", func(t *testing.T) {
 		m := matchLoad(t, on, setup)
@@ -188,7 +188,7 @@ func TestExactEnemyParties(t *testing.T) {
 	})
 
 	t.Run("off brings back the shapes alone", func(t *testing.T) {
-		m := matchLoad(t, "exact_enemy_parties = false\n", setup)
+		m := matchLoad(t, "[players]\nexact_enemy_parties = false\n", setup)
 		if strings.HasPrefix(m(9), "[") || strings.HasPrefix(m(10), "[") {
 			t.Errorf("no letters when it's off, got %q and %q", m(9), m(10))
 		}

@@ -123,6 +123,11 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
 	lv.tab.cfg = lv.cfg
+	moved, err := lv.cfg.Moved()
+	if err != nil {
+		lv.log.printf("%v", err)
+	}
+	lv.tab.firstOpen = moved
 	// a new window opens 120 columns wide and a full lobby wants more - a terminal that can't resize ignores it
 	if env.Console.Terminal && env.Console.Width() < wideColumns {
 		fmt.Fprintf(env.Console.Out, "\x1b[8;%d;%dt", env.Console.Height(), wideColumns)

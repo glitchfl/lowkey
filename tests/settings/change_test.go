@@ -31,6 +31,8 @@ func read(t *testing.T, path string) string {
 	return string(data)
 }
 
+const serverPodComment = "# show the game server's city in the header at match load and during the match\n"
+
 const weaponComment = "# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\n" +
 	"# a list like [\"vandal\", \"phantom\"] gives each gun a skin column\n"
 
@@ -41,37 +43,46 @@ func TestChangeKeepsEverythingElseInTheFile(t *testing.T) {
 		edit         func(*settings.Settings)
 		after        string
 	}{
-		{"comments and order", "# mine\n\nweapon = \"phantom\"\n\n# also mine\nmatches = 7\n", more,
-			"# mine\n\nweapon = \"phantom\"\n\n# also mine\nmatches = 8\n"},
-		{"a comment after the value", "matches = 7 # my favorite\n", more, "matches = 8 # my favorite\n"},
-		{"tight spacing", "matches=7\n", more, "matches=8\n"},
-		{"wide spacing", "  matches   =   7\n", more, "  matches   =   8\n"},
-		{"windows line endings", "weapon = \"ares\"\r\nmatches = 7\r\nenemy_lookups = false\r\n", more,
-			"weapon = \"ares\"\r\nmatches = 8\r\nenemy_lookups = false\r\n"},
-		{"a byte order mark", "\xef\xbb\xbfmatches = 7\n", more, "\xef\xbb\xbfmatches = 8\n"},
-		{"a quoted key", "\"matches\" = 7\n", more, "\"matches\" = 8\n"},
-		{"a literal quoted key", "'matches' = 7\n", more, "'matches' = 8\n"},
-		{"a commented-out copy of the key", "# matches = 3\nmatches = 7\n", more, "# matches = 3\nmatches = 8\n"},
-		{"tricky values before it", "region = \"auto\" # na ] [ # = \nweapon = 'phantom'\nmodes = [\"unrated\", # [ \" \n  \"premier\",\n]\nmatches = 7\n", more,
-			"region = \"auto\" # na ] [ # = \nweapon = 'phantom'\nmodes = [\"unrated\", # [ \" \n  \"premier\",\n]\nmatches = 8\n"},
-		{"a string with an escaped quote before it", "# x\nweapon = \"vandal\"\nregion = \"\\u0061uto\"\nmatches = 7\n", more,
-			"# x\nweapon = \"vandal\"\nregion = \"\\u0061uto\"\nmatches = 8\n"},
-		{"a multi-line array", "columns = [\n  \"name\", # who\n  \"rank\",\n]\nmatches = 7\n",
-			func(s *settings.Settings) { s.Columns = []string{"rank", "name"} }, "columns = [\"rank\", \"name\"]\nmatches = 7\n"},
-		{"a multi-line string value", "weapon = \"\"\"vandal\"\"\"\nmatches = 7\n",
-			func(s *settings.Settings) { s.Weapons = []string{"phantom"} }, "weapon = \"phantom\"\nmatches = 7\n"},
-		{"a literal multi-line string before it", "weapon = '''vandal'''\nmatches = 7\n", more, "weapon = '''vandal'''\nmatches = 8\n"},
-		{"a key the file doesn't have", "matches = 7\n", func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
-			"matches = 7\n\n" + weaponComment + "weapon = \"phantom\"\n"},
-		{"no newline at the end", "matches = 7", func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
-			"matches = 7\n\n" + weaponComment + "weapon = \"phantom\"\n"},
-		{"a key at the very end without a newline", "matches = 7", more, "matches = 8"},
-		{"one gun becomes a list", "weapon = \"vandal\" # mine\nmatches = 7\n",
-			func(s *settings.Settings) { s.Weapons = append(s.Weapons, "phantom") }, "weapon = [\"vandal\", \"phantom\"] # mine\nmatches = 7\n"},
-		{"a list of one goes back to a name", "weapon = [\n  \"vandal\",\n  \"phantom\",\n]\nmatches = 7\n",
-			func(s *settings.Settings) { s.Weapons = s.Weapons[1:] }, "weapon = \"phantom\"\nmatches = 7\n"},
-		{"two keys at once", "matches = 7\nweapon = \"ares\"\n",
-			func(s *settings.Settings) { s.Matches, s.Weapons = 8, []string{"odin"} }, "matches = 8\nweapon = \"odin\"\n"},
+		{"comments and order", "# mine\n[table]\n\nweapon = \"phantom\"\n\n# also mine\nmatches = 7\n", more,
+			"# mine\n[table]\n\nweapon = \"phantom\"\n\n# also mine\nmatches = 8\n"},
+		{"a comment after the value", "[table]\nmatches = 7 # my favorite\n", more, "[table]\nmatches = 8 # my favorite\n"},
+		{"tight spacing", "[table]\nmatches=7\n", more, "[table]\nmatches=8\n"},
+		{"wide spacing", "  [ table ]  # mine\n  matches   =   7\n", more, "  [ table ]  # mine\n  matches   =   8\n"},
+		{"windows line endings", "[table]\r\nweapon = \"ares\"\r\nmatches = 7\r\n[players]\r\nenemy_lookups = false\r\n", more,
+			"[table]\r\nweapon = \"ares\"\r\nmatches = 8\r\n[players]\r\nenemy_lookups = false\r\n"},
+		{"a byte order mark", "\xef\xbb\xbf[table]\nmatches = 7\n", more, "\xef\xbb\xbf[table]\nmatches = 8\n"},
+		{"a quoted key", "[table]\n\"matches\" = 7\n", more, "[table]\n\"matches\" = 8\n"},
+		{"a literal quoted key", "[table]\n'matches' = 7\n", more, "[table]\n'matches' = 8\n"},
+		{"a commented-out copy of the key", "[table]\n# matches = 3\nmatches = 7\n", more, "[table]\n# matches = 3\nmatches = 8\n"},
+		{"tricky values before it", "[general]\nregion = \"auto\" # na ] [ # = \n[table]\nweapon = 'phantom'\nmodes = [\"unrated\", # [ \" \n  \"premier\",\n]\nmatches = 7\n", more,
+			"[general]\nregion = \"auto\" # na ] [ # = \n[table]\nweapon = 'phantom'\nmodes = [\"unrated\", # [ \" \n  \"premier\",\n]\nmatches = 8\n"},
+		{"a string with an escaped quote before it", "# x\n[general]\nregion = \"\\u0061uto\"\n[table]\nweapon = \"vandal\"\nmatches = 7\n", more,
+			"# x\n[general]\nregion = \"\\u0061uto\"\n[table]\nweapon = \"vandal\"\nmatches = 8\n"},
+		{"a multi-line array", "[table]\ncolumns = [\n  \"name\", # who\n  \"rank\",\n]\nmatches = 7\n",
+			func(s *settings.Settings) { s.Columns = []string{"rank", "name"} }, "[table]\ncolumns = [\"rank\", \"name\"]\nmatches = 7\n"},
+		{"a multi-line string value", "[table]\nweapon = \"\"\"vandal\"\"\"\nmatches = 7\n",
+			func(s *settings.Settings) { s.Weapons = []string{"phantom"} }, "[table]\nweapon = \"phantom\"\nmatches = 7\n"},
+		{"a literal multi-line string before it", "[table]\nweapon = '''vandal'''\nmatches = 7\n", more, "[table]\nweapon = '''vandal'''\nmatches = 8\n"},
+		{"a key the file doesn't have", "[table]\nmatches = 7\n", func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
+			"[table]\nmatches = 7\n\n" + weaponComment + "weapon = \"phantom\"\n"},
+		{"no newline at the end", "[table]\nmatches = 7", func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
+			"[table]\nmatches = 7\n\n" + weaponComment + "weapon = \"phantom\"\n"},
+		{"a key at the very end without a newline", "[table]\nmatches = 7", more, "[table]\nmatches = 8"},
+		{"a new key goes at the end of its own section", "[table]\nmatches = 7 # mine\n\n# about the rest\n[general]\nregion = \"ap\"\n",
+			func(s *settings.Settings) { s.Weapons = []string{"phantom"} },
+			"[table]\nmatches = 7 # mine\n\n" + weaponComment + "weapon = \"phantom\"\n\n# about the rest\n[general]\nregion = \"ap\"\n"},
+		{"a new key in an empty section", "[match]\n\n[table]\nmatches = 7\n", func(s *settings.Settings) { s.ServerPod = true },
+			"[match]\n\n" + serverPodComment + "server_pod = true\n\n[table]\nmatches = 7\n"},
+		{"a section the file doesn't have", "[table]\nmatches = 7\n", func(s *settings.Settings) { s.ServerPod = true },
+			"[table]\nmatches = 7\n\n[match]\n\n" + serverPodComment + "server_pod = true\n"},
+		{"one gun becomes a list", "[table]\nweapon = \"vandal\" # mine\nmatches = 7\n",
+			func(s *settings.Settings) { s.Weapons = append(s.Weapons, "phantom") }, "[table]\nweapon = [\"vandal\", \"phantom\"] # mine\nmatches = 7\n"},
+		{"a list of one goes back to a name", "[table]\nweapon = [\n  \"vandal\",\n  \"phantom\",\n]\nmatches = 7\n",
+			func(s *settings.Settings) { s.Weapons = s.Weapons[1:] }, "[table]\nweapon = \"phantom\"\nmatches = 7\n"},
+		{"two keys at once", "[table]\nmatches = 7\nweapon = \"ares\"\n",
+			func(s *settings.Settings) { s.Matches, s.Weapons = 8, []string{"odin"} }, "[table]\nmatches = 8\nweapon = \"odin\"\n"},
+		{"two keys in two sections", "[table]\nmatches = 7\n\n[general]\nregion = \"ap\"\n",
+			func(s *settings.Settings) { s.Matches, s.Region = 8, "eu" }, "[table]\nmatches = 8\n\n[general]\nregion = \"eu\"\n"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -91,7 +102,7 @@ func TestChangeKeepsEverythingElseInTheFile(t *testing.T) {
 }
 
 func TestChangeUpdatesTheSettingsStraightAway(t *testing.T) {
-	f, _ := openWith(t, "matches = 7\n")
+	f, _ := openWith(t, "[table]\nmatches = 7\n")
 	if _, err := f.Change(func(s *settings.Settings) { s.Matches = 8 }); err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +115,7 @@ func TestChangeUpdatesTheSettingsStraightAway(t *testing.T) {
 }
 
 func TestChangeThatChangesNothingWritesNothing(t *testing.T) {
-	f, path := openWith(t, "# mine\nmatches = 7\n")
+	f, path := openWith(t, "# mine\n[table]\nmatches = 7\n")
 	long := time.Now().Add(-time.Hour)
 	os.Chtimes(path, long, long)
 	f.Refresh()
@@ -121,8 +132,8 @@ func TestChangeThatChangesNothingWritesNothing(t *testing.T) {
 }
 
 func TestChangeDoesNotLoseAHandEditItHasNotSeenYet(t *testing.T) {
-	f, path := openWith(t, "matches = 7\n")
-	if err := os.WriteFile(path, []byte("matches = 7\nsession_reset_hour = 18\n"), 0o644); err != nil {
+	f, path := openWith(t, "[table]\nmatches = 7\n")
+	if err := os.WriteFile(path, []byte("[table]\nmatches = 7\n[general]\nsession_reset_hour = 18\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	future := time.Now().Add(time.Minute)
@@ -130,7 +141,7 @@ func TestChangeDoesNotLoseAHandEditItHasNotSeenYet(t *testing.T) {
 	if _, err := f.Change(func(s *settings.Settings) { s.Matches = 8 }); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := read(t, path), "matches = 8\nsession_reset_hour = 18\n"; got != want {
+	if got, want := read(t, path), "[table]\nmatches = 8\n[general]\nsession_reset_hour = 18\n"; got != want {
 		t.Errorf("\n--- want\n%q\n--- got\n%q", want, got)
 	}
 	if got := f.Settings().SessionResetHour; got != 18 {
@@ -139,8 +150,8 @@ func TestChangeDoesNotLoseAHandEditItHasNotSeenYet(t *testing.T) {
 }
 
 func TestChangeWorksFromTheFreshestValue(t *testing.T) {
-	f, path := openWith(t, "matches = 7\n")
-	if err := os.WriteFile(path, []byte("matches = 20\n"), 0o644); err != nil {
+	f, path := openWith(t, "[table]\nmatches = 7\n")
+	if err := os.WriteFile(path, []byte("[table]\nmatches = 20\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	future := time.Now().Add(time.Minute)
@@ -148,14 +159,14 @@ func TestChangeWorksFromTheFreshestValue(t *testing.T) {
 	if _, err := f.Change(func(s *settings.Settings) { s.Matches++ }); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(t, path); got != "matches = 21\n" {
+	if got := read(t, path); got != "[table]\nmatches = 21\n" {
 		t.Errorf("got %q", got)
 	}
 }
 
 func TestChangeReplacesABrokenFileAndKeepsACopy(t *testing.T) {
-	f, path := openWith(t, "matches = 7\n")
-	broken := "matches = 7\ncolumns = [\n"
+	f, path := openWith(t, "[table]\nmatches = 7\n")
+	broken := "[table]\nmatches = 7\ncolumns = [\n"
 	if err := os.WriteFile(path, []byte(broken), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +216,7 @@ func TestChangeWithNoFileWritesAWholeOne(t *testing.T) {
 }
 
 func TestChangeWithAnEmptyFileHoldsOnToTheLastGoodSettings(t *testing.T) {
-	f, path := openWith(t, "weapon = \"phantom\"\n")
+	f, path := openWith(t, "[table]\nweapon = \"phantom\"\n")
 	if err := os.WriteFile(path, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +231,7 @@ func TestChangeWithAnEmptyFileHoldsOnToTheLastGoodSettings(t *testing.T) {
 }
 
 func TestChangeRefusesAnInvalidEditAndWritesNothing(t *testing.T) {
-	before := "# mine\ncolumns = [\"name\"]\n"
+	before := "# mine\n[table]\ncolumns = [\"name\"]\n"
 	f, path := openWith(t, before)
 	if _, err := f.Change(func(s *settings.Settings) { s.Columns = nil }); err == nil {
 		t.Error("an empty column list should be refused")
@@ -237,7 +248,7 @@ func TestChangeRefusesAnInvalidEditAndWritesNothing(t *testing.T) {
 }
 
 func TestChangeDoesNotTouchTheSlicesCallersHold(t *testing.T) {
-	f, _ := openWith(t, "columns = [\"name\", \"rank\"]\n")
+	f, _ := openWith(t, "[table]\ncolumns = [\"name\", \"rank\"]\n")
 	held := f.Settings().Columns
 	if _, err := f.Change(func(s *settings.Settings) { s.Columns[0], s.Columns[1] = s.Columns[1], s.Columns[0] }); err != nil {
 		t.Fatal(err)
@@ -251,7 +262,7 @@ func TestChangeDoesNotTouchTheSlicesCallersHold(t *testing.T) {
 }
 
 func TestChangeKeepsAClampNoteUntilThatValueChanges(t *testing.T) {
-	f, path := openWith(t, "matches = 99\n")
+	f, path := openWith(t, "[table]\nmatches = 99\n")
 	if !strings.Contains(f.Warning(), "matches 99 is above 25") {
 		t.Fatalf("warning: %q", f.Warning())
 	}
@@ -270,7 +281,7 @@ func TestChangeKeepsAClampNoteUntilThatValueChanges(t *testing.T) {
 }
 
 func TestChangeLeavesNoTemporaryFilesBehind(t *testing.T) {
-	f, path := openWith(t, "matches = 7\n")
+	f, path := openWith(t, "[table]\nmatches = 7\n")
 	if _, err := f.Change(func(s *settings.Settings) { s.Matches = 8 }); err != nil {
 		t.Fatal(err)
 	}

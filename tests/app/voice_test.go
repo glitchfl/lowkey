@@ -22,7 +22,7 @@ func TestVoiceCheckInAgentSelect(t *testing.T) {
 
 	t.Run("enabled shows VOICE column with status in agent select", func(t *testing.T) {
 		r := newRig(t, agentSelectLobby, setup)
-		r.writeSettings("voice_check = true\n")
+		r.writeSettings("[match]\nvoice_check = true\n")
 		r.live()
 		r.screen("waiting for the next match")
 		r.subscribed()
@@ -49,7 +49,7 @@ func TestVoiceCheckInAgentSelect(t *testing.T) {
 
 	t.Run("disabled hides VOICE column in agent select", func(t *testing.T) {
 		r := newRig(t, agentSelectLobby, setup)
-		r.writeSettings("voice_check = false\n")
+		r.writeSettings("[match]\nvoice_check = false\n")
 		r.live()
 		r.screen("waiting for the next match")
 		r.subscribed()
@@ -66,7 +66,7 @@ func TestVoiceCheckInAgentSelect(t *testing.T) {
 
 	t.Run("asks once per roster and follows what changes", func(t *testing.T) {
 		r := newRig(t, agentSelectLobby, setup)
-		r.writeSettings("voice_check = true\n")
+		r.writeSettings("[match]\nvoice_check = true\n")
 		r.live()
 		r.screen("waiting for the next match")
 		r.subscribed()
@@ -90,7 +90,7 @@ func TestVoiceCheckInAgentSelect(t *testing.T) {
 
 	t.Run("column is hidden in match load even when voice_check is true", func(t *testing.T) {
 		r := fromAgentSelect(t, setup)
-		r.writeSettings("voice_check = true\n")
+		r.writeSettings("[match]\nvoice_check = true\n")
 		r.enterMatchLoad()
 		frame := r.settled("MATCH LOADING", "US - THEM", "Plat2 10")
 

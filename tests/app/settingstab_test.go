@@ -31,18 +31,18 @@ const (
 
 const (
 	columnsRow = iota
+	weaponRow
 	matchesRow
 	modesRow
-	sessionRow
-	cutoffRow
 	enemyRow
 	hiddenStatsRow
 	enemyPartiesRow
+	playerDetailsRow
 	serverPodRow
 	voiceRow
-	playerDetailsRow
+	sessionRow
+	cutoffRow
 	regionRow
-	weaponRow
 )
 
 // keyboard plugs a keyboard in so the tabs show up - the frames stay plain so the usual helpers read them
@@ -193,18 +193,18 @@ func TestStepsStopAtTheLimitsAndWrapWhereItMakesSense(t *testing.T) {
 		key           string
 		frame, file   string
 	}{
-		{"most matches", "matches = 25\n", matchesRow, rightKey, "< 25 >", "matches = 25"},
-		{"fewest matches", "matches = 1\n", matchesRow, leftKey, "< 1 >", "matches = 1"},
-		{"hour past midnight", "session_reset_hour = 23\n", sessionRow, rightKey, "< 00:00 >", "session_reset_hour = 0"},
-		{"hour before midnight", "session_reset_hour = 0\n", sessionRow, leftKey, "< 23:00 >", "session_reset_hour = 23"},
-		{"longest cutoff", "cutoff_seconds = 600\n", cutoffRow, rightKey, "< 600s >", "cutoff_seconds = 600"},
-		{"shortest cutoff", "cutoff_seconds = 1\n", cutoffRow, leftKey, "< 1s >", "cutoff_seconds = 1"},
-		{"cutoff off the shortest", "cutoff_seconds = 1\n", cutoffRow, rightKey, "< 5s >", "cutoff_seconds = 5"},
-		{"cutoff down to the shortest", "cutoff_seconds = 5\n", cutoffRow, leftKey, "< 1s >", "cutoff_seconds = 1"},
-		{"hand-set cutoff up", "cutoff_seconds = 37\n", cutoffRow, rightKey, "< 40s >", "cutoff_seconds = 40"},
-		{"hand-set cutoff down", "cutoff_seconds = 37\n", cutoffRow, leftKey, "< 35s >", "cutoff_seconds = 35"},
-		{"region back to auto", `region = "ap"` + "\n", regionRow, leftKey, "< auto >", `region = "auto"`},
-		{"region around the end", `region = "pbe"` + "\n", regionRow, rightKey, "< auto >", `region = "auto"`},
+		{"most matches", "[table]\nmatches = 25\n", matchesRow, rightKey, "< 25 >", "matches = 25"},
+		{"fewest matches", "[table]\nmatches = 1\n", matchesRow, leftKey, "< 1 >", "matches = 1"},
+		{"hour past midnight", "[general]\nsession_reset_hour = 23\n", sessionRow, rightKey, "< 00:00 >", "session_reset_hour = 0"},
+		{"hour before midnight", "[general]\nsession_reset_hour = 0\n", sessionRow, leftKey, "< 23:00 >", "session_reset_hour = 23"},
+		{"longest cutoff", "[general]\ncutoff_seconds = 600\n", cutoffRow, rightKey, "< 600s >", "cutoff_seconds = 600"},
+		{"shortest cutoff", "[general]\ncutoff_seconds = 1\n", cutoffRow, leftKey, "< 1s >", "cutoff_seconds = 1"},
+		{"cutoff off the shortest", "[general]\ncutoff_seconds = 1\n", cutoffRow, rightKey, "< 5s >", "cutoff_seconds = 5"},
+		{"cutoff down to the shortest", "[general]\ncutoff_seconds = 5\n", cutoffRow, leftKey, "< 1s >", "cutoff_seconds = 1"},
+		{"hand-set cutoff up", "[general]\ncutoff_seconds = 37\n", cutoffRow, rightKey, "< 40s >", "cutoff_seconds = 40"},
+		{"hand-set cutoff down", "[general]\ncutoff_seconds = 37\n", cutoffRow, leftKey, "< 35s >", "cutoff_seconds = 35"},
+		{"region back to auto", "[general]\n" + `region = "ap"` + "\n", regionRow, leftKey, "< auto >", `region = "auto"`},
+		{"region around the end", "[general]\n" + `region = "pbe"` + "\n", regionRow, rightKey, "< auto >", `region = "auto"`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -221,12 +221,12 @@ func TestStepsStopAtTheLimitsAndWrapWhereItMakesSense(t *testing.T) {
 
 func TestAChangeOnlyTouchesItsOwnValue(t *testing.T) {
 	r := newRig(t)
-	r.writeSettings("# my own note\nweapon = \"phantom\"   # the good one\n\nmatches=7\n\n# more notes\ncolumns = [\n  \"name\", # who\n  \"rank\",\n]\n")
+	r.writeSettings("# my own note\n[table]\nweapon = \"phantom\"   # the good one\n\nmatches=7\n\n# more notes\ncolumns = [\n  \"name\", # who\n  \"rank\",\n]\n")
 	r.settingsTab()
 	r.onRow(matchesRow)
 	r.press(rightKey)
 	r.screen("< 8 >")
-	want := "# my own note\nweapon = \"phantom\"   # the good one\n\nmatches=8\n\n# more notes\ncolumns = [\n  \"name\", # who\n  \"rank\",\n]\n"
+	want := "# my own note\n[table]\nweapon = \"phantom\"   # the good one\n\nmatches=8\n\n# more notes\ncolumns = [\n  \"name\", # who\n  \"rank\",\n]\n"
 	if got := r.settingsFile(); got != want {
 		t.Errorf("the rest of the file should stay as it was\n--- want\n%s--- got\n%s", want, got)
 	}
@@ -252,14 +252,14 @@ func downTo(gun string) []string {
 
 func TestAKeyTheFileDoesNotHaveIsAddedWithItsComment(t *testing.T) {
 	r := newRig(t)
-	r.writeSettings("matches = 7")
+	r.writeSettings("[table]\nmatches = 7")
 	r.settingsTab()
 	r.onRow(weaponRow)
 	r.press(enterKey)
 	r.press(downTo("phantom")...)
 	r.press(spaceKey)
 	r.screen("> [x] phantom")
-	want := "matches = 7\n\n# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\n" +
+	want := "[table]\nmatches = 7\n\n# the gun the skin column shows - vandal phantom operator sheriff melee or any other by its name\n" +
 		"# a list like [\"vandal\", \"phantom\"] gives each gun a skin column\nweapon = [\"vandal\", \"phantom\"]\n"
 	if got := r.settingsFile(); got != want {
 		t.Errorf("--- want\n%s--- got\n%s", want, got)
@@ -269,12 +269,12 @@ func TestAKeyTheFileDoesNotHaveIsAddedWithItsComment(t *testing.T) {
 func TestAHandEditShowsOnTheTabAndAChangeKeepsIt(t *testing.T) {
 	r := newRig(t)
 	r.settingsTab()
-	r.writeSettings("matches = 9\nsession_reset_hour = 18\n")
+	r.writeSettings("[table]\nmatches = 9\n\n[general]\nsession_reset_hour = 18\n")
 	r.screen("  matches              9", "  session starts at    18:00")
 	r.onRow(matchesRow)
 	r.press(rightKey)
 	r.screen("< 10 >")
-	if got, want := r.settingsFile(), "matches = 10\nsession_reset_hour = 18\n"; got != want {
+	if got, want := r.settingsFile(), "[table]\nmatches = 10\n\n[general]\nsession_reset_hour = 18\n"; got != want {
 		t.Errorf("--- want\n%s--- got\n%s", want, got)
 	}
 }
@@ -287,18 +287,18 @@ func TestTheHelpLineSaysWhatARowDoesAndWhenItApplies(t *testing.T) {
 		nextLobby bool
 	}{
 		{"columns left to right", false},
+		{"the gun the skin column shows", false},
 		{"recent matches per player", true},
 		{"modes to track", true},
-		{"when the session line starts over", true},
-		{"when every lookup stops", true},
 		{"look up the enemy team", true},
 		{"show the stats of hidden players", true},
 		{"mark enemies who queued together", false},
+		{"pick a player on the lobby tab", false},
 		{"show the game server's city", false},
 		{"show which teammates are in team voice", false},
-		{"pick a player on the lobby tab", false},
+		{"when the session line starts over", true},
+		{"when every lookup stops", true},
 		{"auto reads the region", true},
-		{"the gun the skin column shows", false},
 	} {
 		if row > 0 {
 			r.press(downKey)
@@ -314,7 +314,7 @@ func TestTheHighlightWrapsAroundTheList(t *testing.T) {
 	r := newRig(t)
 	r.settingsTab()
 	r.press(upKey)
-	r.screen("> skin weapon")
+	r.screen("> region")
 	r.press(downKey)
 	r.screen("> columns")
 }
@@ -322,7 +322,7 @@ func TestTheHighlightWrapsAroundTheList(t *testing.T) {
 func TestColumnsSubList(t *testing.T) {
 	t.Run("shows them in table order", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`columns = ["rank", "name"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["rank", "name"]` + "\n")
 		r.settingsTab()
 		r.screen("2 of 18  (enter)")
 		r.press(enterKey)
@@ -330,7 +330,7 @@ func TestColumnsSubList(t *testing.T) {
 	})
 	t.Run("switching one off and on again puts it back", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`columns = ["name", "agent", "rank"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["name", "agent", "rank"]` + "\n")
 		r.settingsTab()
 		r.press(enterKey)
 		r.screen("> [x] name")
@@ -343,7 +343,7 @@ func TestColumnsSubList(t *testing.T) {
 	})
 	t.Run("a column that's off comes on where its row is", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`columns = ["name", "rank"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["name", "rank"]` + "\n")
 		r.settingsTab()
 		r.press(enterKey, downKey, downKey, spaceKey)
 		r.screen("> [x] party")
@@ -353,7 +353,7 @@ func TestColumnsSubList(t *testing.T) {
 	})
 	t.Run("moving swaps it with its neighbor", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`columns = ["name", "agent", "rank"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["name", "agent", "rank"]` + "\n")
 		r.settingsTab()
 		r.press(enterKey, rightKey)
 		r.screen("  [x] agent\n> [x] name")
@@ -364,7 +364,7 @@ func TestColumnsSubList(t *testing.T) {
 	})
 	t.Run("a move stops at both ends", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`columns = ["name", "agent"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["name", "agent"]` + "\n")
 		r.settingsTab()
 		r.press(enterKey, leftKey)
 		settle()
@@ -379,7 +379,7 @@ func TestColumnsSubList(t *testing.T) {
 	})
 	t.Run("the last one has to stay on", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`columns = ["name"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["name"]` + "\n")
 		r.settingsTab()
 		r.press(enterKey, spaceKey)
 		r.screen("at least one column has to stay on", "> [x] name")
@@ -424,7 +424,7 @@ func TestColumnsSubList(t *testing.T) {
 		r.settingsTab()
 		r.press(enterKey)
 		r.screen("> [x] party")
-		r.writeSettings(`columns = ["rank", "name"]` + "\n")
+		r.writeSettings("[table]\n" + `columns = ["rank", "name"]` + "\n")
 		frame := r.screen("[x] rank\n", "[x] name\n", "[ ] agent\n")
 		if strings.Contains(frame, "[x] party") {
 			t.Errorf("party isn't on any more:\n%s", frame)
@@ -498,7 +498,7 @@ func TestWeaponsSubList(t *testing.T) {
 	})
 	t.Run("a single gun is saved as a name", func(t *testing.T) {
 		r := newRig(t)
-		r.writeSettings(`weapon = ["vandal", "phantom"]` + "\n")
+		r.writeSettings("[table]\n" + `weapon = ["vandal", "phantom"]` + "\n")
 		r.settingsTab()
 		r.onRow(weaponRow)
 		r.press(enterKey, spaceKey)
@@ -517,10 +517,10 @@ func TestWeaponsSubList(t *testing.T) {
 
 func TestABrokenFileIsKeptAsABackupAndReplaced(t *testing.T) {
 	r := newRig(t)
-	r.writeSettings(`matches = 7` + "\n")
+	r.writeSettings("[table]\nmatches = 7\n")
 	r.settingsTab()
 	r.screen("  matches              7")
-	broken := "matches = 7\ncolumns = [\"name\",\n"
+	broken := "[table]\nmatches = 7\ncolumns = [\"name\",\n"
 	r.writeSettings(broken)
 	r.screen("using the last good settings", "  matches              7")
 
@@ -546,7 +546,7 @@ func TestABrokenFileIsKeptAsABackupAndReplaced(t *testing.T) {
 
 func TestADeletedFileIsWrittenAgainWithTheCurrentSettings(t *testing.T) {
 	r := newRig(t)
-	r.writeSettings(`weapon = "phantom"` + "\n")
+	r.writeSettings("[table]\n" + `weapon = "phantom"` + "\n")
 	r.settingsTab()
 	if err := os.Remove(filepath.Join(r.dir, "lowkey.toml")); err != nil {
 		t.Fatal(err)
@@ -703,7 +703,7 @@ func TestMatchesFromTheTabApplyToTheNextLobby(t *testing.T) {
 
 func TestSteppingTheRegionBackToAutoGoesBackToTheGamesRegion(t *testing.T) {
 	r := newRig(t, agentSelectLobby)
-	r.writeSettings(`region = "ap"` + "\n")
+	r.writeSettings("[general]\n" + `region = "ap"` + "\n")
 	r.settingsTab()
 	r.subscribed()
 	r.settled("[SETTINGS]")
@@ -730,14 +730,14 @@ func TestKeysAreReadFromEveryWayTheConsoleSendsThem(t *testing.T) {
 		keys  []string
 		shows string
 	}{
-		{"application mode arrows", []string{"\x1bOB"}, "> matches"},
-		{"arrows with a modifier", []string{"\x1b[1;2B"}, "> matches"},
-		{"several keys in one read", []string{downKey + downKey}, "> modes"},
-		{"a key cut in half by a read", []string{"\x1b[", "B"}, "> matches"},
-		{"an application mode key cut in half", []string{"\x1bO", "B"}, "> matches"},
-		{"sequences it doesn't know", []string{"\x1b[3~\x1b[15~x", downKey}, "> matches"},
-		{"a sequence that breaks off", []string{"\x1b[\x01", downKey}, "> matches"},
-		{"letters from another alphabet", []string{"שלום", downKey}, "> matches"},
+		{"application mode arrows", []string{"\x1bOB"}, "> skin weapons"},
+		{"arrows with a modifier", []string{"\x1b[1;2B"}, "> skin weapons"},
+		{"several keys in one read", []string{downKey + downKey}, "> matches"},
+		{"a key cut in half by a read", []string{"\x1b[", "B"}, "> skin weapons"},
+		{"an application mode key cut in half", []string{"\x1bO", "B"}, "> skin weapons"},
+		{"sequences it doesn't know", []string{"\x1b[3~\x1b[15~x", downKey}, "> skin weapons"},
+		{"a sequence that breaks off", []string{"\x1b[\x01", downKey}, "> skin weapons"},
+		{"letters from another alphabet", []string{"שלום", downKey}, "> skin weapons"},
 		{"an escape with a letter behind it", []string{"\x1bx"}, "[LOBBY]"},
 	}
 	for _, c := range cases {
@@ -756,12 +756,12 @@ func TestLongListsScrollInAShortWindow(t *testing.T) {
 		r := newRig(t)
 		r.con.setHeight(12)
 		frame := r.settingsTab()
-		if !strings.Contains(frame, "> columns") || strings.Contains(frame, "skin weapon") {
+		if !strings.Contains(frame, "TABLE") || strings.Contains(frame, "region") {
 			t.Errorf("the top of the list should show:\n%s", frame)
 		}
-		r.onRow(weaponRow)
-		frame = r.screen("> skin weapon")
-		if strings.Contains(frame, "columns ") {
+		r.onRow(regionRow)
+		frame = r.screen("> region", "GENERAL")
+		if strings.Contains(frame, "columns ") || strings.Contains(frame, "TABLE") {
 			t.Errorf("the top should have scrolled off:\n%s", frame)
 		}
 		if !strings.HasPrefix(frame, " LOBBY  [SETTINGS]") {
@@ -802,7 +802,8 @@ func TestATerminalRedrawsTheTabsInPlace(t *testing.T) {
 	r.press(tabKey)
 	r.screen("[LOBBY]")
 	r.press(tabKey)
-	r.press(downKey, rightKey)
+	r.onRow(matchesRow)
+	r.press(rightKey)
 	frame := r.screen("< 14 >")
 	if !strings.HasPrefix(frame, "\x1b[H") || !strings.HasSuffix(frame, "\x1b[J") {
 		t.Errorf("a redraw should start at the top and clear what's left below:\n%q", frame)

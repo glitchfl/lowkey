@@ -95,40 +95,72 @@ func editedInPlace(raw []byte, changed []field, next Settings) ([]byte, bool) {
 	return data, true
 }
 
-// setKey swaps a key's value - a key the file doesn't have yet goes at the end with its comment
+// setKey swaps a key's value - a key the file doesn't have yet goes at the end of its section with its
+// comment - and a section it doesn't have yet goes at the end of the file
 func setKey(data []byte, fd field, value string) []byte {
-	if start, end, ok := findValue(data, fd.key); ok {
-		return slices.Concat(data[:start], []byte(value), data[end:])
+	l := scanLayout(data)
+	if v, ok := l.values[sectionKey{fd.section, fd.key}]; ok {
+		return slices.Concat(data[:v.start], []byte(value), data[v.end:])
 	}
-	out := bytes.Clone(data)
-	if !bytes.HasSuffix(out, []byte("\n")) {
-		out = append(out, '\n')
+	block := "\n" + fd.block(value)
+	at, ok := l.ends[fd.section]
+	if !ok {
+		at, block = len(data), "\n["+fd.section+"]\n"+block
 	}
-	return append(append(out, '\n'), fd.block(value)...)
+	if at == len(data) && len(data) > 0 && !bytes.HasSuffix(data, []byte("\n")) {
+		block = "\n" + block
+	}
+	return slices.Concat(data[:at], []byte(block), data[at:])
 }
 
 var utf8BOM = []byte("\xef\xbb\xbf")
 
-// findValue scans the file's top-level keys for where a value sits - the toml library doesn't say
-func findValue(data []byte, key string) (start, end int, ok bool) {
+type sectionKey struct{ section, key string }
+
+type span struct{ start, end int }
+
+// layout is where each value sits and where each section's last line ends - the toml library doesn't say
+type layout struct {
+	values map[sectionKey]span
+	ends   map[string]int
+}
+
+// scanLayout stops at anything it doesn't follow - a key past that point reads as missing so adding it
+// makes a duplicate - that fails to parse and the file is replaced whole
+func scanLayout(data []byte) layout {
+	l := layout{values: map[sectionKey]span{}, ends: map[string]int{}}
+	section := ""
 	i := len(data) - len(bytes.TrimPrefix(data, utf8BOM))
 	for {
 		i = skipBlank(data, i)
 		if i >= len(data) {
-			return 0, 0, false
+			return l
+		}
+		if data[i] == '[' {
+			end := bytes.IndexByte(data[i:], ']')
+			if end < 0 || data[i+1] == '[' {
+				return l
+			}
+			section = string(bytes.TrimSpace(data[i+1 : i+end]))
+			l.ends[section] = afterLine(data, i+end)
+			i += end + 1
+			continue
 		}
 		name, next := scanKey(data, i)
 		next = skipSpaces(data, next)
 		if next >= len(data) || data[next] != '=' {
-			return 0, 0, false
+			return l
 		}
-		start = skipSpaces(data, next+1)
-		end = scanValue(data, start)
-		if name == key {
-			return start, end, true
-		}
+		start := skipSpaces(data, next+1)
+		end := scanValue(data, start)
+		l.values[sectionKey{section, name}] = span{start, end}
+		l.ends[section] = afterLine(data, end)
 		i = end
 	}
+}
+
+func afterLine(data []byte, i int) int {
+	return min(lineEnd(data, i)+1, len(data))
 }
 
 func skipSpaces(data []byte, i int) int {

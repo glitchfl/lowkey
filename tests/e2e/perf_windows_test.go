@@ -98,7 +98,7 @@ func TestIdleUsesAlmostNoCPU(t *testing.T) {
 
 func TestPeakMemoryStaysUnder100MB(t *testing.T) {
 	fr := startRiot(t, fakeriot.LobbyWorld(time.Now(), true))
-	lk := startLowkey(t, fr, "cutoff_seconds = 300\n")
+	lk := startLowkey(t, fr, "[general]\ncutoff_seconds = 300\n")
 	lk.screen("waiting for the next match", "SESSION")
 	subscribed(t, fr)
 	h := handle(t, lk.cmd.Process.Pid)

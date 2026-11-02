@@ -92,7 +92,7 @@ func TestNameLookupsNeverIncludeHiddenPlayersWhateverTheSetting(t *testing.T) {
 
 func TestEnemyLookupsOffKeepsEnemiesOutOfTheNameLookup(t *testing.T) {
 	r := newRig(t, matchLobby, func(w *fakeriot.World) { w.Player(enemy1).Name, w.Player(enemy1).Tag = "EnemyOne", "E1" })
-	r.writeSettings("enemy_lookups = false\n")
+	r.writeSettings("[players]\nenemy_lookups = false\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()

@@ -281,7 +281,7 @@ func TestGoldenStatusLines(t *testing.T) {
 				eventually(r.t, "a retry", func() bool { return r.fr.Answered(path, 429) == i+2 })
 			}
 		}, "some stats are missing"},
-		{"settings-error", ranked, func(r *rig) { r.writeSettings(`columns = ["kda"]` + "\n") }, `unknown column "kda"`},
+		{"settings-error", ranked, func(r *rig) { r.writeSettings("[table]\n" + `columns = ["kda"]` + "\n") }, `unknown column "kda"`},
 		{"unreachable", agentSelectLobby, func(r *rig) {
 			for _, svc := range []string{"pd", "glz", "shared"} {
 				r.fr.AddFault(fakeriot.Fault{Service: svc, Drop: true})

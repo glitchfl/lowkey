@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/glitchfl/lowkey/internal/lobbytable"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
 	"github.com/glitchfl/lowkey/internal/stats"
@@ -140,7 +141,7 @@ func (e *engine) lookUp(p *player, want parts) {
 		e.lookUpRank(p)
 	}
 	if want&wantTrend != 0 {
-		e.lookUpTrend(p, 5)
+		e.lookUpTrend(p, lobbytable.TrendGames)
 	}
 	if want&wantSample != 0 {
 		e.lookUpSample(p)

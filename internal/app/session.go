@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/lobbytable"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
 	"github.com/glitchfl/lowkey/internal/stats"
@@ -82,9 +83,32 @@ func (e *engine) fetchUpdatesPage(s *session, start int) {
 		})
 }
 
-// useSession gives your row the session's competitive updates - no second request for your trend
-func (p *player) useSession(s *session) {
-	p.updates, p.updatesDone, p.updatesErr = s.updates, true, s.err
+// facts are what the lobby table and player details read - s is your session when p is you since its
+// competitive updates are your trend and there's no second request for it
+func (p *player) facts(s *session) lobbytable.Player {
+	f := lobbytable.Player{
+		PUUID:   p.puuid,
+		MMR:     fact(p.mmrDone, p.mmrErr, p.mmr),
+		Updates: fact(p.updatesDone, p.updatesErr, p.updates),
+		Matches: fact(p.historyDone, p.historyErr, p.loaded()),
+	}
+	if p.nameDone {
+		f.Name = lobbytable.Fact[string]{State: lobbytable.Ready, Value: p.name}
+	}
+	if s != nil && s.done {
+		f.Updates = fact(true, s.err, s.updates)
+	}
+	return f
+}
+
+func fact[T any](done bool, err error, v T) lobbytable.Fact[T] {
+	switch {
+	case !done:
+		return lobbytable.Fact[T]{State: lobbytable.Loading, Value: v}
+	case err != nil:
+		return lobbytable.Fact[T]{State: lobbytable.Failed, Value: v}
+	}
+	return lobbytable.Fact[T]{State: lobbytable.Ready, Value: v}
 }
 
 func (s *session) line() string {
@@ -95,12 +119,5 @@ func (s *session) line() string {
 		return fmt.Sprintf("SESSION · unavailable (%v)", s.err)
 	}
 	r := stats.SessionOf(s.self, s.updates, s.since, s.matches)
-	return fmt.Sprintf("SESSION · %dW %dL %s RR since %s", r.Wins, r.Losses, signed(r.RR), s.since.Format("15:04"))
-}
-
-func signed(n int) string {
-	if n < 0 {
-		return strconv.Itoa(n)
-	}
-	return "+" + strconv.Itoa(n)
+	return fmt.Sprintf("SESSION · %dW %dL %s RR since %s", r.Wins, r.Losses, lobbytable.Signed(r.RR), s.since.Format("15:04"))
 }

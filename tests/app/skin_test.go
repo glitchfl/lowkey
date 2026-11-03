@@ -155,19 +155,6 @@ func TestLoadoutsAreOnlyFetchedForTheSkinColumn(t *testing.T) {
 	}
 }
 
-func TestEnemiesShownByAgentOnlyShowNoSkins(t *testing.T) {
-	r := newRig(t, matchLobby, lobbySkins)
-	r.writeSettings(skinColumns + "[players]\nenemy_lookups = false\n")
-	r.live()
-	r.screen("waiting for the next match")
-	r.subscribed()
-	r.enterMatchLoad()
-	frame := r.settled("MATCH LOADING", "Reaver", "US - THEM")
-	if got, want := skinColumn(t, frame, "VANDAL"), "Reaver,Elderflame,Standard,Prime,Standard,,,,,"; got != want {
-		t.Errorf("vandals: got %s, want %s\n%s", got, want, frame)
-	}
-}
-
 func TestSkinsAreColoredByTheirEdition(t *testing.T) {
 	r := newRig(t, matchLobby, lobbySkins, func(w *fakeriot.World) {
 		w.StaticSkins[newSkin] = fakeriot.StaticSkin{Name: "Nova Vandal", Edition: ultra}

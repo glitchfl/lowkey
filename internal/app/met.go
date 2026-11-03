@@ -32,7 +32,7 @@ func (lv *live) remember(lob *lobby) {
 	}
 	past := pastLobby{matchID: lob.matchID, at: lob.started}
 	for _, m := range lob.members {
-		if m.hidden {
+		if m.vis.Hidden {
 			lv.everHidden[m.puuid] = true
 			continue
 		}

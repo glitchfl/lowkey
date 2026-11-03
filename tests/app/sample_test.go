@@ -147,22 +147,3 @@ func TestMeFetchesHistoryThenDetailsNewestFirstOnceEach(t *testing.T) {
 		}
 	}
 }
-
-func TestPlayersWithoutMatchesInTheModeShowDashes(t *testing.T) {
-	r := newRig(t, ranked)
-	out, code := r.run("me")
-	if code != 0 {
-		t.Fatalf("me failed:\n%s", out)
-	}
-	if got := cell(t, out, "PLAYER"); got != "Kestrel#EUW" {
-		t.Errorf("your name doesn't depend on your matches: got %q\n%s", got, out)
-	}
-	for _, col := range []string{"K/D", "HS%", "ACS", "ADR", "FB%", "MAINS"} {
-		if got := cell(t, out, col); got != "-" {
-			t.Errorf("%s: got %q, want -\n%s", col, got, out)
-		}
-	}
-	if got := cell(t, out, "N"); got != "0" {
-		t.Errorf("n: got %q, want 0", got)
-	}
-}

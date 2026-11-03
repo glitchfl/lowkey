@@ -6,11 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/glitchfl/lowkey/internal/lobbytable"
 	"github.com/glitchfl/lowkey/internal/render"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
-
-const pickMarker = "▸"
 
 // pressLobby picks a player with the arrows and opens their details with enter - like the settings tab
 // a press never asks Riot for anything
@@ -122,22 +121,7 @@ var detailColumns = struct {
 // mid-round as at match load - a hidden player gets all of it except their name and what ties them to others
 func (lv *live) detailsScreen(s *render.Screen, lob *lobby, m *member, title string) {
 	s.Header = lv.lobbyTitle(lob, title)
-	who := lv.memberRow(m, lob.mode)
-	if mark, ok := lv.markers(lob)[m.puuid]; ok {
-		who["party"] = render.Cell{Text: mark}
-	}
-	if lob.mode.Teams && lob.kind == lobbyMatchLoad {
-		who["team"] = render.Cell{Text: "enemy"}
-		if m.team == lob.ownTeam {
-			who["team"] = render.Cell{Text: "ally"}
-		}
-	}
-	if m.level > 0 {
-		who["level"] = render.Cell{Text: strconv.Itoa(m.level)}
-	}
-	if e, ok := lv.metIndex(lob.matchID)[m.puuid]; ok && !m.hidden && m.p != nil {
-		who["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
-	}
+	who, _ := lobbytable.Build(lv.tableInput(lob)).Row(m.puuid)
 	s.Tables = []render.Table{{Columns: detailColumns.who, Rows: []render.Row{who}}}
 	p := m.p
 	if p == nil {
@@ -148,7 +132,7 @@ func (lv *live) detailsScreen(s *render.Screen, lob *lobby, m *member, title str
 	if t, ok := lv.tendencies(lob, p); ok {
 		s.Tables = append(s.Tables, t)
 	}
-	s.Tables = append(s.Tables, lv.matchesTable(p, lob.mode), lv.gunsTable(lob, m), lv.actsTable(p))
+	s.Tables = append(s.Tables, lv.matchesTable(m, lob.mode), lv.gunsTable(lob, m), lv.actsTable(p))
 }
 
 // tendencies reads only the matches already fetched - site scouting needs a mode with sites to read
@@ -235,7 +219,7 @@ func (lv *live) modesTable(p *player) render.Table {
 		return t
 	}
 	for _, r := range stats.ThisAct(p.mmr, *lv.eng.acts) {
-		row := render.Row{"mode": {Text: r.Mode.Name}, "games": {Text: strconv.Itoa(r.Games)}, "wl": dash, "wr": dash}
+		row := render.Row{"mode": {Text: r.Mode.Name}, "games": {Text: strconv.Itoa(r.Games)}, "wl": lobbytable.Dash, "wr": lobbytable.Dash}
 		if r.Mode.WinRate {
 			row["wl"], row["wr"] = wlCells(r.Wins, r.Losses)
 		}
@@ -282,9 +266,9 @@ func (lv *live) agentsTable(p *player, mode stats.Mode) render.Table {
 
 func (lv *live) sampleRow(s stats.Sample, mode stats.Mode) render.Row {
 	row := render.Row{}
-	sampleCells(row, s, mode, lv.data)
+	lobbytable.SampleCells(row, s, mode, lv.data)
 	row["kda"] = render.Cell{Text: fmt.Sprintf("%.2f", s.KDA())}
-	row["wl"] = dash
+	row["wl"] = lobbytable.Dash
 	if mode.WinRate {
 		row["wl"] = render.Cell{Text: fmt.Sprintf("%d-%d", s.Wins, s.Losses)}
 	}
@@ -298,11 +282,12 @@ func (lv *live) agentName(id string) render.Cell {
 	return render.Cell{Text: "?"}
 }
 
-func (lv *live) matchesTable(p *player, mode stats.Mode) render.Table {
+func (lv *live) matchesTable(m *member, mode stats.Mode) render.Table {
 	t := render.Table{Columns: detailColumns.matches}
+	p := m.p
 	earned := map[string]int{}
-	if p.updatesErr == nil {
-		for _, u := range p.updates {
+	if u := lv.facts(m).Updates; u.State != lobbytable.Failed {
+		for _, u := range u.Value {
 			earned[u.MatchID] = u.Earned
 		}
 	}
@@ -318,8 +303,8 @@ func (lv *live) matchesTable(p *player, mode stats.Mode) render.Table {
 			"agent": lv.agentName(mp.Agent),
 			"kda":   {Text: fmt.Sprintf("%d/%d/%d", mp.Kills, mp.Deaths, mp.Assists)},
 			"kd":    {Text: fmt.Sprintf("%.2f", s.KD())},
-			"hs":    percentCell(s.HS()),
-			"acs":   dash, "adr": dash, "fb": dash,
+			"hs":    lobbytable.PercentCell(s.HS()),
+			"acs":   lobbytable.Dash, "adr": lobbytable.Dash, "fb": lobbytable.Dash,
 		}
 		row["map"] = render.Cell{Text: "?"}
 		if name, ok := lv.data.MapName(m.Map); ok {
@@ -327,11 +312,11 @@ func (lv *live) matchesTable(p *player, mode stats.Mode) render.Table {
 		}
 		row["result"] = render.Cell{Text: result(m, mp.Team, mode)}
 		if mode.Rounds {
-			row["acs"], row["adr"] = numberCell(s.ACS()), numberCell(s.ADR())
+			row["acs"], row["adr"] = lobbytable.NumberCell(s.ACS()), lobbytable.NumberCell(s.ADR())
 			row["fb"] = render.Cell{Text: strconv.Itoa(mp.FirstBloods)}
 		}
 		if rr, ok := earned[m.ID]; ok {
-			row["rr"] = render.Cell{Text: signed(rr)}
+			row["rr"] = render.Cell{Text: lobbytable.Signed(rr)}
 		}
 		t.Rows = append(t.Rows, row)
 	}
@@ -390,7 +375,7 @@ func (lv *live) gunsTable(lob *lobby, m *member) render.Table {
 		if name == "" {
 			name = "?"
 		}
-		skin := lv.skinCell(g.Skin)
+		skin := lobbytable.SkinCell(lv.data, g.Skin)
 		if skin.Text == "Standard" && g.Buddy == "" {
 			standard = append(standard, name)
 			continue
@@ -401,7 +386,7 @@ func (lv *live) gunsTable(lob *lobby, m *member) render.Table {
 			if !ok {
 				buddy = "?"
 			}
-			row["buddy"] = render.Cell{Text: cut(buddy, 24)}
+			row["buddy"] = render.Cell{Text: lobbytable.Cut(buddy, 24)}
 		}
 		t.Rows = append(t.Rows, row)
 	}
@@ -417,8 +402,8 @@ func (lv *live) actsTable(p *player) render.Table {
 		return t
 	}
 	for _, a := range stats.ActHistory(p.mmr, *lv.eng.acts, lv.data.CurrentTier) {
-		row := render.Row{"act": {Text: a.Label}, "rank": tierCell(lv.data, a.Tier, ""), "peak": tierCell(lv.data, a.Peak, "")}
-		row["wl"], row["wr"] = dash, dash
+		row := render.Row{"act": {Text: a.Label}, "rank": lobbytable.TierCell(lv.data, a.Tier, ""), "peak": lobbytable.TierCell(lv.data, a.Peak, "")}
+		row["wl"], row["wr"] = lobbytable.Dash, lobbytable.Dash
 		if a.Wins+a.Losses > 0 {
 			row["wl"], row["wr"] = wlCells(a.Wins, a.Losses)
 		}

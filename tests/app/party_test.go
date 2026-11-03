@@ -9,7 +9,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/fakeriot"
 )
 
-// marker is the party column - the first rune of the nth line under the column header
+// marker is the party column under the column header
 func marker(t *testing.T, frame string, nth int) string {
 	t.Helper()
 	lines := strings.Split(frame, "\n")
@@ -19,10 +19,14 @@ func marker(t *testing.T, frame string, nth int) string {
 			if len(row) == 0 || row[0] == ' ' {
 				return ""
 			}
-			if headerIndex([]rune(l), []rune("PLAYER")) == 0 {
+			pIdx := headerIndex([]rune(l), []rune("PLAYER"))
+			if pIdx == 0 {
 				return ""
 			}
-			return string(row[0])
+			if len(row) < pIdx {
+				pIdx = len(row)
+			}
+			return strings.TrimSpace(string(row[:pIdx]))
 		}
 	}
 	t.Fatalf("no table in:\n%s", frame)
@@ -35,6 +39,16 @@ func together(w *fakeriot.World, id string, ago time.Duration, team string, puui
 		Teams: []fakeriot.TeamResult{{ID: team, Won: true}}}
 	for _, p := range puuids {
 		m.Players = append(m.Players, fakeriot.MatchPlayer{PUUID: p, Team: team, Agent: fakeriot.Sova, Score: 3000, Rounds: 20, Kills: 15, Deaths: 15})
+	}
+	w.AddMatch(m)
+}
+
+// togetherInParty adds a match where listed players were on the same team and party
+func togetherInParty(w *fakeriot.World, id string, ago time.Duration, team string, partyID string, puuids ...string) {
+	m := &fakeriot.Match{ID: id, Queue: "competitive", Map: fakeriot.MapAscent, Mode: fakeriot.ModeBomb, Start: testStart.Add(-ago),
+		Teams: []fakeriot.TeamResult{{ID: team, Won: true}}}
+	for _, p := range puuids {
+		m.Players = append(m.Players, fakeriot.MatchPlayer{PUUID: p, Team: team, PartyID: partyID, Agent: fakeriot.Sova, Score: 3000, Rounds: 20, Kills: 15, Deaths: 15})
 	}
 	w.AddMatch(m)
 }
@@ -128,4 +142,92 @@ func TestDeathmatchHasNoLikelyParties(t *testing.T) {
 			t.Errorf("line %d has a party marker %q in deathmatch\n%s", line, got, frame)
 		}
 	}
+}
+
+func TestExactEnemyParties(t *testing.T) {
+	setup := func(w *fakeriot.World) {
+		together(w, matchID(1), 30*time.Hour, "Blue", ally1, ally2)
+		together(w, matchID(2), 31*time.Hour, "Red", ally1, ally2)
+		togetherInParty(w, matchID(3), 20*time.Hour, "Red", "party-enemy-a", enemy1, enemy2)
+		together(w, matchID(4), 10*time.Hour, "Blue", enemy4, enemy5)
+		together(w, matchID(5), 11*time.Hour, "Blue", enemy4, enemy5)
+	}
+	matchLoad := func(t *testing.T, settings string, setup func(*fakeriot.World)) func(int) string {
+		r := newRig(t, matchLobby, setup)
+		r.writeSettings(settings)
+		r.live()
+		r.screen("waiting for the next match")
+		r.subscribed()
+		r.enterAgentSelect()
+		r.enterMatchLoad()
+		frame := r.settled("MATCH LOADING", "US - THEM", "Plat2 10")
+		t.Cleanup(func() {
+			if t.Failed() {
+				t.Log("\n" + frame)
+			}
+		})
+		return func(line int) string { return marker(t, frame, line) }
+	}
+	on := "[players]\nexact_enemy_parties = true\n"
+
+	t.Run("a shared party ID gives a letter and shared teams still give a shape", func(t *testing.T) {
+		m := matchLoad(t, on, setup)
+		ally := m(3)
+		if ally == "" || ally == "●" || m(4) != ally {
+			t.Errorf("allies one and two should share a likely-party symbol, got %q and %q", m(3), m(4))
+		}
+		if m(9) != "[A]" || m(10) != "[A]" {
+			t.Errorf("enemies one and two should be party [A], got %q and %q", m(9), m(10))
+		}
+		if m(11) != "" {
+			t.Errorf("the hidden enemy should have no marker, got %q", m(11))
+		}
+		if m(12) == "" || m(12) != m(13) || m(12) == ally || strings.HasPrefix(m(12), "[") {
+			t.Errorf("enemies four and five should share their own likely-party shape, got %q and %q (allies %q)", m(12), m(13), ally)
+		}
+	})
+
+	t.Run("off brings back the shapes alone", func(t *testing.T) {
+		m := matchLoad(t, "[players]\nexact_enemy_parties = false\n", setup)
+		if strings.HasPrefix(m(9), "[") || strings.HasPrefix(m(10), "[") {
+			t.Errorf("no letters when it's off, got %q and %q", m(9), m(10))
+		}
+		if m(12) == "" || m(12) != m(13) {
+			t.Errorf("enemies four and five should share a likely symbol, got %q and %q", m(12), m(13))
+		}
+	})
+
+	t.Run("two parties get different letters", func(t *testing.T) {
+		m := matchLoad(t, on, func(w *fakeriot.World) {
+			togetherInParty(w, matchID(10), 10*time.Hour, "Red", "party-alpha", enemy1, enemy2)
+			togetherInParty(w, matchID(11), 12*time.Hour, "Red", "party-beta", enemy4, enemy5)
+		})
+		if m(9) != "[A]" || m(10) != "[A]" {
+			t.Errorf("enemies one and two should be [A], got %q and %q", m(9), m(10))
+		}
+		if m(12) != "[B]" || m(13) != "[B]" {
+			t.Errorf("enemies four and five should be [B], got %q and %q", m(12), m(13))
+		}
+	})
+
+	t.Run("two guessed parties get different shapes", func(t *testing.T) {
+		m := matchLoad(t, on, func(w *fakeriot.World) {
+			together(w, matchID(10), 10*time.Hour, "Red", enemy1, enemy2)
+			together(w, matchID(11), 11*time.Hour, "Red", enemy1, enemy2)
+			together(w, matchID(12), 12*time.Hour, "Red", enemy4, enemy5)
+			together(w, matchID(13), 13*time.Hour, "Red", enemy4, enemy5)
+		})
+		if m(9) == "" || m(9) != m(10) || m(12) == "" || m(12) != m(13) || m(9) == m(12) {
+			t.Errorf("want one shape for enemies one and two and another for four and five, got %q %q %q %q", m(9), m(10), m(12), m(13))
+		}
+	})
+
+	t.Run("a hidden player never gets a letter or gives one", func(t *testing.T) {
+		m := matchLoad(t, on, func(w *fakeriot.World) {
+			togetherInParty(w, matchID(10), 10*time.Hour, "Red", "party-hidden", enemy1, enemy3)
+		})
+		if m(9) != "" || m(11) != "" {
+			t.Errorf("enemy one and the hidden enemy shouldn't be marked, got %q and %q", m(9), m(11))
+		}
+	})
 }

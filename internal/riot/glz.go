@@ -7,11 +7,12 @@ import (
 )
 
 type Roster struct {
-	MatchID  string
-	Queue    string
-	HasQueue bool
-	Map      string
-	Mode     string
+	MatchID   string
+	Queue     string
+	HasQueue  bool
+	Map       string
+	Mode      string
+	GamePodID string
 	// Over is a core-game match that already ended - Riot keeps answering for it after the end
 	Over bool
 	// Range is the Range's own core-game match - lowkey treats the Range as the menus
@@ -80,11 +81,12 @@ func DecodeMatchID(body []byte) (string, error) {
 // DecodePregame reads your own team only - Riot never fills EnemyTeam during agent select
 func DecodePregame(body []byte) (Roster, error) {
 	var v struct {
-		ID       string  `json:"ID"`
-		MapID    string  `json:"MapID"`
-		Mode     string  `json:"Mode"`
-		QueueID  *string `json:"QueueID"`
-		AllyTeam *struct {
+		ID        string  `json:"ID"`
+		MapID     string  `json:"MapID"`
+		Mode      string  `json:"Mode"`
+		QueueID   *string `json:"QueueID"`
+		GamePodID string  `json:"GamePodID"`
+		AllyTeam  *struct {
 			TeamID  string         `json:"TeamID"`
 			Players []rosterPlayer `json:"Players"`
 		} `json:"AllyTeam"`
@@ -92,7 +94,7 @@ func DecodePregame(body []byte) (Roster, error) {
 	if err := json.Unmarshal(body, &v); err != nil {
 		return Roster{}, fmt.Errorf("pregame match isn't JSON: %w", err)
 	}
-	r := Roster{MatchID: strings.ToLower(v.ID), Map: v.MapID, Mode: v.Mode}
+	r := Roster{MatchID: strings.ToLower(v.ID), Map: v.MapID, Mode: v.Mode, GamePodID: v.GamePodID}
 	if v.QueueID != nil {
 		r.Queue, r.HasQueue = *v.QueueID, true
 	}
@@ -111,6 +113,7 @@ func DecodeCoreGame(body []byte) (Roster, error) {
 		MatchID          string         `json:"MatchID"`
 		State            string         `json:"State"`
 		ProvisioningFlow string         `json:"ProvisioningFlow"`
+		GamePodID        string         `json:"GamePodID"`
 		MapID            string         `json:"MapID"`
 		ModeID           string         `json:"ModeID"`
 		Players          []rosterPlayer `json:"Players"`
@@ -123,7 +126,8 @@ func DecodeCoreGame(body []byte) (Roster, error) {
 	}
 	r := Roster{
 		MatchID: strings.ToLower(v.MatchID), Map: v.MapID, Mode: v.ModeID,
-		Over: v.State == "CLOSED" || v.State == "POST_GAME", Range: v.ProvisioningFlow == FlowRange,
+		GamePodID: v.GamePodID,
+		Over:      v.State == "CLOSED" || v.State == "POST_GAME", Range: v.ProvisioningFlow == FlowRange,
 	}
 	if v.MatchmakingData != nil {
 		r.Queue, r.HasQueue = v.MatchmakingData.QueueID, true

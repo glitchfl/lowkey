@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ const (
 	recentEvents    = 32
 	finishedMatches = 8
 	redrawEvery     = 250 * time.Millisecond
+	wideColumns     = 150
 )
 
 var phaseTitles = map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}
@@ -121,6 +123,15 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
 	lv.tab.cfg = lv.cfg
+	moved, err := lv.cfg.Moved()
+	if err != nil {
+		lv.log.printf("%v", err)
+	}
+	lv.tab.firstOpen = moved
+	// a new window opens 120 columns wide and a full lobby wants more - a terminal that can't resize ignores it
+	if env.Console.Terminal && env.Console.Width() < wideColumns {
+		fmt.Fprintf(env.Console.Out, "\x1b[8;%d;%dt", env.Console.Height(), wideColumns)
+	}
 	if env.Console.Keyboard != nil {
 		if keys, restore, ok := env.Console.Keyboard(); ok {
 			defer restore()
@@ -583,7 +594,7 @@ func (lv *live) screen() render.Screen {
 func (lv *live) columns() []render.Column {
 	cfg := lv.cfg.Settings()
 	var cols []render.Column
-	if lv.keyboard {
+	if lv.canPick() {
 		cols = append(cols, render.Column{Key: "pick"})
 	}
 	for _, c := range render.Columns(cfg.Columns) {
@@ -595,6 +606,14 @@ func (lv *live) columns() []render.Column {
 			c.Key, c.Header = skinKey(gun), strings.ToUpper(gun)
 			cols = append(cols, c)
 		}
+	}
+	// the voice column has no place in the columns setting - outside agent select it has no cells and so hides
+	if cfg.VoiceCheck {
+		at := slices.IndexFunc(cols, func(c render.Column) bool { return c.Key == "agent" })
+		if at < 0 {
+			at = len(cols) - 1
+		}
+		cols = slices.Insert(cols, at+1, render.ColumnVoice)
 	}
 	return cols
 }
@@ -620,6 +639,10 @@ func (lv *live) shown() render.Screen {
 // redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
+	// switching player details off closes an open one - and turning it back on later starts with nobody picked
+	if !lv.canPick() {
+		lv.pick, lv.details = "", false
+	}
 	if lv.rec != nil && lv.onSettings {
 		lv.recordScreen()
 	}

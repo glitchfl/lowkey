@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"fmt"
 	"maps"
 	"math"
@@ -25,9 +26,12 @@ type lobby struct {
 	mode    stats.Mode
 	known   bool // mode and map came from the roster
 	mapURL  string
+	pod     string
 	ownTeam string
 	members []*member
 	party   *party
+	voice   map[string]string // what the local client says about each player's voice - asked again with every agent select roster
+	asking  bool              // a voice question is out
 	started time.Time
 	rounds  int // rounds played - what picks the side in the header
 	// skins come once per match load and only while the skin column is on
@@ -99,7 +103,7 @@ func (lv *live) startMatchLoad(matchID string) {
 		lv.rateLimit, lv.problem = rateFine, ""
 	}
 	if prev != nil {
-		lob.mode, lob.known, lob.mapURL, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.ownTeam
+		lob.mode, lob.known, lob.mapURL, lob.pod, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.pod, prev.ownTeam
 		lob.members, lob.party = prev.members, prev.party
 		// agent select is over so whatever was still hovered got locked in
 		for _, m := range lob.members {
@@ -296,6 +300,12 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 			lv.sess = sess
 		}
 	}
+	if roster.GamePodID != "" {
+		lob.pod = roster.GamePodID
+	}
+	if lob.kind == lobbyAgentSelect {
+		lv.fetchVoice(lob)
+	}
 	cfg := lv.cfg.Settings()
 	for _, rp := range roster.Players {
 		if rp.PUUID == lv.self {
@@ -360,8 +370,8 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lv.eng.lookUpNames(named)
-	// the details list every gun - so with a keyboard the skins come even with the skin column off
-	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.keyboard) {
+	// the details list every gun - so while they can be opened the skins come even with the skin column off
+	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.canPick()) {
 		lv.fetchLoadouts(lob)
 	}
 }
@@ -432,6 +442,11 @@ func (lv *live) lobbyTitle(lob *lobby, title string) string {
 		}
 		title += " · " + lob.mode.Name
 	}
+	if lv.cfg.Settings().ServerPod && (lv.phase == phaseMatchLoad || lv.phase == phaseInRound) {
+		if pod := riot.PodName(lob.pod); pod != "" {
+			title += " · POD: " + pod
+		}
+	}
 	return title
 }
 
@@ -443,9 +458,10 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	marks := lv.markers(lob)
 	met := lv.metIndex(lob.matchID)
 	skins := lv.skinCells(lob)
+	voice := lv.voiceCells(lob)
 	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
 	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
-		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met, skins)}
+		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met, skins, voice)}
 		return
 	}
 	var allies, enemies []*member
@@ -458,23 +474,26 @@ func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	}
 	// until the core-game roster arrives there are only the allies carried over from agent select
 	if len(enemies) == 0 {
-		s.Sections = []render.Section{lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins)}
+		s.Sections = []render.Section{lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins, voice)}
 		return
 	}
 	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
 	s.Sections = []render.Section{
-		lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins),
-		lv.teamSection("ENEMIES", enemies, lob.mode, marks, met, skins),
+		lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins, voice),
+		lv.teamSection("ENEMIES", enemies, lob.mode, marks, met, skins, nil),
 		{Rows: []render.Row{diffRow(us, them)}},
 	}
 }
 
-func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter, skins map[string]render.Row) render.Section {
+func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter, skins map[string]render.Row, voice map[string]string) render.Section {
 	sec := render.Section{Title: title}
 	for _, m := range members {
 		row := lv.memberRow(m, mode)
 		if mark, ok := marks[m.puuid]; ok {
 			row["party"] = render.Cell{Text: mark}
+		}
+		if v, ok := voice[m.puuid]; ok {
+			row["voice"] = render.Cell{Text: v}
 		}
 		// meeting someone ties them to a game you saw them in - so a hidden player never gets it even with stats
 		if e, ok := met[m.puuid]; ok && !m.hidden && m.p != nil {
@@ -491,6 +510,38 @@ func (lv *live) teamSection(title string, members []*member, mode stats.Mode, ma
 	}
 	sec.Rows = append(sec.Rows, lv.teamAverages(members, mode).row(lv))
 	return sec
+}
+
+func (lv *live) voiceCells(lob *lobby) map[string]string {
+	if lob.kind != lobbyAgentSelect || !lv.cfg.Settings().VoiceCheck {
+		return nil
+	}
+	out := map[string]string{}
+	for _, m := range lob.members {
+		out[m.puuid] = cmp.Or(lob.voice[m.puuid], "-")
+	}
+	return out
+}
+
+func (lv *live) fetchVoice(lob *lobby) {
+	if lob.asking || lv.conn == nil || lv.conn.local == nil || !lv.cfg.Settings().VoiceCheck {
+		return
+	}
+	lob.asking = true
+	gen, local := lv.gen, lv.conn.local
+	go func() {
+		status, err := local.Voice(lv.ctx)
+		lv.loop.post(func() {
+			lob.asking = false
+			if gen != lv.gen || lob != lv.lobby {
+				return
+			}
+			if err != nil {
+				status = nil
+			}
+			lob.voice = status
+		})
+	}()
 }
 
 func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {

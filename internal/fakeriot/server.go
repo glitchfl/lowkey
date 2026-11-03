@@ -604,11 +604,13 @@ func (s *Server) serveLocal(rw http.ResponseWriter, r *http.Request) {
 			"issuer": "https://entitlements.auth.riotgames.com", "subject": s.world.Self,
 			"token": s.entitlement,
 		}))
-	case "/chat/v4/presences", "/product-session/v1/external-sessions":
+	case "/chat/v4/presences", "/product-session/v1/external-sessions", "/telemetry/v1/voice":
 		if raw, ok := s.world.Raw["local "+r.URL.Path]; ok {
 			writeJSON(w, raw.Status, raw.Body)
 		} else if r.URL.Path == "/chat/v4/presences" {
 			writeJSON(w, http.StatusOK, s.world.presences())
+		} else if r.URL.Path == "/telemetry/v1/voice" {
+			writeJSON(w, http.StatusOK, s.world.voice())
 		} else {
 			writeJSON(w, http.StatusOK, s.world.sessions())
 		}

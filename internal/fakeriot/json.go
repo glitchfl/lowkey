@@ -278,11 +278,15 @@ func (w *World) matchDetails(m *Match) []byte {
 	}
 	players := []obj{}
 	for _, mp := range m.Players {
+		partyID := mp.PartyID
+		if partyID == "" {
+			partyID = "00000000-0000-0000-0000-" + mp.PUUID[max(0, len(mp.PUUID)-12):]
+		}
 		players = append(players, obj{
 			// Riot sends these empty now - every name comes from the name service
 			"subject": mp.PUUID, "gameName": "", "tagLine": "",
 			"platformInfo": obj{"platformType": "PC", "platformOS": "Windows", "platformOSVersion": "10.0.19042.1.256.64bit", "platformChipset": "Unknown"},
-			"teamId":       mp.Team, "partyId": "00000000-0000-0000-0000-000000000000", "characterId": mp.Agent,
+			"teamId":       mp.Team, "partyId": partyID, "characterId": mp.Agent,
 			"stats": obj{
 				"score": mp.Score, "roundsPlayed": mp.Rounds, "kills": mp.Kills, "deaths": mp.Deaths,
 				"assists": mp.Assists, "playtimeMillis": 1800000,
@@ -558,6 +562,20 @@ func (w *World) staticVersion() []byte {
 		"buildVersion": "20", "engineVersion": "5.3.2.0", "riotClientVersion": w.StaticVersion,
 		"riotClientBuild": "111.0.0.3261.5663", "buildDate": "2026-10-15T22:27:44Z",
 	}})
+}
+
+func (w *World) voice() []byte {
+	var participants []obj
+	for puuid, status := range w.Voice {
+		participants = append(participants, obj{
+			"puuid":  puuid,
+			"status": status,
+		})
+	}
+	if participants == nil {
+		participants = []obj{}
+	}
+	return mustJSON(obj{"participants": participants})
 }
 
 func (w *World) staticAgents() []byte {

@@ -13,7 +13,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/fakeriot"
 )
 
-const hiddenStatsOff = "hidden_player_stats = false\n"
+const hiddenStatsOff = "[players]\nhidden_player_stats = false\n"
 
 // hiddenSamples gives the hidden ally and enemy a record
 func hiddenSamples(w *fakeriot.World) {
@@ -142,7 +142,7 @@ func TestHiddenPlayerStatsCanBeSwitchedOff(t *testing.T) {
 
 func TestEnemyLookupsOffAlsoKeepsHiddenEnemiesToTheirAgent(t *testing.T) {
 	r := newRig(t, matchLobby, hiddenSamples)
-	r.writeSettings("enemy_lookups = false\n")
+	r.writeSettings("[players]\nenemy_lookups = false\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -159,8 +159,8 @@ func TestEnemyLookupsOffAlsoKeepsHiddenEnemiesToTheirAgent(t *testing.T) {
 // the guard remembers who it refused - switching a setting back on has to free them for the next lobby
 func TestSwitchingTheSettingsBackOnTakesEffectInTheNextLobby(t *testing.T) {
 	for _, c := range []struct{ name, off, on, player, want string }{
-		{"hidden player stats", hiddenStatsOff, "hidden_player_stats = true\n", ally3, "Rad 900"},
-		{"enemy lookups", "enemy_lookups = false\n", "enemy_lookups = true\n", enemy1, "Plat2 10"},
+		{"hidden player stats", hiddenStatsOff, "[players]\nhidden_player_stats = true\n", ally3, "Rad 900"},
+		{"enemy lookups", "[players]\nenemy_lookups = false\n", "[players]\nenemy_lookups = true\n", enemy1, "Plat2 10"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r := newRig(t, matchLobby)

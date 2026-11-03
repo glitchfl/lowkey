@@ -8,9 +8,9 @@ Its a small windows console app that shows whos in your lobby: their rank, recen
 
 Download `lowkey.exe` from the [latest release](https://github.com/glitchfl/lowkey/releases/latest), put it in its own folder and double-click it. It isn't signed, so Windows will probably warn you first. Click "More info", then "Run anyway".
 
-Leave it open all day. It idles at about 0% CPU. Press Tab to open the settings and change them with the arrow keys. They save straight away to `lowkey.toml` next to the exe, and you can edit that file by hand too, no restart needed. If something seems off, run `.\lowkey.exe doctor` in PowerShell from that folder.
+Leave it open all day. It idles at about 0% CPU. Press Tab to open the settings and change them with the arrow keys. The settings are grouped into table, players, match and general. They save straight away to `lowkey.toml` next to the exe, which has the same groups as `[table]`, `[players]`, `[match]` and `[general]`. You can edit that file by hand too, no restart needed. A `lowkey.toml` from an older version gets moved into the groups the first time a newer lowkey starts, and the old one is kept as `lowkey.toml.bak`. If something seems off, run `.\lowkey.exe doctor` in PowerShell from that folder.
 
-To see more about one player, pick them with the up and down arrows and press Enter. You get their rank in every act, their record in each mode this act, their recent matches and agents, and the skin and buddy on every gun. Left and right switch players and Esc goes back. It only shows what lowkey already downloaded, so it works mid-match too and never sends anything.
+To see more about one player, turn on player details in the settings, then pick them with the up and down arrows and press Enter. You get their rank in every act, their record in each mode this act, their recent matches and agents, and the skin and buddy on every gun. Left and right switch players and Esc goes back. It only shows what lowkey already downloaded, so it works mid-match too and never sends anything.
 
 ## What it won't do
 

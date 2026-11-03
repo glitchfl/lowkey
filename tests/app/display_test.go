@@ -209,6 +209,12 @@ func TestGoldenScreens(t *testing.T) {
 		r.clock.Advance(15 * time.Second)
 		golden(t, "last-match", r.settled("LAST MATCH", "SESSION"))
 	})
+	t.Run("match load in the 150 columns lowkey asks for", func(t *testing.T) {
+		r := fromAgentSelect(t, lobbySamples)
+		r.con.setWidth(150)
+		r.enterMatchLoad()
+		golden(t, "match-load-wide", r.settled("MATCH LOADING", "EnemyTwo#E2", "US - THEM"))
+	})
 	t.Run("deathmatch", func(t *testing.T) {
 		r := newRig(t, deathmatch)
 		r.live()
@@ -275,7 +281,7 @@ func TestGoldenStatusLines(t *testing.T) {
 				eventually(r.t, "a retry", func() bool { return r.fr.Answered(path, 429) == i+2 })
 			}
 		}, "some stats are missing"},
-		{"settings-error", ranked, func(r *rig) { r.writeSettings(`columns = ["kda"]` + "\n") }, `unknown column "kda"`},
+		{"settings-error", ranked, func(r *rig) { r.writeSettings("[table]\n" + `columns = ["kda"]` + "\n") }, `unknown column "kda"`},
 		{"unreachable", agentSelectLobby, func(r *rig) {
 			for _, svc := range []string{"pd", "glz", "shared"} {
 				r.fr.AddFault(fakeriot.Fault{Service: svc, Drop: true})

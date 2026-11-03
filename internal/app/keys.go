@@ -99,6 +99,9 @@ func (lv *live) pressed(k key) {
 	case k == keyTab:
 		lv.onSettings = !lv.onSettings
 		lv.tab.notice = ""
+		if lv.onSettings {
+			lv.tab.notice, lv.tab.firstOpen = lv.tab.firstOpen, ""
+		}
 	case lv.onSettings:
 		if lv.tab.press(k) {
 			lv.onSettings = false

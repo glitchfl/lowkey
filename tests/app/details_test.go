@@ -82,9 +82,12 @@ func pickedRow(frame string) string {
 	return ""
 }
 
-// inMatchLoad walks a keyboard-driven lowkey into a match load and waits for the full table
+const detailsOn = "[players]\nplayer_details = true\n"
+
+// inMatchLoad walks a keyboard-driven lowkey with player details on into a match load and waits for the full table
 func inMatchLoad(t *testing.T, setup ...func(w *fakeriot.World)) *rig {
 	r := newRig(t, append([]func(w *fakeriot.World){matchLobby, lobbySkins}, setup...)...)
+	r.writeSettings(detailsOn)
 	r.keyboard()
 	r.live()
 	r.screen("[LOBBY]", "waiting for the next match")
@@ -199,7 +202,7 @@ func TestAHiddenAccountLevelStaysHidden(t *testing.T) {
 
 func TestPlayersLowkeyDidntLookUpSayWhy(t *testing.T) {
 	r := newRig(t, matchLobby)
-	r.writeSettings("enemy_lookups = false\n")
+	r.writeSettings("[players]\nenemy_lookups = false\nplayer_details = true\n")
 	r.keyboard()
 	r.live()
 	r.screen("[LOBBY]", "waiting for the next match")
@@ -216,6 +219,7 @@ func TestPlayersLowkeyDidntLookUpSayWhy(t *testing.T) {
 
 func TestLeftAndRightWalkThePlayersAndANewLobbyTakesTheScreenBack(t *testing.T) {
 	r := newRig(t, agentSelectLobby)
+	r.writeSettings(detailsOn)
 	r.keyboard()
 	r.live()
 	r.screen("[LOBBY]", "waiting for the next match")
@@ -303,10 +307,10 @@ func TestLongDetailsScrollAndStopAtTheEnd(t *testing.T) {
 }
 
 func TestTheDetailsGunsComeEvenWithTheSkinColumnOff(t *testing.T) {
-	noSkins := `columns = ["name", "agent", "rank"]` + "\n"
-	t.Run("with a keyboard", func(t *testing.T) {
+	noSkins := "[table]\n" + `columns = ["name", "agent", "rank"]` + "\n"
+	t.Run("with player details on", func(t *testing.T) {
 		r := newRig(t, matchLobby, lobbySkins)
-		r.writeSettings(noSkins)
+		r.writeSettings(noSkins + detailsOn)
 		r.keyboard()
 		r.live()
 		r.screen("[LOBBY]", "waiting for the next match")
@@ -320,22 +324,34 @@ func TestTheDetailsGunsComeEvenWithTheSkinColumnOff(t *testing.T) {
 			t.Errorf("loadouts fetched %d times, want once", n)
 		}
 	})
-	t.Run("without one", func(t *testing.T) {
-		r := newRig(t, matchLobby, lobbySkins)
-		r.writeSettings(noSkins)
-		r.live()
-		r.screen("waiting for the next match")
-		r.subscribed()
-		r.enterMatchLoad()
-		r.settled("MATCH LOADING", "US - THEM")
-		if n := requestsExact(r, loadouts); n != 0 {
-			t.Errorf("nobody can open the details or see a skin column - loadouts fetched %d times", n)
-		}
-	})
+	for _, c := range []struct {
+		name, settings string
+		keyboard       bool
+	}{
+		{"with player details off", noSkins, true},
+		{"without a keyboard", noSkins + detailsOn, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := newRig(t, matchLobby, lobbySkins)
+			r.writeSettings(c.settings)
+			if c.keyboard {
+				r.keyboard()
+			}
+			r.live()
+			r.screen("waiting for the next match")
+			r.subscribed()
+			r.enterMatchLoad()
+			r.settled("MATCH LOADING", "US - THEM")
+			if n := requestsExact(r, loadouts); n != 0 {
+				t.Errorf("nobody can open the details or see a skin column - loadouts fetched %d times", n)
+			}
+		})
+	}
 }
 
 func TestTheDetailsHaveNoKeysWithoutAKeyboard(t *testing.T) {
 	r := newRig(t, matchLobby)
+	r.writeSettings(detailsOn)
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -343,5 +359,40 @@ func TestTheDetailsHaveNoKeysWithoutAKeyboard(t *testing.T) {
 	frame := r.settled("MATCH LOADING", "US - THEM")
 	if strings.Contains(frame, "pick a player") {
 		t.Errorf("no keyboard means nothing to pick with:\n%s", frame)
+	}
+}
+
+func TestTheArrowsPickNobodyUntilPlayerDetailsAreSwitchedOn(t *testing.T) {
+	r := newRig(t, matchLobby, lobbySkins, allyOneRecord)
+	r.keyboard()
+	r.live()
+	r.screen("[LOBBY]", "waiting for the next match")
+	r.subscribed()
+	r.enterMatchLoad()
+	frame := r.settled("MATCH LOADING", "US - THEM", "Elderflame")
+	if strings.Contains(frame, "pick a player") {
+		t.Errorf("player details are off by default - nothing should offer them:\n%s", frame)
+	}
+	r.press(downKey, downKey, enterKey)
+	settle()
+	frame = r.screen("US - THEM")
+	if strings.Contains(frame, "▸") || strings.Contains(frame, "esc back") {
+		t.Errorf("with player details off the arrows and enter should do nothing:\n%s", frame)
+	}
+
+	r.writeSettings(detailsOn)
+	r.screen("US - THEM", "↑↓ pick a player")
+	r.press(downKey, downKey, enterKey)
+	r.settled("esc back", "AllyOne#A1", "THIS ACT")
+
+	r.writeSettings("[players]\nplayer_details = false\n")
+	frame = r.screen("US - THEM")
+	if strings.Contains(frame, "▸") || strings.Contains(frame, "esc back") || strings.Contains(frame, "pick a player") {
+		t.Errorf("switching player details off should close them and drop the pick:\n%s", frame)
+	}
+	r.writeSettings(detailsOn)
+	frame = r.screen("US - THEM", "↑↓ pick a player")
+	if strings.Contains(frame, "▸") {
+		t.Errorf("switching them back on should start with nobody picked:\n%s", frame)
 	}
 }

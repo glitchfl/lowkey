@@ -24,6 +24,7 @@ type Match struct {
 type MatchPlayer struct {
 	PUUID       string
 	Team        string
+	PartyID     string
 	Agent       string
 	Score       int
 	Rounds      int
@@ -65,6 +66,7 @@ func DecodeMatch(body []byte) (*Match, error) {
 		Players []struct {
 			Subject     string `json:"subject"`
 			TeamID      string `json:"teamId"`
+			PartyID     string `json:"partyId"`
 			CharacterID string `json:"characterId"`
 			Stats       *struct {
 				Score        int `json:"score"`
@@ -106,7 +108,7 @@ func DecodeMatch(body []byte) (*Match, error) {
 	}
 	for _, p := range v.Players {
 		mp := &MatchPlayer{
-			PUUID: strings.ToLower(p.Subject), Team: p.TeamID, Agent: strings.ToLower(p.CharacterID),
+			PUUID: strings.ToLower(p.Subject), Team: p.TeamID, PartyID: p.PartyID, Agent: strings.ToLower(p.CharacterID),
 		}
 		if p.Stats != nil {
 			mp.Score, mp.Rounds, mp.Kills, mp.Deaths = p.Stats.Score, p.Stats.RoundsPlayed, p.Stats.Kills, p.Stats.Deaths

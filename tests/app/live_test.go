@@ -103,6 +103,8 @@ func TestWaitingIsQuietAndTheLockfileIsNoticedWithoutPolling(t *testing.T) {
 func TestEachPhaseChangeRedrawsTheScreenInPlace(t *testing.T) {
 	r := newRig(t, func(w *fakeriot.World) { w.Valorant = false })
 	r.env.Console.Terminal = true
+	// wide enough that lowkey doesn't ask the window to grow - so every write is a frame
+	r.con.setWidth(150)
 	r.live()
 	r.screen("waiting for Valorant")
 	r.subscribed()
@@ -117,5 +119,37 @@ func TestEachPhaseChangeRedrawsTheScreenInPlace(t *testing.T) {
 		if !strings.HasPrefix(f, "\x1b[H") || !strings.HasSuffix(f, "\x1b[J") {
 			t.Errorf("frame isn't drawn in place: %q", f)
 		}
+	}
+}
+
+func TestANarrowTerminalIsAskedOnceToGrowTo150Columns(t *testing.T) {
+	const grow = "\x1b[8;30;150t"
+	for _, c := range []struct {
+		name     string
+		width    int
+		terminal bool
+		want     int
+	}{
+		{"narrow terminal", 120, true, 1},
+		{"wide terminal", 160, true, 0},
+		{"redirected output", 120, false, 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := newRig(t, func(w *fakeriot.World) { w.Valorant = false })
+			r.env.Console.Terminal = c.terminal
+			r.con.setWidth(c.width)
+			r.live()
+			r.screen("waiting for Valorant")
+			r.subscribed()
+			r.presence(func(w *fakeriot.World) { w.Valorant = true })
+			r.screen("waiting for the next match")
+			out := r.con.output()
+			if n := strings.Count(out, "\x1b[8;"); n != c.want {
+				t.Errorf("asked the window to resize %d times, want %d: %q", n, c.want, out)
+			}
+			if c.want == 1 && !strings.HasPrefix(out, grow) {
+				t.Errorf("the first write should ask for 150 columns at the current height: %q", out)
+			}
+		})
 	}
 }

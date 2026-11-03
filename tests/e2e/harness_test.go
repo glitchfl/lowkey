@@ -16,7 +16,7 @@ import (
 )
 
 // shortened settings so a whole match fits in seconds of real time
-const fastSettings = "cutoff_seconds = 2\n"
+const fastSettings = "[general]\ncutoff_seconds = 2\n"
 
 type lowkey struct {
 	t      *testing.T

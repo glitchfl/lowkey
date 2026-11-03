@@ -1,0 +1,1408 @@
+{
+ "AnimBlueprintLog": {
+  "phases": {
+   "INGAME": 2589,
+   "MENUS": 1,
+   "REPLAY": 83
+  }
+ },
+ "BloomlinePlankDefaultModulesLog": {
+  "phases": {
+   "INGAME": 1152,
+   "MENUS": 384
+  }
+ },
+ "BloomlinePlayerBonsaisViewModel": {
+  "phases": {
+   "MENUS": 63
+  }
+ },
+ "LogAbilitySystem": {
+  "phases": {
+   "INGAME": 50039,
+   "PREGAME": 51,
+   "REPLAY": 682
+  }
+ },
+ "LogAccountLevelProgressViewModel": {
+  "phases": {
+   "INGAME": 9
+  }
+ },
+ "LogActionBindingsManager": {
+  "phases": {
+   "INGAME": 8675,
+   "MENUS": 91818,
+   "PREGAME": 1239,
+   "REPLAY": 563
+  }
+ },
+ "LogActivityGatewayManager": {
+  "phases": {
+   "MENUS": 7
+  }
+ },
+ "LogActor": {
+  "phases": {
+   "INGAME": 6,
+   "MENUS": 8,
+   "REPLAY": 2
+  }
+ },
+ "LogActorComponent": {
+  "phases": {
+   "INGAME": 4599,
+   "MENUS": 47,
+   "PREGAME": 45,
+   "REPLAY": 784
+  }
+ },
+ "LogAgentViewModel": {
+  "phases": {
+   "INGAME": 71,
+   "MENUS": 84
+  }
+ },
+ "LogAkAudio": {
+  "phases": {
+   "INGAME": 955,
+   "REPLAY": 40
+  }
+ },
+ "LogAnimMontage": {
+  "phases": {
+   "INGAME": 595
+  }
+ },
+ "LogAnimation": {
+  "phases": {
+   "INGAME": 2499,
+   "REPLAY": 12
+  }
+ },
+ "LogAnimationStateComponent": {
+  "phases": {
+   "INGAME": 16997
+  }
+ },
+ "LogAntiLag2": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogAres": {
+  "phases": {
+   "INGAME": 2868,
+   "REPLAY": 113
+  }
+ },
+ "LogAresAudioComponentManager": {
+  "phases": {
+   "INGAME": 27
+  }
+ },
+ "LogAresClientEvents": {
+  "phases": {
+   "INGAME": 1
+  }
+ },
+ "LogAresCommonAnalogCursor": {
+  "phases": {
+   "INGAME": 203,
+   "MENUS": 360,
+   "PREGAME": 37,
+   "REPLAY": 9
+  }
+ },
+ "LogAresGameInstance": {
+  "phases": {
+   "INGAME": 1
+  }
+ },
+ "LogAresInputStateComponent": {
+  "phases": {
+   "INGAME": 351
+  }
+ },
+ "LogAresListWidget": {
+  "phases": {
+   "INGAME": 218,
+   "MENUS": 19,
+   "REPLAY": 14
+  }
+ },
+ "LogAresMinimapComponent": {
+  "phases": {
+   "INGAME": 2453,
+   "REPLAY": 79
+  }
+ },
+ "LogAresMinimapManager": {
+  "phases": {
+   "INGAME": 56
+  }
+ },
+ "LogAresNetDriver": {
+  "phases": {
+   "INGAME": 137,
+   "MENUS": 10,
+   "PREGAME": 12
+  }
+ },
+ "LogAresPlayerController": {
+  "phases": {
+   "INGAME": 579,
+   "PREGAME": 85,
+   "REPLAY": 6
+  }
+ },
+ "LogAresSettings": {
+  "phases": {
+   "INGAME": 2
+  }
+ },
+ "LogAudio": {
+  "phases": {
+   "INGAME": 4,
+   "MENUS": 11
+  }
+ },
+ "LogAutoTransitionLandingScreenViewModel": {
+  "phases": {
+   "INGAME": 30,
+   "MENUS": 61
+  }
+ },
+ "LogBaseMainMenuPlayerController": {
+  "phases": {
+   "INGAME": 66,
+   "MENUS": 44
+  }
+ },
+ "LogBasePlayerController": {
+  "phases": {
+   "INGAME": 423,
+   "MENUS": 36,
+   "PREGAME": 50,
+   "REPLAY": 8
+  }
+ },
+ "LogBloomlineManager": {
+  "phases": {
+   "INGAME": 188,
+   "MENUS": 141
+  }
+ },
+ "LogBlueprintUserMessages": {
+  "phases": {
+   "INGAME": 2
+  }
+ },
+ "LogCNAntiAddictionManager": {
+  "phases": {
+   "INGAME": 1,
+   "MENUS": 10
+  }
+ },
+ "LogCharacterDataViewModel": {
+  "phases": {
+   "INGAME": 33,
+   "MENUS": 22
+  }
+ },
+ "LogChatUtils": {
+  "phases": {
+   "INGAME": 19243,
+   "REPLAY": 1360
+  }
+ },
+ "LogClientPerRoundTelemetryComponent": {
+  "phases": {
+   "INGAME": 1560,
+   "MENUS": 6
+  },
+  "templates": {
+   "": 922,
+   "End of Round Perf statistics": 644
+  }
+ },
+ "LogConditionalInputSubsystem": {
+  "phases": {
+   "PREGAME": 1
+  }
+ },
+ "LogConsoleManager": {
+  "phases": {
+   "INGAME": 45,
+   "MENUS": 9,
+   "PREGAME": 33
+  }
+ },
+ "LogContentIndex": {
+  "phases": {
+   "MENUS": 6
+  }
+ },
+ "LogContentLibrary": {
+  "phases": {
+   "INGAME": 162,
+   "MENUS": 51,
+   "PREGAME": 2
+  }
+ },
+ "LogContentLibraryCharacter": {
+  "phases": {
+   "INGAME": 441,
+   "MENUS": 150,
+   "PREGAME": 85,
+   "REPLAY": 23
+  }
+ },
+ "LogContentLibraryCharmInstance": {
+  "phases": {
+   "MENUS": 184
+  }
+ },
+ "LogContentLibraryPremierSeason": {
+  "phases": {
+   "INGAME": 96,
+   "MENUS": 114
+  }
+ },
+ "LogContentLibrarySkinLevel": {
+  "phases": {
+   "MENUS": 26
+  }
+ },
+ "LogContentLibrarySprayEquipSlot": {
+  "phases": {
+   "MENUS": 40
+  }
+ },
+ "LogContentManager": {
+  "phases": {
+   "MENUS": 5,
+   "PREGAME": 1
+  }
+ },
+ "LogContractDefinitionsManager": {
+  "phases": {
+   "MENUS": 98
+  }
+ },
+ "LogContractsManager": {
+  "phases": {
+   "MENUS": 10
+  }
+ },
+ "LogContractsViewController": {
+  "phases": {
+   "INGAME": 2,
+   "REPLAY": 2
+  }
+ },
+ "LogCoreGameManager": {
+  "phases": {
+   "INGAME": 85,
+   "MENUS": 194,
+   "PREGAME": 45
+  },
+  "templates": {
+   "Attempting to set a match and Current player is not set. NewMatchID: <id>": 64,
+   "Couldn't find CoreGameMatchLoadouts in ReplayDataManager or CoreGameManager.": 9,
+   "Encountered an error handling refresh player request. Status: N.": 86,
+   "Match MUC token retrieval encountered an error: AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 1,
+   "Recieved a stale newMatch Version. Current Version: N, NewMatch Version N": 78,
+   "RefreshPlayer invoked while loop state is not INGAME.": 86
+  }
+ },
+ "LogCurrencyViewModel": {
+  "phases": {
+   "INGAME": 71,
+   "MENUS": 84
+  }
+ },
+ "LogCustomGameManager": {
+  "phases": {
+   "INGAME": 1,
+   "MENUS": 18
+  }
+ },
+ "LogD3D11RHI": {
+  "phases": {
+   "MENUS": 101
+  }
+ },
+ "LogDailyRewardsManager": {
+  "phases": {
+   "INGAME": 42,
+   "MENUS": 37,
+   "PREGAME": 1
+  }
+ },
+ "LogDamageSectionComponent": {
+  "phases": {
+   "INGAME": 18543
+  }
+ },
+ "LogDataTable": {
+  "phases": {
+   "INGAME": 414,
+   "MENUS": 129
+  }
+ },
+ "LogDemo": {
+  "phases": {
+   "MENUS": 6
+  }
+ },
+ "LogDeviceProfileManager": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogDisarmedComponent": {
+  "phases": {
+   "INGAME": 3
+  }
+ },
+ "LogDisplayNameManager": {
+  "phases": {
+   "INGAME": 7570,
+   "MENUS": 1132,
+   "PREGAME": 5858,
+   "REPLAY": 20
+  }
+ },
+ "LogDxInformation": {
+  "phases": {
+   "MENUS": 1
+  }
+ },
+ "LogEffectContainer": {
+  "phases": {
+   "INGAME": 2077,
+   "REPLAY": 31151
+  }
+ },
+ "LogEntitlementVideoPreviewViewModel": {
+  "phases": {
+   "MENUS": 2
+  }
+ },
+ "LogEnum": {
+  "phases": {
+   "INGAME": 16
+  }
+ },
+ "LogFavoritesManager": {
+  "phases": {
+   "MENUS": 10
+  }
+ },
+ "LogFileManager": {
+  "phases": {
+   "MENUS": 1
+  }
+ },
+ "LogFiringEffectComponent": {
+  "phases": {
+   "INGAME": 1816
+  }
+ },
+ "LogFiringStateComponent": {
+  "phases": {
+   "INGAME": 5
+  }
+ },
+ "LogFlushGuard": {
+  "phases": {
+   "INGAME": 35,
+   "MENUS": 10
+  }
+ },
+ "LogGameFlowPredictionManager": {
+  "phases": {
+   "INGAME": 51,
+   "MENUS": 102
+  }
+ },
+ "LogGameFlowStateManager": {
+  "phases": {
+   "INGAME": 2418,
+   "MENUS": 1058,
+   "PREGAME": 1963,
+   "REPLAY": 32
+  },
+  "templates": {
+   "Reconcile called with state: InGame and new state: TransitionToMainMenu. Changing state.": 51,
+   "Reconcile called with state: InGame. Scheduling a reconcile in N seconds.": 56,
+   "Reconcile called with state: Initialization and new state: TransitionToMainMenu. Changing state.": 10,
+   "Reconcile called with state: MainMenu and new state: TransitionToInGame. Changing state.": 26,
+   "Reconcile called with state: MainMenu and new state: TransitionToPregame. Changing state.": 36,
+   "Reconcile called with state: MainMenu. Scheduling a reconcile in N seconds.": 60,
+   "Reconcile called with state: TransitionToInGame and new state: InGame. Changing state.": 71,
+   "Reconcile called with state: TransitionToMainMenu and new state: MainMenu. Changing state.": 72,
+   "Reconcile called with state: TransitionToMainMenu and new state: TransitionToMainMenu. Changing state.": 45,
+   "Reconcile called with state: TransitionToPregame and new state: Pregame. Changing state.": 48,
+   "Reconcile called with the current state: InGame. No action taken.": 268,
+   "Reconcile called with the current state: Initialization. No action taken.": 62,
+   "Reconcile called with the current state: MainMenu. No action taken.": 886,
+   "Reconcile called with the current state: TransitionToInGame. No action taken.": 536,
+   "Reconcile called with the current state: TransitionToMainMenu. No action taken.": 244,
+   "Reconcile called with the current state: TransitionToPregame. No action taken.": 120,
+   "[PlatformTime: N] Broadcasting state changed to InGame": 71,
+   "[PlatformTime: N] Broadcasting state changed to MainMenu": 72,
+   "[PlatformTime: N] Broadcasting state changed to TransitionToInGame": 78,
+   "[PlatformTime: N] Broadcasting state changed to TransitionToMainMenu": 72,
+   "[PlatformTime: N] Broadcasting state changed to TransitionToPregame": 48,
+   "[PlatformTime: N] Current state InGame entering from TransitionToInGame": 71,
+   "[PlatformTime: N] Current state InGame exiting to TransitionToMainMenu": 51,
+   "[PlatformTime: N] Current state Initialization exiting to TransitionToMainMenu": 10,
+   "[PlatformTime: N] Current state MainMenu entering from TransitionToMainMenu": 72,
+   "[PlatformTime: N] Current state MainMenu exiting to TransitionToInGame": 26,
+   "[PlatformTime: N] Current state MainMenu exiting to TransitionToPregame": 36,
+   "[PlatformTime: N] Current state TransitionToInGame entering from MainMenu": 26,
+   "[PlatformTime: N] Current state TransitionToInGame exiting to InGame": 71,
+   "[PlatformTime: N] Current state TransitionToMainMenu entering from InGame": 51,
+   "[PlatformTime: N] Current state TransitionToMainMenu entering from Initialization": 10,
+   "[PlatformTime: N] Current state TransitionToMainMenu exiting to MainMenu": 72,
+   "[PlatformTime: N] Current state TransitionToPregame entering from MainMenu": 36,
+   "[PlatformTime: N] Transitioning from InGame to TransitionToMainMenu": 51,
+   "[PlatformTime: N] Transitioning from Initialization to TransitionToMainMenu": 10,
+   "[PlatformTime: N] Transitioning from MainMenu to TransitionToInGame": 26,
+   "[PlatformTime: N] Transitioning from MainMenu to TransitionToPregame": 36,
+   "[PlatformTime: N] Transitioning from TransitionToInGame to InGame": 71,
+   "[PlatformTime: N] Transitioning from TransitionToMainMenu to MainMenu": 72,
+   "[PlatformTime: N] Transitioning from TransitionToPregame to Pregame": 48
+  }
+ },
+ "LogGameModifiersMenu": {
+  "phases": {
+   "INGAME": 125,
+   "MENUS": 10
+  }
+ },
+ "LogGameplayEffects": {
+  "phases": {
+   "INGAME": 118
+  }
+ },
+ "LogGarbage": {
+  "phases": {
+   "INGAME": 3
+  }
+ },
+ "LogGoldStarManager": {
+  "phases": {
+   "INGAME": 10,
+   "MENUS": 4
+  }
+ },
+ "LogHUDGlobals": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogHttp": {
+  "phases": {
+   "INGAME": 118,
+   "MENUS": 11451
+  }
+ },
+ "LogInGameStateV2": {
+  "phases": {
+   "INGAME": 1
+  }
+ },
+ "LogInput": {
+  "phases": {
+   "INGAME": 268
+  }
+ },
+ "LogInstabilityTrackingDetails": {
+  "phases": {
+   "INGAME": 12
+  }
+ },
+ "LogInterchangeImport": {
+  "phases": {
+   "MENUS": 16
+  }
+ },
+ "LogInventory": {
+  "phases": {
+   "INGAME": 4682,
+   "REPLAY": 144
+  }
+ },
+ "LogInventoryManager": {
+  "phases": {
+   "MENUS": 37
+  }
+ },
+ "LogIsLastPlayerAliveOnTeamViewModel": {
+  "phases": {
+   "INGAME": 5
+  }
+ },
+ "LogJson": {
+  "phases": {
+   "INGAME": 1265,
+   "MENUS": 241,
+   "PREGAME": 4483
+  }
+ },
+ "LogLandingScreen": {
+  "phases": {
+   "INGAME": 4756,
+   "MENUS": 1715,
+   "REPLAY": 110
+  }
+ },
+ "LogLeaderboardManager": {
+  "phases": {
+   "MENUS": 32
+  }
+ },
+ "LogLevel": {
+  "phases": {
+   "PREGAME": 11
+  }
+ },
+ "LogLevelBorderViewModel": {
+  "phases": {
+   "INGAME": 71,
+   "MENUS": 84
+  }
+ },
+ "LogLoadTimeMetrics": {
+  "phases": {
+   "INGAME": 71,
+   "MENUS": 10,
+   "PREGAME": 48,
+   "REPLAY": 2
+  },
+  "templates": {
+   "[Launch Times] TotalLoadTimeSecs: N, InitializationTimeSecs: N, TransitionTimeSecs:  N, MapReadyTimeSecs:  N,  PlatformReadyTimeSecs: N, Eng": 11,
+   "[Match Load Times] MatchId: <id>, LoadingScreenTime: N, PlatformReadyTime: N, ClientReadyTime: N, BlockedOnPreloadingTime: N, BlockedOnRemot": 70,
+   "[Pregame Load Times] Total load time: N seconds, Map ready time: N seconds, Platform ready time: N seconds, Blocked on preloading: N seconds": 48,
+   "[Replay Load Time] MatchId: <id>, LoadingScreenTime: N": 2
+  }
+ },
+ "LogLobbyContentViewModel": {
+  "phases": {
+   "MENUS": 22
+  }
+ },
+ "LogMMRManager": {
+  "phases": {
+   "INGAME": 206,
+   "MENUS": 326,
+   "PREGAME": 9,
+   "REPLAY": 1
+  }
+ },
+ "LogMainMenuViewModelBase": {
+  "phases": {
+   "INGAME": 66,
+   "MENUS": 154
+  }
+ },
+ "LogMapLoadModel": {
+  "phases": {
+   "INGAME": 6420,
+   "MENUS": 96,
+   "PREGAME": 108,
+   "REPLAY": 147
+  }
+ },
+ "LogMatchDetailsManager": {
+  "phases": {
+   "INGAME": 24,
+   "MENUS": 148
+  },
+  "templates": {
+   "Ability UIData not found for AbilityN": 32,
+   "Ability UIData not found for Ultimate": 32,
+   "Could not find Model for ID: ": 62,
+   "Failed to fetch match details for match id: <id>, with error AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 24,
+   "FetchMatchDetailsModel called with empty match ID": 22
+  }
+ },
+ "LogMatchHistoryViewController": {
+  "phases": {
+   "MENUS": 20
+  }
+ },
+ "LogMaterial": {
+  "phases": {
+   "INGAME": 135
+  }
+ },
+ "LogMediaAssets": {
+  "phases": {
+   "INGAME": 33,
+   "MENUS": 22
+  }
+ },
+ "LogMemory": {
+  "phases": {
+   "INGAME": 5,
+   "MENUS": 91
+  }
+ },
+ "LogMenuStackManager": {
+  "phases": {
+   "INGAME": 3773,
+   "MENUS": 255,
+   "PREGAME": 22,
+   "REPLAY": 2
+  }
+ },
+ "LogMeshMaterialManager": {
+  "phases": {
+   "INGAME": 144000,
+   "MENUS": 7,
+   "PREGAME": 36,
+   "REPLAY": 1569
+  }
+ },
+ "LogModuleManager": {
+  "phases": {
+   "INGAME": 430,
+   "MENUS": 1383
+  }
+ },
+ "LogMovieScene": {
+  "phases": {
+   "INGAME": 1007,
+   "MENUS": 6,
+   "PREGAME": 30,
+   "REPLAY": 1
+  }
+ },
+ "LogMovieSceneECS": {
+  "phases": {
+   "INGAME": 507,
+   "MENUS": 6,
+   "PREGAME": 30,
+   "REPLAY": 1
+  }
+ },
+ "LogNet": {
+  "phases": {
+   "INGAME": 25610,
+   "PREGAME": 19,
+   "REPLAY": 53
+  }
+ },
+ "LogNetPackageMap": {
+  "phases": {
+   "INGAME": 56
+  }
+ },
+ "LogNetPlayerMovement": {
+  "phases": {
+   "INGAME": 4
+  }
+ },
+ "LogOnGroundEquippableSearchComponent": {
+  "phases": {
+   "INGAME": 7263
+  }
+ },
+ "LogOnlineSession": {
+  "phases": {
+   "INGAME": 121
+  }
+ },
+ "LogOrderedListModelBase": {
+  "phases": {
+   "MENUS": 4
+  }
+ },
+ "LogParticles": {
+  "phases": {
+   "INGAME": 1565,
+   "REPLAY": 16
+  }
+ },
+ "LogPartyFunctionLibrary": {
+  "phases": {
+   "INGAME": 12,
+   "MENUS": 88
+  }
+ },
+ "LogPartyManager": {
+  "phases": {
+   "MENUS": 20
+  }
+ },
+ "LogPartyService": {
+  "phases": {
+   "INGAME": 279,
+   "MENUS": 47,
+   "REPLAY": 8
+  }
+ },
+ "LogPersonalizationManagerV2": {
+  "phases": {
+   "INGAME": 1,
+   "MENUS": 91
+  }
+ },
+ "LogPhysics": {
+  "phases": {
+   "INGAME": 2208,
+   "MENUS": 1,
+   "PREGAME": 1297,
+   "REPLAY": 18
+  }
+ },
+ "LogPhysicsCore": {
+  "phases": {
+   "INGAME": 1
+  }
+ },
+ "LogPingManager": {
+  "phases": {
+   "INGAME": 936,
+   "MENUS": 5296,
+   "PREGAME": 273,
+   "REPLAY": 36
+  },
+  "templates": {
+   "Failure to ping endpoint aresriot.aws-apsN-prod.eu-gp-mumbaiN, not reporting stats.": 607,
+   "Failure to ping endpoint aresriot.aws-eucN-prod.eu-gp-frankfurtN, not reporting stats.": 733,
+   "Failure to ping endpoint aresriot.aws-eunN-prod.eu-gp-stockholmN, not reporting stats.": 731,
+   "Failure to ping endpoint aresriot.aws-eusN-prod.eu-gp-madridN, not reporting stats.": 731,
+   "Failure to ping endpoint aresriot.aws-euwN-prod.eu-gp-londonN, not reporting stats.": 731,
+   "Failure to ping endpoint aresriot.aws-euwN-prod.eu-gp-parisN, not reporting stats.": 731,
+   "Failure to ping endpoint aresriot.aws-istN-prod.eu-gp-istanbulN, not reporting stats.": 605,
+   "Failure to ping endpoint aresriot.aws-ksaN-prod.eu-gp-riyadhN, not reporting stats.": 605,
+   "Failure to ping endpoint aresriot.aws-mecN-prod.eu-gp-dubaiN, not reporting stats.": 125,
+   "Failure to ping endpoint aresriot.aws-wawN-prod.eu-gp-warsawN, not reporting stats.": 730,
+   "Failure to ping endpoint aresriot.mtl-riot-istNN.eu-gp-istanbulN, not reporting stats.": 125,
+   "Packet received for request in wrong state (Complete)": 48,
+   "Packet received for request in wrong state (INVALID)": 39
+  }
+ },
+ "LogPlatformCommon": {
+  "phases": {
+   "INGAME": 5928,
+   "MENUS": 10781,
+   "PREGAME": 2641,
+   "REPLAY": 38
+  }
+ },
+ "LogPlatformInitializerV2": {
+  "phases": {
+   "INGAME": 95,
+   "MENUS": 2483
+  }
+ },
+ "LogPlatformPlayerManager": {
+  "phases": {
+   "INGAME": 2982,
+   "MENUS": 2254,
+   "PREGAME": 55,
+   "REPLAY": 2
+  }
+ },
+ "LogPlatformSessionManager": {
+  "phases": {
+   "INGAME": 82,
+   "MENUS": 102,
+   "PREGAME": 49,
+   "REPLAY": 2
+  },
+  "templates": {
+   "Attempting to parse unhandled loopstate string INVALID": 21,
+   "Loopstate changed from INGAME to MENUS": 57,
+   "Loopstate changed from INGAME to PREGAME": 12,
+   "Loopstate changed from INVALID to INGAME": 1,
+   "Loopstate changed from INVALID to MENUS": 10,
+   "Loopstate changed from MENUS to INGAME": 26,
+   "Loopstate changed from MENUS to PREGAME": 36,
+   "Loopstate changed from MENUS to REPLAY": 2,
+   "Loopstate changed from PREGAME to INGAME": 45,
+   "Loopstate changed from PREGAME to MENUS": 3,
+   "Loopstate changed from REPLAY to MENUS": 2,
+   "Session Update had older version.": 17,
+   "Session Update had wrong client id. Failing.": 1,
+   "Session exit replay successful, transitioned from loop states REPLAY to MENUS": 2
+  }
+ },
+ "LogPlayerController": {
+  "phases": {
+   "INGAME": 3544,
+   "MENUS": 27
+  }
+ },
+ "LogPlayerFeedbackManager": {
+  "phases": {
+   "MENUS": 38
+  }
+ },
+ "LogPlayerFeedbackViewModel": {
+  "phases": {
+   "INGAME": 79,
+   "MENUS": 20
+  }
+ },
+ "LogPlayerTitleViewModel": {
+  "phases": {
+   "INGAME": 71,
+   "MENUS": 84
+  }
+ },
+ "LogPregameManager": {
+  "phases": {
+   "INGAME": 94,
+   "MENUS": 58,
+   "PREGAME": 196
+  },
+  "templates": {
+   "Fetch Match encountered a network error: AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 91,
+   "LockCharacter encountered a network error: AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 1,
+   "Match MUC token retrieval encountered an error: AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 3,
+   "Player Request encountered a network error: AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 11,
+   "Pregame match voice token retrieval encountered an error: AmbassadorError:{ HTTPStatus: N, ErrorCode: <q>, Message:<q>, Details:<q> }": 2,
+   "SetCurrentMatch called with same match version as current": 194,
+   "SubscribeToMatchChanges called without a PregamePlayer or MatchID": 46
+  }
+ },
+ "LogPreloadManager": {
+  "phases": {
+   "INGAME": 61,
+   "REPLAY": 2
+  }
+ },
+ "LogPremierEventViewModel": {
+  "phases": {
+   "INGAME": 50,
+   "MENUS": 32
+  }
+ },
+ "LogPremierManager": {
+  "phases": {
+   "INGAME": 17,
+   "MENUS": 20,
+   "PREGAME": 1
+  }
+ },
+ "LogPremierRosterManager": {
+  "phases": {
+   "MENUS": 16
+  }
+ },
+ "LogPremierRosterViewControllerOld": {
+  "phases": {
+   "MENUS": 5,
+   "PREGAME": 2
+  }
+ },
+ "LogPremierSeasonsModel": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogPresenceService": {
+  "phases": {
+   "INGAME": 2,
+   "MENUS": 13
+  }
+ },
+ "LogPresenceUpdater": {
+  "phases": {
+   "PREGAME": 1
+  }
+ },
+ "LogPrimitiveComponent": {
+  "phases": {
+   "INGAME": 1615,
+   "REPLAY": 35
+  }
+ },
+ "LogRGIFriends": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogRGIFriendsRiotGamesApi": {
+  "phases": {
+   "MENUS": 1
+  }
+ },
+ "LogRGILatencyMarkers": {
+  "phases": {
+   "INGAME": 1,
+   "MENUS": 1
+  }
+ },
+ "LogRGIPatchlineData": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogRMSManager": {
+  "phases": {
+   "MENUS": 11
+  }
+ },
+ "LogRMSService": {
+  "phases": {
+   "INGAME": 1720,
+   "MENUS": 1403,
+   "PREGAME": 1428,
+   "REPLAY": 4
+  }
+ },
+ "LogRNetVoiceManager": {
+  "phases": {
+   "INGAME": 200,
+   "MENUS": 65,
+   "PREGAME": 236
+  },
+  "templates": {
+   "CheckVoiceKeyAction: KeyToCheck was EKeys::Invalid! (None)": 12,
+   "HandleConnectionSuccess (Party) (gen = N (N), request = #N/N, outstanding=N)": 13,
+   "HandleConnectionSuccess (Party) ignoring from previous generation (gen = N, room current gen = N, request = #N)": 4,
+   "HandleConnectionSuccess (Team) (gen = N (N), request = #N/N, outstanding=N)": 59,
+   "HandleConnectionSuccess (Team) ignoring from previous generation (gen = N, room current gen = N, request = #N)": 2,
+   "Joining Party Voice Room <id>-pty after retrieving match token": 17,
+   "Joining Team Voice Room <id>-tmN after retrieving match token": 61,
+   "Joining voice room with session ID <id>-pty": 3,
+   "Joining voice room with session ID <id>-tmN": 17,
+   "PTT settings were synced": 40,
+   "StartJoinRoom (Party) (gen=N, attempt #N, N/N outstanding)": 17,
+   "StartJoinRoom (Team) (gen=N, attempt #N, N/N outstanding)": 61,
+   "UpdateReconnectStatus: No longer reconnecting": 64,
+   "UpdateReconnectStatus: Now reconnecting": 64,
+   "queueing clutch mute request": 6
+  }
+ },
+ "LogRSOManager": {
+  "phases": {
+   "MENUS": 32
+  }
+ },
+ "LogRTPPlugin": {
+  "phases": {
+   "INGAME": 3
+  }
+ },
+ "LogRankedProgressViewModel": {
+  "phases": {
+   "INGAME": 6,
+   "MENUS": 7
+  }
+ },
+ "LogRegionIndex": {
+  "phases": {
+   "MENUS": 6
+  }
+ },
+ "LogRemoteClientMovementComponent": {
+  "phases": {
+   "INGAME": 13312,
+   "REPLAY": 20
+  }
+ },
+ "LogRemoteSession": {
+  "phases": {
+   "MENUS": 3
+  }
+ },
+ "LogReplayData": {
+  "phases": {
+   "INGAME": 33,
+   "MENUS": 684
+  }
+ },
+ "LogReporterFeedbackInboxEntryModel": {
+  "phases": {
+   "MENUS": 32
+  }
+ },
+ "LogResourceComponent": {
+  "phases": {
+   "INGAME": 1497,
+   "REPLAY": 67
+  }
+ },
+ "LogRewardGrantModelFactory": {
+  "phases": {
+   "INGAME": 65,
+   "MENUS": 160
+  }
+ },
+ "LogRiotGamesApiClient": {
+  "phases": {
+   "INGAME": 11063,
+   "MENUS": 4592,
+   "PREGAME": 1016,
+   "REPLAY": 13
+  }
+ },
+ "LogRoamingSettingsManager": {
+  "phases": {
+   "INGAME": 3490,
+   "MENUS": 250,
+   "PREGAME": 4,
+   "REPLAY": 24
+  }
+ },
+ "LogScript": {
+  "phases": {
+   "INGAME": 33976,
+   "MENUS": 76,
+   "PREGAME": 8,
+   "REPLAY": 190
+  }
+ },
+ "LogScriptStateComponent": {
+  "phases": {
+   "INGAME": 3473,
+   "REPLAY": 13
+  }
+ },
+ "LogShaderLibrary": {
+  "phases": {
+   "MENUS": 2
+  }
+ },
+ "LogShellBackgroundWidget": {
+  "phases": {
+   "MENUS": 50
+  }
+ },
+ "LogShellScreen": {
+  "phases": {
+   "INGAME": 140,
+   "MENUS": 2,
+   "REPLAY": 12
+  }
+ },
+ "LogShellScreenViewModel": {
+  "phases": {
+   "INGAME": 227,
+   "REPLAY": 16
+  }
+ },
+ "LogShooter": {
+  "phases": {
+   "MENUS": 96
+  }
+ },
+ "LogShooterBlueprintLibrary": {
+  "phases": {
+   "INGAME": 1347,
+   "MENUS": 253,
+   "PREGAME": 4,
+   "REPLAY": 4
+  }
+ },
+ "LogShooterCharacter": {
+  "phases": {
+   "INGAME": 6
+  }
+ },
+ "LogShooterGameState": {
+  "phases": {
+   "INGAME": 3630,
+   "REPLAY": 189
+  },
+  "templates": {
+   "AShooterGameState::GetEnemyTeam called with invalid AllyTeam": 10,
+   "AShooterGameState::OnRoundEnded for round <q>": 642,
+   "Gameplay started at local time N (server time N)": 1334,
+   "Invalid team passed to GetPointsForTeam: <id>": 137,
+   "Invalid team passed to GetPointsForTeam: Blue": 19,
+   "Invalid team passed to GetPointsForTeam: Red": 6,
+   "Match Ended: Completion State: <q>. Winning Team: <q> ()": 12,
+   "Match Ended: Completion State: <q>. Winning Team: <q> (Attacker)": 19,
+   "Match Ended: Completion State: <q>. Winning Team: <q> (Defender)": 10,
+   "Match Ended: Completion State: <q>. Winning Team: <q> (FreeForAll)": 2,
+   "Match Ended: Completion State: <q>. Winning Team: <q> (no role)": 2,
+   "Null team passed to GetPointsForTeam": 1533,
+   "Replicated NetServerMaxTickRate: <q>": 93
+  }
+ },
+ "LogShooterGameUserSettings": {
+  "phases": {
+   "INGAME": 2556,
+   "MENUS": 268
+  }
+ },
+ "LogShooterHUD": {
+  "phases": {
+   "INGAME": 72,
+   "REPLAY": 2
+  }
+ },
+ "LogShooterPlayerController": {
+  "phases": {
+   "INGAME": 168,
+   "MENUS": 6
+  }
+ },
+ "LogShooterPlayerState": {
+  "phases": {
+   "INGAME": 260,
+   "PREGAME": 2,
+   "REPLAY": 400
+  }
+ },
+ "LogSkeletalMesh": {
+  "phases": {
+   "INGAME": 2047,
+   "PREGAME": 111,
+   "REPLAY": 131
+  }
+ },
+ "LogSlate": {
+  "phases": {
+   "INGAME": 73,
+   "MENUS": 23,
+   "PREGAME": 3
+  }
+ },
+ "LogSlateStyle": {
+  "phases": {
+   "MENUS": 8
+  }
+ },
+ "LogSocialViewControllerV3": {
+  "phases": {
+   "INGAME": 5,
+   "MENUS": 8
+  }
+ },
+ "LogSpawnActorStateComponent": {
+  "phases": {
+   "INGAME": 241
+  }
+ },
+ "LogStateMachineComponent": {
+  "phases": {
+   "INGAME": 276
+  }
+ },
+ "LogStoreManager": {
+  "phases": {
+   "INGAME": 3,
+   "MENUS": 11
+  }
+ },
+ "LogStreamableManager": {
+  "phases": {
+   "INGAME": 44,
+   "MENUS": 9
+  }
+ },
+ "LogStreaming": {
+  "phases": {
+   "INGAME": 1121,
+   "MENUS": 429,
+   "PREGAME": 66,
+   "REPLAY": 49
+  }
+ },
+ "LogStringTable": {
+  "phases": {
+   "INGAME": 19,
+   "MENUS": 88,
+   "PREGAME": 5
+  }
+ },
+ "LogTaskGraph": {
+  "phases": {
+   "INGAME": 4
+  }
+ },
+ "LogTelemetryManager": {
+  "phases": {
+   "INGAME": 8,
+   "MENUS": 32
+  }
+ },
+ "LogTemp": {
+  "phases": {
+   "INGAME": 50,
+   "MENUS": 91
+  }
+ },
+ "LogTextChatManagerV2": {
+  "phases": {
+   "INGAME": 2,
+   "MENUS": 87,
+   "PREGAME": 12
+  }
+ },
+ "LogTextChatRoomV2": {
+  "phases": {
+   "INGAME": 10,
+   "MENUS": 60
+  }
+ },
+ "LogTextChatService": {
+  "phases": {
+   "INGAME": 243,
+   "MENUS": 531,
+   "PREGAME": 24
+  }
+ },
+ "LogTextFormatter": {
+  "phases": {
+   "INGAME": 2323,
+   "MENUS": 668
+  }
+ },
+ "LogTexture": {
+  "phases": {
+   "INGAME": 1,
+   "PREGAME": 3
+  }
+ },
+ "LogThreadedChatManager": {
+  "phases": {
+   "INGAME": 6,
+   "MENUS": 25
+  }
+ },
+ "LogTransitionManagerWidget": {
+  "phases": {
+   "INGAME": 12,
+   "PREGAME": 2
+  }
+ },
+ "LogTravelManager": {
+  "phases": {
+   "INGAME": 237,
+   "MENUS": 54,
+   "PREGAME": 107
+  }
+ },
+ "LogUIActionRouter": {
+  "phases": {
+   "INGAME": 8,
+   "MENUS": 150
+  }
+ },
+ "LogUIConfirmationModal": {
+  "phases": {
+   "INGAME": 1,
+   "MENUS": 2
+  }
+ },
+ "LogUINavigationGlobals": {
+  "phases": {
+   "INGAME": 12,
+   "PREGAME": 10
+  }
+ },
+ "LogUINavigationManager": {
+  "phases": {
+   "INGAME": 1
+  }
+ },
+ "LogUINavigationModel": {
+  "phases": {
+   "INGAME": 1667,
+   "MENUS": 814,
+   "PREGAME": 24,
+   "REPLAY": 53
+  }
+ },
+ "LogULobbyViewModel": {
+  "phases": {
+   "INGAME": 4,
+   "MENUS": 66
+  }
+ },
+ "LogUMG": {
+  "phases": {
+   "INGAME": 968,
+   "MENUS": 4,
+   "PREGAME": 102
+  }
+ },
+ "LogUObjectBase": {
+  "phases": {
+   "INGAME": 1845
+  }
+ },
+ "LogUObjectGlobals": {
+  "phases": {
+   "INGAME": 10,
+   "MENUS": 32
+  }
+ },
+ "LogUnseenContentViewModel": {
+  "phases": {
+   "INGAME": 1,
+   "MENUS": 4
+  }
+ },
+ "LogVNGManager": {
+  "phases": {
+   "MENUS": 11
+  }
+ },
+ "LogVoteControllerComponent": {
+  "phases": {
+   "INGAME": 51
+  },
+  "templates": {
+   "Attempted keybind vote for option: N": 8,
+   "Making vote request for option CONTINUE": 2,
+   "Making vote request for option No": 5,
+   "Making vote request for option Yes": 3,
+   "Requesting new vote RemakeVoteNew_C": 1,
+   "Requesting new vote SurrenderVote_C": 1,
+   "Requesting new vote TimeoutVote_C": 1,
+   "Setting vote input bindings enabled to N": 30
+  }
+ },
+ "LogWebBrowser": {
+  "phases": {
+   "INGAME": 66,
+   "MENUS": 44
+  }
+ },
+ "LogWildcard": {
+  "phases": {
+   "MENUS": 195
+  }
+ },
+ "LogWindows": {
+  "phases": {
+   "MENUS": 1
+  }
+ },
+ "PIE": {
+  "phases": {
+   "INGAME": 74,
+   "MENUS": 394,
+   "PREGAME": 24
+  }
+ },
+ "RGIJiraSubmitter": {
+  "phases": {
+   "MENUS": 2
+  }
+ },
+ "ShooterUICoordinator": {
+  "phases": {
+   "INGAME": 1526
+  }
+ },
+ "UmbraCulling": {
+  "phases": {
+   "MENUS": 18,
+   "PREGAME": 43
+  }
+ }
+}

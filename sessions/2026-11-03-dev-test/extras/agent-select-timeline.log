@@ -1,0 +1,68 @@
+[2026.11.03-12.13.39:756][680]LogPlatformSessionManager: Loopstate changed from INVALID to MENUS
+[2026.11.03-12.16.43:624][578]LogPlatformSessionManager: Loopstate changed from MENUS to INGAME
+[2026.11.03-12.16.43:923][893]LogRNetVoiceManager: Joining Team Voice Room <id>-tm1 after retrieving match token
+[2026.11.03-12.23.36:740][578]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS
+[2026.11.03-12.23.53:577][183]LogPlatformSessionManager: Loopstate changed from MENUS to PREGAME
+[2026.11.03-12.23.53:577][183]LogGameFlowStateManager: [PlatformTime: 458498.834319] Transitioning from MainMenu to TransitionToPregame
+[2026.11.03-12.23.53:827][398]LogRNetVoiceManager: Joining Team Voice Room <id>-tm1 after retrieving match token
+[2026.11.03-12.23.54:869][121]LogGameFlowStateManager: [PlatformTime: 458500.126639] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-12.23.54:869][121]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 1.29 seconds, Map ready time: 1.29 seconds, Platform ready time: 0.15 seconds, Blocked on preloading: 0
+[2026.11.03-12.25.07:632][716]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-12.25.07:910][890]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-12.25.13:142][473]LogPlatformSessionManager: Loopstate changed from PREGAME to INGAME
+[2026.11.03-12.25.45:159][913]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS
+[2026.11.03-12.26.36:450][268]LogPlatformSessionManager: Loopstate changed from MENUS to PREGAME
+[2026.11.03-12.26.42:053][836]LogGameFlowStateManager: [PlatformTime: 458667.312719] Transitioning from MainMenu to TransitionToPregame
+[2026.11.03-12.26.42:172][921]LogRNetVoiceManager: Joining Team Voice Room <id>-tm2 after retrieving match token
+[2026.11.03-12.26.43:216][729]LogGameFlowStateManager: [PlatformTime: 458668.474823] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-12.26.43:216][729]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 1.16 seconds, Map ready time: 1.16 seconds, Platform ready time: 0.01 seconds, Blocked on preloading: 0
+[2026.11.03-12.26.49:428][209]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-12.26.49:972][425]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-12.28.11:779][996]LogPlatformSessionManager: Loopstate changed from PREGAME to MENUS
+[2026.11.03-12.28.24:237][708]LogPlatformSessionManager: Loopstate changed from MENUS to PREGAME
+[2026.11.03-12.28.29:837][608]LogGameFlowStateManager: [PlatformTime: 458775.096655] Transitioning from MainMenu to TransitionToPregame
+[2026.11.03-12.28.29:962][685]LogRNetVoiceManager: Joining Team Voice Room <id>-tm2 after retrieving match token
+[2026.11.03-12.28.31:013][483]LogGameFlowStateManager: [PlatformTime: 458776.273566] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-12.28.31:013][483]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 1.18 seconds, Map ready time: 1.18 seconds, Platform ready time: 0.01 seconds, Blocked on preloading: 0
+[2026.11.03-12.28.37:135][730]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-12.28.37:390][794]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-12.29.04:494][684]LogPlatformSessionManager: Loopstate changed from PREGAME to INGAME
+[2026.11.03-12.36.19:282][  6]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS
+[2026.11.03-12.36.48:083][896]LogPlatformSessionManager: Loopstate changed from MENUS to PREGAME
+[2026.11.03-12.36.53:681][907]LogGameFlowStateManager: [PlatformTime: 459278.947013] Transitioning from MainMenu to TransitionToPregame
+[2026.11.03-12.36.53:813][ 20]LogRNetVoiceManager: Joining Team Voice Room <id>-tm1 after retrieving match token
+[2026.11.03-12.36.54:908][864]LogGameFlowStateManager: [PlatformTime: 459280.174356] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-12.36.54:908][864]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 1.23 seconds, Map ready time: 1.23 seconds, Platform ready time: 0.01 seconds, Blocked on preloading: 0
+[2026.11.03-12.37.00:856][478]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-12.37.01:305][626]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-12.37.23:144][587]LogPlatformSessionManager: Loopstate changed from PREGAME to INGAME
+[2026.11.03-12.44.27:374][ 25]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS
+[2026.11.03-12.46.14:810][ 65]LogPlatformSessionManager: Loopstate changed from MENUS to INGAME
+[2026.11.03-12.46.15:085][337]LogRNetVoiceManager: Joining Team Voice Room <id>-tm1 after retrieving match token
+[2026.11.03-12.46.40:671][542]LogPlatformSessionManager: Loopstate changed from INGAME to PREGAME
+[2026.11.03-12.46.46:179][357]LogGameFlowStateManager: [PlatformTime: 459871.452112] Transitioning from InGame to TransitionToPregame
+[2026.11.03-12.46.46:582][500]LogRNetVoiceManager: Joining Team Voice Room <id>-tm1 after retrieving match token
+[2026.11.03-12.46.48:263][724]LogGameFlowStateManager: [PlatformTime: 459873.536833] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-12.46.48:263][724]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 2.08 seconds, Map ready time: 2.08 seconds, Platform ready time: 0.01 seconds, Blocked on preloading: 0
+[2026.11.03-12.46.53:466][711]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-12.47.04:370][554]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-12.47.41:543][773]LogPlatformSessionManager: Loopstate changed from PREGAME to INGAME
+[2026.11.03-13.21.09:148][413]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS
+[2026.11.03-13.22.13:226][ 35]LogPlatformSessionManager: Loopstate changed from MENUS to PREGAME
+[2026.11.03-13.22.18:826][315]LogGameFlowStateManager: [PlatformTime: 462004.124448] Transitioning from MainMenu to TransitionToPregame
+[2026.11.03-13.22.18:944][387]LogRNetVoiceManager: Joining Team Voice Room <id>-tm2 after retrieving match token
+[2026.11.03-13.22.20:097][927]LogGameFlowStateManager: [PlatformTime: 462005.396808] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-13.22.20:097][927]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 1.27 seconds, Map ready time: 1.27 seconds, Platform ready time: 0.01 seconds, Blocked on preloading: 0
+[2026.11.03-13.22.46:783][623]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-13.22.47:699][958]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-13.23.54:177][547]LogPlatformSessionManager: Loopstate changed from PREGAME to INGAME
+[2026.11.03-13.51.55:651][313]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS
+[2026.11.03-13.52.45:919][173]LogPlatformSessionManager: Loopstate changed from MENUS to PREGAME
+[2026.11.03-13.52.51:537][311]LogGameFlowStateManager: [PlatformTime: 463836.858494] Transitioning from MainMenu to TransitionToPregame
+[2026.11.03-13.52.51:665][385]LogRNetVoiceManager: Joining Team Voice Room <id>-tm1 after retrieving match token
+[2026.11.03-13.52.52:812][900]LogGameFlowStateManager: [PlatformTime: 463838.132915] Transitioning from TransitionToPregame to Pregame
+[2026.11.03-13.52.52:812][900]LogLoadTimeMetrics: Display: [Pregame Load Times] Total load time: 1.27 seconds, Map ready time: 1.27 seconds, Platform ready time: 0.01 seconds, Blocked on preloading: 0
+[2026.11.03-13.53.01:498][ 17]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_SelectCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Second
+[2026.11.03-13.53.38:856][844]LogPlatformCommon: Platform HTTP Query End. QueryName: [Pregame_LockCharacter], URL [POST https://glz-eu-1.eu.a.pvp.net/...], @trace_id:<x> Response Code: [200], Seconds 
+[2026.11.03-13.54.19:011][112]LogPlatformSessionManager: Loopstate changed from PREGAME to INGAME
+[2026.11.03-14.28.11:019][727]LogPlatformSessionManager: Loopstate changed from INGAME to MENUS

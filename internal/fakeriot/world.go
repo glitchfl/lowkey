@@ -66,6 +66,8 @@ const (
 	Phantom  = "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a"
 	Vandal   = "9c82e19d-4575-0200-1a81-3eacf00cf872"
 	Operator = "a03b24d3-4319-996d-0f8c-94bbfba1dfc7"
+	Judge    = "ec845bf4-4f79-ddda-a3da-0db3774b2794"
+	Bucky    = "910be174-449b-c412-ab22-d0873436b21b"
 	Melee    = "2f59173c-4bed-b6c3-2191-dea9b58be9c7"
 
 	ReaverVandal     = "30388628-42f0-606c-82c0-73ad43de997f" // Premium
@@ -230,12 +232,23 @@ type TeamResult struct {
 type Round struct {
 	Kills  []Kill
 	Damage []Hit
+	// Attackers is the attacking team - empty has Red attack the first 12 rounds and Blue the rest
+	Attackers string
+	Plant     string // the site the spike goes down on - empty for none
+	PlantAt   int
+	// Spots is where each player stands all round - every kill and the plant report them
+	Spots map[string]Spot
+	// Loadouts is the weapon each player starts the round with by its ID
+	Loadouts map[string]string
 }
+
+type Spot struct{ X, Y int }
 
 type Kill struct {
 	Killer string
 	Victim string
 	At     int
+	Weapon string // empty is a Vandal
 }
 
 type Hit struct {

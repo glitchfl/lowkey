@@ -11,6 +11,8 @@ PLAYERS
   hidden player stats  on
   enemy parties        off
   player details       off
+  site scouting        off
+  weapon profiling     off
 
 MATCH
   server pod           off

@@ -4,10 +4,13 @@ package static
 import (
 	_ "embed"
 	"encoding/json"
+	"math"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/glitchfl/lowkey/internal/stats"
 )
 
 //go:generate go run ./gen snapshot.json
@@ -29,18 +32,39 @@ type Skin struct {
 }
 
 type snapshot struct {
-	Generated      time.Time         `json:"generated"`
-	ClientVersion  string            `json:"clientVersion"`
-	Agents         map[string]string `json:"agents"`
-	Maps           map[string]string `json:"maps"`
-	TierSets       map[string][]Tier `json:"tierSets"`
-	CurrentTierSet string            `json:"currentTierSet"`
-	Acts           map[string]string `json:"acts"`
-	Weapons        map[string]string `json:"weapons"`
-	Skins          map[string]Skin   `json:"skins"`
-	Editions       map[string]string `json:"editions"`
-	Buddies        map[string]string `json:"buddies"`
-	IDs            []string          `json:"ids"`
+	Generated     time.Time         `json:"generated"`
+	ClientVersion string            `json:"clientVersion"`
+	Agents        map[string]string `json:"agents"`
+	Roles         map[string]string `json:"roles"`
+	Maps          map[string]string `json:"maps"`
+	// Callouts are by map URL
+	Callouts       map[string][]stats.Callout `json:"callouts"`
+	TierSets       map[string][]Tier          `json:"tierSets"`
+	CurrentTierSet string                     `json:"currentTierSet"`
+	Acts           map[string]string          `json:"acts"`
+	Weapons        map[string]string          `json:"weapons"`
+	Skins          map[string]Skin            `json:"skins"`
+	Editions       map[string]string          `json:"editions"`
+	Buddies        map[string]string          `json:"buddies"`
+	IDs            []string                   `json:"ids"`
+}
+
+// APICallout is a callout the way valorant-api.com sends it
+type APICallout struct {
+	SuperRegionName string `json:"superRegionName"`
+	Location        struct {
+		X float64 `json:"x"`
+		Y float64 `json:"y"`
+	} `json:"location"`
+}
+
+// CalloutsFrom keeps the part of the map each callout is in and where it is to the unit
+func CalloutsFrom(api []APICallout) []stats.Callout {
+	out := make([]stats.Callout, 0, len(api))
+	for _, c := range api {
+		out = append(out, stats.Callout{Region: c.SuperRegionName, X: math.Round(c.Location.X), Y: math.Round(c.Location.Y)})
+	}
+	return out
 }
 
 // Data is safe for concurrent use - a refresh can add agents while a redraw reads them
@@ -57,6 +81,12 @@ func Embedded() *Data {
 		panic("static: broken snapshot.json: " + err.Error())
 	}
 	d := &Data{s: s, ids: map[string]bool{}, tier: map[int]Tier{}}
+	if d.s.Roles == nil {
+		d.s.Roles = map[string]string{}
+	}
+	if d.s.Callouts == nil {
+		d.s.Callouts = map[string][]stats.Callout{}
+	}
 	for _, id := range s.IDs {
 		d.ids[strings.ToLower(id)] = true
 	}
@@ -113,6 +143,19 @@ func (d *Data) AgentName(id string) (string, bool) {
 	return name, ok
 }
 
+func (d *Data) Duelist(agent string) bool {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.s.Roles[strings.ToLower(agent)] == "Duelist"
+}
+
+// Callouts are a map's named spots - none for a map newer than the snapshot until a refresh finds it
+func (d *Data) Callouts(mapURL string) []stats.Callout {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.s.Callouts[mapURL]
+}
+
 func (d *Data) MapName(mapURL string) (string, bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -121,20 +164,26 @@ func (d *Data) MapName(mapURL string) (string, bool) {
 }
 
 // AddAgents and AddMaps merge a refresh from valorant-api.com - known entries are kept
-func (d *Data) AddAgents(agents map[string]string) {
+func (d *Data) AddAgents(agents, roles map[string]string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for id, name := range agents {
 		d.s.Agents[strings.ToLower(id)] = name
 		d.ids[strings.ToLower(id)] = true
 	}
+	for id, role := range roles {
+		d.s.Roles[strings.ToLower(id)] = role
+	}
 }
 
-func (d *Data) AddMaps(maps map[string]string) {
+func (d *Data) AddMaps(maps map[string]string, callouts map[string][]stats.Callout) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for url, name := range maps {
 		d.s.Maps[url] = name
+	}
+	for url, c := range callouts {
+		d.s.Callouts[url] = c
 	}
 }
 

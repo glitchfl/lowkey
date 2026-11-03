@@ -144,8 +144,76 @@ func (lv *live) detailsScreen(s *render.Screen, lob *lobby, m *member, title str
 		s.Tables[0].Note = "not looked up - switched off in the settings"
 		return
 	}
-	s.Tables = append(s.Tables, lv.modesTable(p), lv.agentsTable(p, lob.mode), lv.matchesTable(p, lob.mode),
-		lv.gunsTable(lob, m), lv.actsTable(p))
+	s.Tables = append(s.Tables, lv.modesTable(p), lv.agentsTable(p, lob.mode))
+	if t, ok := lv.tendencies(lob, p); ok {
+		s.Tables = append(s.Tables, t)
+	}
+	s.Tables = append(s.Tables, lv.matchesTable(p, lob.mode), lv.gunsTable(lob, m), lv.actsTable(p))
+}
+
+// tendencies reads only the matches already fetched - site scouting needs a mode with sites to read
+func (lv *live) tendencies(lob *lobby, p *player) (render.Table, bool) {
+	cfg := lv.cfg.Settings()
+	sites, guns := cfg.SiteScouting && lob.mode.Rounds, cfg.WeaponProfiling
+	if !sites && !guns || !p.historyDone || p.historyErr != nil {
+		return render.Table{}, false
+	}
+	matches := p.loaded()
+	lines := []string{"TENDENCIES"}
+	if sites {
+		name, ok := lv.data.MapName(lob.mapURL)
+		if !ok {
+			name = "?"
+		}
+		s := stats.SitesOf(p.puuid, lob.mapURL, matches, lv.data.Callouts(lob.mapURL))
+		if s.Matches == 0 {
+			lines = append(lines, "no matches on "+name+" in sample")
+		} else {
+			lines[0] = fmt.Sprintf("TENDENCIES · %s (%s in sample)", strings.ToUpper(name), count(s.Matches, "match", "matches"))
+			lines = append(lines,
+				"DEFENSE:  "+shares(s.Defense, "round", "rounds"),
+				"ATTACK:   "+shares(s.Plants, "plant", "plants"),
+				"OPENING:  "+shares(s.Openings, "opening duel", "opening duels"))
+		}
+	}
+	if guns {
+		lines = append(lines, leanings(stats.LeaningsOf(p.puuid, matches, lv.data.Duelist))...)
+	}
+	return render.Table{Note: strings.Join(lines, "\n")}, true
+}
+
+func shares(t stats.Tally, one, many string) string {
+	if t.N == 0 {
+		return "no " + many + " to go by"
+	}
+	parts := make([]string, len(t.Shares))
+	for i, s := range t.Shares {
+		parts[i] = fmt.Sprintf("%s %d%%", s.Place, s.Percent)
+	}
+	return fmt.Sprintf("%s (%s)", strings.Join(parts, " · "), count(t.N, one, many))
+}
+
+func leanings(l stats.Leanings) []string {
+	sample := count(l.Matches, "match", "matches") + " in sample"
+	if l.Operator == nil && l.Shotguns == nil {
+		return []string{"LEANS ON: no gun stands out (" + sample + ")"}
+	}
+	lines := []string{"LEANS ON (" + sample + "):"}
+	if o := l.Operator; o != nil {
+		lines = append(lines, fmt.Sprintf("  • Operator on duelists (%d%% of rifle and sniper kills · %s with one)",
+			o.Percent, count(o.Rounds, "round", "rounds")))
+	}
+	if g := l.Shotguns; g != nil {
+		lines = append(lines, fmt.Sprintf("  • %s (%s · %d%% of kills)", strings.Join(g.Guns, " and "), count(g.Kills, "kill", "kills"), g.Percent))
+	}
+	return lines
+}
+
+func count(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return fmt.Sprintf("%d %s", n, many)
 }
 
 // hideEmpty drops a details column nobody has a value in - a team in agent select or a hidden level

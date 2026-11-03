@@ -14,13 +14,11 @@ func (f *File) Change(edit func(*Settings)) (backup string, err error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.refresh()
-	next := f.current
-	next.Columns, next.Modes, next.Weapons = slices.Clone(next.Columns), slices.Clone(next.Modes), slices.Clone(next.Weapons)
-	next.AgentDots = slices.Clone(next.AgentDots)
+	next := f.current.clone()
 	edit(&next)
-	var changed []field
-	for _, fd := range fields {
-		if fd.value(next) != fd.value(f.current) {
+	var changed []Field
+	for _, fd := range Fields {
+		if fd.Kind.write(next) != fd.Kind.write(f.current) {
 			changed = append(changed, fd)
 		}
 	}
@@ -76,20 +74,20 @@ func replace(path string, data []byte) error {
 }
 
 // editedInPlace is false when the file has nothing to keep or the edit didn't read back as asked
-func editedInPlace(raw []byte, changed []field, next Settings) ([]byte, bool) {
+func editedInPlace(raw []byte, changed []Field, next Settings) ([]byte, bool) {
 	if len(bytes.TrimSpace(raw)) == 0 {
 		return nil, false
 	}
 	data := raw
 	for _, fd := range changed {
-		data = setKey(data, fd, fd.value(next))
+		data = setKey(data, fd, fd.Kind.write(next))
 	}
 	parsed, _, err := Parse(data)
 	if err != nil {
 		return nil, false
 	}
 	for _, fd := range changed {
-		if fd.value(parsed) != fd.value(next) {
+		if fd.Kind.write(parsed) != fd.Kind.write(next) {
 			return nil, false
 		}
 	}
@@ -98,15 +96,15 @@ func editedInPlace(raw []byte, changed []field, next Settings) ([]byte, bool) {
 
 // setKey swaps a key's value - a key the file doesn't have yet goes at the end of its section with its
 // comment - and a section it doesn't have yet goes at the end of the file
-func setKey(data []byte, fd field, value string) []byte {
+func setKey(data []byte, fd Field, value string) []byte {
 	l := scanLayout(data)
-	if v, ok := l.values[sectionKey{fd.section, fd.key}]; ok {
+	if v, ok := l.values[sectionKey{fd.Section, fd.Key}]; ok {
 		return slices.Concat(data[:v.start], []byte(value), data[v.end:])
 	}
 	block := "\n" + fd.block(value)
-	at, ok := l.ends[fd.section]
+	at, ok := l.ends[fd.Section]
 	if !ok {
-		at, block = len(data), "\n["+fd.section+"]\n"+block
+		at, block = len(data), "\n["+fd.Section+"]\n"+block
 	}
 	if at == len(data) && len(data) > 0 && !bytes.HasSuffix(data, []byte("\n")) {
 		block = "\n" + block

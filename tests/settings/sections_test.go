@@ -2,10 +2,9 @@ package settings_test
 
 import (
 	"os"
-	"slices"
+	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/glitchfl/lowkey/internal/settings"
 )
@@ -28,8 +27,8 @@ func TestAFileFromBeforeSectionsIsMovedWhenItOpens(t *testing.T) {
 	}
 	want := settings.Default()
 	want.Matches, want.Region, want.Weapons = 7, "ap", []string{"phantom", "vandal"}
-	want.HiddenPlayerStats, want.ServerPod, want.Cutoff, want.Columns = false, true, 20*time.Second, []string{"name", "rank"}
-	if !sameSettings(s, want) || !sameSettings(f.Settings(), want) {
+	want.HiddenPlayerStats, want.ServerPod, want.CutoffSeconds, want.Columns = false, true, 20, []string{"name", "rank"}
+	if !reflect.DeepEqual(s, want) || !reflect.DeepEqual(f.Settings(), want) {
 		t.Errorf("every value should come across\n got %+v\nwant %+v", s, want)
 	}
 	if f.Invalid() || f.Warning() != "" {
@@ -57,7 +56,7 @@ func TestAFlatFileFromAnAgentDotBuildKeepsItsDotsWhenItsMoved(t *testing.T) {
 	want := settings.Default()
 	want.Matches, want.AgentDot, want.AgentDotSeconds = 7, true, 9
 	want.AgentDots = []settings.DotSlot{{Agent: "Raze", At: settings.Spot{X: 800, Y: 450, Placed: true}}, {Agent: "Jett"}}
-	if !sameSettings(s, want) {
+	if !reflect.DeepEqual(s, want) {
 		t.Errorf("every dot should come across\n got %+v\nwant %+v", s, want)
 	}
 	if !strings.Contains(file, "\n[agent_select]\n") {
@@ -112,14 +111,4 @@ func TestAKeyOutsideItsSectionSaysWhereItGoes(t *testing.T) {
 			}
 		})
 	}
-}
-
-func sameSettings(a, b settings.Settings) bool {
-	return slices.Equal(a.Columns, b.Columns) && slices.Equal(a.Modes, b.Modes) && slices.Equal(a.Weapons, b.Weapons) &&
-		a.Matches == b.Matches && a.SessionResetHour == b.SessionResetHour && a.Cutoff == b.Cutoff &&
-		a.EnemyLookups == b.EnemyLookups && a.HiddenPlayerStats == b.HiddenPlayerStats &&
-		a.ExactEnemyParties == b.ExactEnemyParties && a.ServerPod == b.ServerPod && a.VoiceCheck == b.VoiceCheck &&
-		a.PlayerDetails == b.PlayerDetails && a.SiteScouting == b.SiteScouting && a.WeaponProfiling == b.WeaponProfiling &&
-		a.Region == b.Region && a.AgentDot == b.AgentDot && a.AgentDotSeconds == b.AgentDotSeconds &&
-		slices.Equal(a.AgentDots, b.AgentDots)
 }

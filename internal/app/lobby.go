@@ -116,7 +116,7 @@ func (lv *live) startMatchLoad(matchID string) {
 	}
 	lv.lobby = lob
 	lv.guard.SetWindow(remote.MatchLoad)
-	lv.cutoffStop = lv.env.Clock.AfterFunc(lv.cfg.Settings().Cutoff, func() {
+	lv.cutoffStop = lv.env.Clock.AfterFunc(lv.cfg.Settings().Cutoff(), func() {
 		lv.loop.post(func() { lv.onCutoff(lob) })
 	})
 	lv.ensureTarget(func() {

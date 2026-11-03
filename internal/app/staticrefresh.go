@@ -7,6 +7,7 @@ import (
 
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/static"
+	"github.com/glitchfl/lowkey/internal/stats"
 )
 
 // staticRefresh remembers which unknown IDs a finished refresh already looked for - once per run each
@@ -100,22 +101,28 @@ func (lv *live) refreshStatic() {
 	}
 }
 
-func decodeStaticAgents(body []byte) map[string]string {
+func decodeStaticAgents(body []byte) (names, roles map[string]string) {
 	var v struct {
 		Data []struct {
 			UUID        string `json:"uuid"`
 			DisplayName string `json:"displayName"`
+			Role        *struct {
+				DisplayName string `json:"displayName"`
+			} `json:"role"`
 		} `json:"data"`
 	}
-	out := map[string]string{}
+	names, roles = map[string]string{}, map[string]string{}
 	if json.Unmarshal(body, &v) == nil {
 		for _, a := range v.Data {
 			if a.UUID != "" && a.DisplayName != "" {
-				out[strings.ToLower(a.UUID)] = a.DisplayName
+				names[strings.ToLower(a.UUID)] = a.DisplayName
+			}
+			if a.UUID != "" && a.Role != nil && a.Role.DisplayName != "" {
+				roles[strings.ToLower(a.UUID)] = a.Role.DisplayName
 			}
 		}
 	}
-	return out
+	return names, roles
 }
 
 // decodeStaticSkin names a skin the way the snapshot does - Reaver for Reaver Vandal
@@ -133,20 +140,24 @@ func decodeStaticSkin(body []byte, weapon string) (static.Skin, bool) {
 	return static.Skin{Name: name, Edition: strings.ToLower(v.Data.ContentTierUUID)}, true
 }
 
-func decodeStaticMaps(body []byte) map[string]string {
+func decodeStaticMaps(body []byte) (names map[string]string, callouts map[string][]stats.Callout) {
 	var v struct {
 		Data []struct {
-			DisplayName string `json:"displayName"`
-			MapURL      string `json:"mapUrl"`
+			DisplayName string              `json:"displayName"`
+			MapURL      string              `json:"mapUrl"`
+			Callouts    []static.APICallout `json:"callouts"`
 		} `json:"data"`
 	}
-	out := map[string]string{}
+	names, callouts = map[string]string{}, map[string][]stats.Callout{}
 	if json.Unmarshal(body, &v) == nil {
 		for _, m := range v.Data {
 			if m.MapURL != "" && m.DisplayName != "" {
-				out[m.MapURL] = m.DisplayName
+				names[m.MapURL] = m.DisplayName
+			}
+			if m.MapURL != "" && len(m.Callouts) > 0 {
+				callouts[m.MapURL] = static.CalloutsFrom(m.Callouts)
 			}
 		}
 	}
-	return out
+	return names, callouts
 }

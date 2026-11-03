@@ -92,7 +92,7 @@ type Section struct {
 type Table struct {
 	Columns []Column
 	Rows    []Row
-	Note    string // a plain line under the rows
+	Note    string // plain lines under the rows
 }
 
 type Screen struct {
@@ -130,7 +130,7 @@ func (s Screen) Layout(cols []Column, maxWidth int, ansi bool) ([]string, int) {
 			body = append(body, table(t.Columns, []Section{{Rows: t.Rows}}, maxWidth, ansi)...)
 		}
 		if t.Note != "" {
-			body = append(body, t.Note)
+			body = append(body, strings.Split(t.Note, "\n")...)
 		}
 	}
 	if s.Session != "" {

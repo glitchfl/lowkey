@@ -330,12 +330,33 @@ func (w *World) matchDetails(m *Match) []byte {
 				locations = append(locations, obj{"subject": mp.PUUID, "viewRadians": 1.5707963 + float64(j)/10, "location": location(1000+j*37, -2000+j*53)})
 			}
 		}
+		// a kill's playerLocations leave its victim out like the game's do
+		spotsBut := func(victim string) []obj {
+			if r.Spots == nil {
+				return locations
+			}
+			out := []obj{}
+			for _, mp := range m.Players {
+				if sp, ok := r.Spots[mp.PUUID]; ok && mp.PUUID != victim {
+					out = append(out, obj{"subject": mp.PUUID, "viewRadians": 1.5707963, "location": location(sp.X, sp.Y)})
+				}
+			}
+			return out
+		}
 		for _, k := range r.Kills {
+			weapon := k.Weapon
+			if weapon == "" {
+				weapon = Vandal
+			}
+			victimAt := location(100, 200)
+			if sp, ok := r.Spots[k.Victim]; ok {
+				victimAt = location(sp.X, sp.Y)
+			}
 			kill := obj{
 				"gameTime": i*100000 + k.At, timeField: k.At,
-				"killer": k.Killer, "victim": k.Victim, "victimLocation": location(100, 200),
-				"assistants": []string{}, "playerLocations": locations,
-				"finishingDamage": obj{"damageType": "Weapon", "damageItem": "9c82e19d-4575-0200-1a81-3eacf00cf872", "isSecondaryFireMode": false},
+				"killer": k.Killer, "victim": k.Victim, "victimLocation": victimAt,
+				"assistants": []string{}, "playerLocations": spotsBut(k.Victim),
+				"finishingDamage": obj{"damageType": "Weapon", "damageItem": strings.ToUpper(weapon), "isSecondaryFireMode": false},
 			}
 			s := statFor(k.Killer)
 			s["kills"] = append(s["kills"].([]obj), kill)
@@ -344,6 +365,9 @@ func (w *World) matchDetails(m *Match) []byte {
 				withRound[key] = v
 			}
 			allKills = append(allKills, withRound)
+		}
+		for puuid, weapon := range r.Loadouts {
+			statFor(puuid)["economy"].(obj)["weapon"] = strings.ToUpper(weapon)
 		}
 		for _, h := range r.Damage {
 			s := statFor(h.From)
@@ -364,10 +388,25 @@ func (w *World) matchDetails(m *Match) []byte {
 			}
 			economies, scores = e, sc
 		}
+		attackers := r.Attackers
+		if attackers == "" {
+			attackers = "Red"
+			if i >= 12 {
+				attackers = "Blue"
+			}
+		}
+		role := "Defender"
+		if attackers == "Blue" {
+			role = "Attacker"
+		}
+		plantLocations := locations
+		if r.Plant != "" {
+			plantLocations = spotsBut("")
+		}
 		rounds = append(rounds, obj{
 			"roundNum": i, "roundResult": "Eliminated", "roundCeremony": "CeremonyDefault",
-			"winningTeam": "Blue", "plantRoundTime": 0, "plantPlayerLocations": locations,
-			"plantLocation": location(0, 0), "plantSite": "", "defuseRoundTime": 0,
+			"winningTeam": "Blue", "winningTeamRole": role, "plantRoundTime": r.PlantAt, "plantPlayerLocations": plantLocations,
+			"plantLocation": location(0, 0), "plantSite": r.Plant, "defuseRoundTime": 0,
 			"defusePlayerLocations": nil, "defuseLocation": location(0, 0),
 			"playerStats": playerStats, "roundResultCode": "Elimination",
 			"playerEconomies": economies, "playerScores": scores,

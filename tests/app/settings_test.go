@@ -42,6 +42,8 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		{`hidden_player_stats = true`, "players"},
 		{`exact_enemy_parties = false`, "players"},
 		{`player_details = false`, "players"},
+		{`site_scouting = false`, "players"},
+		{`weapon_profiling = false`, "players"},
 		{`server_pod = false`, "match"},
 		{`voice_check = false`, "match"},
 		{`session_reset_hour = 6`, "general"},

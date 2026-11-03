@@ -41,6 +41,8 @@ type Settings struct {
 	ServerPod         bool
 	VoiceCheck        bool
 	PlayerDetails     bool
+	SiteScouting      bool
+	WeaponProfiling   bool
 	Region            string   // empty means detect it
 	Weapons           []string // the guns the skin column shows left to right - lowercase
 }
@@ -111,6 +113,10 @@ var fields = []field{
 		func(s Settings) string { return strconv.FormatBool(s.ExactEnemyParties) }},
 	{"players", "player_details", []string{"pick a player on the lobby tab with the up and down arrows and press enter for their details"},
 		func(s Settings) string { return strconv.FormatBool(s.PlayerDetails) }},
+	{"players", "site_scouting", []string{"show in player details where a player tends to play the current map - from their recent matches on it"},
+		func(s Settings) string { return strconv.FormatBool(s.SiteScouting) }},
+	{"players", "weapon_profiling", []string{"say in player details when a player leans hard on the operator or on shotguns"},
+		func(s Settings) string { return strconv.FormatBool(s.WeaponProfiling) }},
 	{"match", "server_pod", []string{"show the game server's city in the header at match load and during the match"},
 		func(s Settings) string { return strconv.FormatBool(s.ServerPod) }},
 	{"match", "voice_check", []string{"show which teammates are in team voice during agent select"},
@@ -194,6 +200,8 @@ type playersKeys struct {
 	HiddenPlayerStats *bool `toml:"hidden_player_stats"`
 	ExactEnemyParties *bool `toml:"exact_enemy_parties"`
 	PlayerDetails     *bool `toml:"player_details"`
+	SiteScouting      *bool `toml:"site_scouting"`
+	WeaponProfiling   *bool `toml:"weapon_profiling"`
 }
 
 type matchKeys struct {
@@ -348,6 +356,12 @@ func (f keys) settings() (Settings, string, error) {
 	}
 	if f.PlayerDetails != nil {
 		s.PlayerDetails = *f.PlayerDetails
+	}
+	if f.SiteScouting != nil {
+		s.SiteScouting = *f.SiteScouting
+	}
+	if f.WeaponProfiling != nil {
+		s.WeaponProfiling = *f.WeaponProfiling
 	}
 	if f.Region != nil {
 		r := strings.ToLower(strings.TrimSpace(*f.Region))

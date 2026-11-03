@@ -92,5 +92,6 @@ func sameSettings(a, b settings.Settings) bool {
 		a.Matches == b.Matches && a.SessionResetHour == b.SessionResetHour && a.Cutoff == b.Cutoff &&
 		a.EnemyLookups == b.EnemyLookups && a.HiddenPlayerStats == b.HiddenPlayerStats &&
 		a.ExactEnemyParties == b.ExactEnemyParties && a.ServerPod == b.ServerPod && a.VoiceCheck == b.VoiceCheck &&
-		a.PlayerDetails == b.PlayerDetails && a.Region == b.Region
+		a.PlayerDetails == b.PlayerDetails && a.SiteScouting == b.SiteScouting && a.WeaponProfiling == b.WeaponProfiling &&
+		a.Region == b.Region
 }

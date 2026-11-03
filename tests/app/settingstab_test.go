@@ -38,6 +38,8 @@ const (
 	hiddenStatsRow
 	enemyPartiesRow
 	playerDetailsRow
+	siteScoutingRow
+	weaponProfilingRow
 	serverPodRow
 	voiceRow
 	sessionRow
@@ -169,6 +171,8 @@ func TestEveryRowChangesTheFileAtOnce(t *testing.T) {
 		{"server pod by arrow", serverPodRow, []string{rightKey}, "> server pod           < on >", "server_pod = true\n"},
 		{"voice check by enter", voiceRow, []string{enterKey}, "> voice check          < on >", "voice_check = true\n"},
 		{"player details by space", playerDetailsRow, []string{spaceKey}, "> player details       < on >", "player_details = true\n"},
+		{"site scouting by space", siteScoutingRow, []string{spaceKey}, "> site scouting        < on >", "site_scouting = true\n"},
+		{"weapon profiling by arrow", weaponProfilingRow, []string{rightKey}, "> weapon profiling     < on >", "weapon_profiling = true\n"},
 		{"region forward", regionRow, []string{rightKey}, "< ap >", `region = "ap"` + "\n"},
 		{"region backward", regionRow, []string{leftKey}, "< pbe >", `region = "pbe"` + "\n"},
 	}
@@ -294,6 +298,8 @@ func TestTheHelpLineSaysWhatARowDoesAndWhenItApplies(t *testing.T) {
 		{"show the stats of hidden players", true},
 		{"mark enemies who queued together", false},
 		{"pick a player on the lobby tab", false},
+		{"where a player tends to play the current map", false},
+		{"leans hard on the operator or on shotguns", false},
 		{"show the game server's city", false},
 		{"show which teammates are in team voice", false},
 		{"when the session line starts over", true},

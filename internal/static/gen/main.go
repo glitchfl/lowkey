@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"sort"
@@ -23,19 +24,27 @@ type skin struct {
 	Edition string `json:"edition,omitempty"`
 }
 
+type callout struct {
+	Region string  `json:"region"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+}
+
 type snapshot struct {
-	Generated      time.Time         `json:"generated"`
-	ClientVersion  string            `json:"clientVersion"`
-	Agents         map[string]string `json:"agents"`
-	Maps           map[string]string `json:"maps"`
-	TierSets       map[string][]tier `json:"tierSets"`
-	CurrentTierSet string            `json:"currentTierSet"`
-	Acts           map[string]string `json:"acts"`
-	Weapons        map[string]string `json:"weapons"`
-	Skins          map[string]skin   `json:"skins"`
-	Editions       map[string]string `json:"editions"`
-	Buddies        map[string]string `json:"buddies"`
-	IDs            []string          `json:"ids"`
+	Generated      time.Time            `json:"generated"`
+	ClientVersion  string               `json:"clientVersion"`
+	Agents         map[string]string    `json:"agents"`
+	Roles          map[string]string    `json:"roles"`
+	Maps           map[string]string    `json:"maps"`
+	Callouts       map[string][]callout `json:"callouts"`
+	TierSets       map[string][]tier    `json:"tierSets"`
+	CurrentTierSet string               `json:"currentTierSet"`
+	Acts           map[string]string    `json:"acts"`
+	Weapons        map[string]string    `json:"weapons"`
+	Skins          map[string]skin      `json:"skins"`
+	Editions       map[string]string    `json:"editions"`
+	Buddies        map[string]string    `json:"buddies"`
+	IDs            []string             `json:"ids"`
 }
 
 func get(path string, v any) error {
@@ -71,7 +80,9 @@ func run(out string) error {
 	s := snapshot{
 		Generated: time.Now().UTC().Truncate(time.Second),
 		Agents:    map[string]string{},
+		Roles:     map[string]string{},
 		Maps:      map[string]string{},
+		Callouts:  map[string][]callout{},
 		TierSets:  map[string][]tier{},
 		Acts:      map[string]string{},
 		Weapons:   map[string]string{},
@@ -92,18 +103,31 @@ func run(out string) error {
 	var agents []struct {
 		UUID        string `json:"uuid"`
 		DisplayName string `json:"displayName"`
+		Role        *struct {
+			DisplayName string `json:"displayName"`
+		} `json:"role"`
 	}
 	if err := get("/v1/agents?isPlayableCharacter=true", &agents); err != nil {
 		return err
 	}
 	for _, a := range agents {
 		s.Agents[a.UUID] = a.DisplayName
+		if a.Role != nil {
+			s.Roles[a.UUID] = a.Role.DisplayName
+		}
 	}
 
 	var maps []struct {
 		UUID        string `json:"uuid"`
 		DisplayName string `json:"displayName"`
 		MapURL      string `json:"mapUrl"`
+		Callouts    []struct {
+			SuperRegionName string `json:"superRegionName"`
+			Location        struct {
+				X float64 `json:"x"`
+				Y float64 `json:"y"`
+			} `json:"location"`
+		} `json:"callouts"`
 	}
 	if err := get("/v1/maps", &maps); err != nil {
 		return err
@@ -111,6 +135,9 @@ func run(out string) error {
 	for _, m := range maps {
 		if m.MapURL != "" {
 			s.Maps[m.MapURL] = m.DisplayName
+		}
+		for _, c := range m.Callouts {
+			s.Callouts[m.MapURL] = append(s.Callouts[m.MapURL], callout{Region: c.SuperRegionName, X: math.Round(c.Location.X), Y: math.Round(c.Location.Y)})
 		}
 		ids[m.UUID] = true
 	}

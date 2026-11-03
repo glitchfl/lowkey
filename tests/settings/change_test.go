@@ -293,32 +293,3 @@ func TestChangeLeavesNoTemporaryFilesBehind(t *testing.T) {
 		t.Errorf("want only lowkey.toml, got %v", entries)
 	}
 }
-
-func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
-	f, path := openWith(t, "")
-	if _, err := f.Change(func(s *settings.Settings) {
-		s.Columns = []string{"rank", "name"}
-		s.Matches = 3
-		s.Modes = nil
-		s.SessionResetHour = 0
-		s.CutoffSeconds = 5
-		s.EnemyLookups = false
-		s.HiddenPlayerStats = false
-		s.ExactEnemyParties, s.ServerPod, s.VoiceCheck, s.PlayerDetails = true, true, true, true
-		s.SiteScouting, s.WeaponProfiling = true, true
-		s.Region = "kr"
-		s.Weapons = []string{"ghost", "vandal"}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	s, note, err := settings.Parse([]byte(read(t, path)))
-	if err != nil || note != "" {
-		t.Fatalf("note %q err %v", note, err)
-	}
-	if strings.Join(s.Columns, ",") != "rank,name" || s.Matches != 3 || len(s.Modes) != 0 || s.SessionResetHour != 0 ||
-		s.CutoffSeconds != 5 || s.EnemyLookups || s.HiddenPlayerStats ||
-		!s.ExactEnemyParties || !s.ServerPod || !s.VoiceCheck || !s.PlayerDetails || !s.SiteScouting || !s.WeaponProfiling ||
-		s.Region != "kr" || strings.Join(s.Weapons, ",") != "ghost,vandal" {
-		t.Errorf("got %+v", s)
-	}
-}

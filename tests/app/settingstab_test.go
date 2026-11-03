@@ -14,6 +14,7 @@ import (
 
 	"github.com/glitchfl/lowkey/internal/app"
 	"github.com/glitchfl/lowkey/internal/fakeriot"
+	"github.com/glitchfl/lowkey/internal/settings"
 	"github.com/glitchfl/lowkey/internal/static"
 )
 
@@ -29,22 +30,27 @@ const (
 	escKey   = "\x1b"
 )
 
-const (
-	columnsRow = iota
-	weaponRow
-	matchesRow
-	modesRow
-	enemyRow
-	hiddenStatsRow
-	enemyPartiesRow
-	playerDetailsRow
-	siteScoutingRow
-	weaponProfilingRow
-	serverPodRow
-	voiceRow
-	sessionRow
-	cutoffRow
-	regionRow
+// the tab lists settings.Fields in order and the agent dot keys come last - so a key's row is its index
+func rowOf(key string) int {
+	i := slices.IndexFunc(settings.Fields, func(f settings.Field) bool { return f.Key == key })
+	if i < 0 {
+		panic("no setting " + key)
+	}
+	return i
+}
+
+var (
+	columnsRow  = rowOf("columns")
+	weaponRow   = rowOf("weapon")
+	matchesRow  = rowOf("matches")
+	modesRow    = rowOf("modes")
+	enemyRow    = rowOf("enemy_lookups")
+	sessionRow  = rowOf("session_reset_hour")
+	cutoffRow   = rowOf("cutoff_seconds")
+	regionRow   = rowOf("region")
+	agentDotRow = rowOf("agent_dot")
+	dotTimeRow  = rowOf("agent_dot_seconds")
+	agentDots   = rowOf("agent_dots")
 )
 
 // keyboard plugs a keyboard in so the tabs show up - the frames stay plain so the usual helpers read them
@@ -149,32 +155,36 @@ func TestKeysOnTheLobbyDoNothing(t *testing.T) {
 }
 
 func TestEveryRowChangesTheFileAtOnce(t *testing.T) {
-	cases := []struct {
+	type rowCase struct {
 		name  string
 		row   int
 		keys  []string
 		frame string
 		file  string
-	}{
+	}
+	cases := []rowCase{
 		{"matches up", matchesRow, []string{rightKey}, "< 14 >", "matches = 14\n"},
 		{"matches down", matchesRow, []string{leftKey}, "< 12 >", "matches = 12\n"},
 		{"session up", sessionRow, []string{rightKey}, "< 07:00 >", "session_reset_hour = 7\n"},
 		{"cutoff up", cutoffRow, []string{rightKey}, "< 45s >", "cutoff_seconds = 45\n"},
 		{"cutoff down", cutoffRow, []string{leftKey}, "< 35s >", "cutoff_seconds = 35\n"},
-		{"enemies by arrow", enemyRow, []string{rightKey}, "< off >", "enemy_lookups = false\n"},
-		{"enemies by space", enemyRow, []string{spaceKey}, "< off >", "enemy_lookups = false\n"},
-		{"enemies by enter", enemyRow, []string{enterKey}, "< off >", "enemy_lookups = false\n"},
-		{"hidden stats by arrow", hiddenStatsRow, []string{rightKey}, "< off >", "hidden_player_stats = false\n"},
-		{"hidden stats by space", hiddenStatsRow, []string{spaceKey}, "< off >", "hidden_player_stats = false\n"},
-		{"hidden stats by enter", hiddenStatsRow, []string{enterKey}, "< off >", "hidden_player_stats = false\n"},
-		{"enemy parties by space", enemyPartiesRow, []string{spaceKey}, "> enemy parties        < on >", "exact_enemy_parties = true\n"},
-		{"server pod by arrow", serverPodRow, []string{rightKey}, "> server pod           < on >", "server_pod = true\n"},
-		{"voice check by enter", voiceRow, []string{enterKey}, "> voice check          < on >", "voice_check = true\n"},
-		{"player details by space", playerDetailsRow, []string{spaceKey}, "> player details       < on >", "player_details = true\n"},
-		{"site scouting by space", siteScoutingRow, []string{spaceKey}, "> site scouting        < on >", "site_scouting = true\n"},
-		{"weapon profiling by arrow", weaponProfilingRow, []string{rightKey}, "> weapon profiling     < on >", "weapon_profiling = true\n"},
 		{"region forward", regionRow, []string{rightKey}, "< ap >", `region = "ap"` + "\n"},
 		{"region backward", regionRow, []string{leftKey}, "< pbe >", `region = "pbe"` + "\n"},
+	}
+	// every on/off row flips by arrow space and enter alike
+	for _, f := range settings.Fields {
+		if !f.Flips() || f.DotOnly {
+			continue
+		}
+		flipped := settings.Default()
+		f.Step(&flipped, 1)
+		value, file := f.Show(flipped), f.Key+" = false\n"
+		if value == "on" {
+			file = f.Key + " = true\n"
+		}
+		for _, k := range []struct{ name, key string }{{"arrow", rightKey}, {"space", spaceKey}, {"enter", enterKey}} {
+			cases = append(cases, rowCase{f.Key + " by " + k.name, rowOf(f.Key), []string{k.key}, "< " + value + " >", file})
+		}
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

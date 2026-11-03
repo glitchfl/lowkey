@@ -15,12 +15,6 @@ import (
 	"github.com/glitchfl/lowkey/internal/platform"
 )
 
-const (
-	agentDotRow = regionRow + 1 + iota
-	dotTimeRow
-	agentDotsRow
-)
-
 // nobody in the test lobbies plays Raze so a teammate's pick never takes this dot down
 const dotOn = "[agent_select]\nagent_dot = true\nagent_dots = [{agent = \"Raze\", at = [800, 450]}]\n"
 

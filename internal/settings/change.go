@@ -16,6 +16,7 @@ func (f *File) Change(edit func(*Settings)) (backup string, err error) {
 	f.refresh()
 	next := f.current
 	next.Columns, next.Modes, next.Weapons = slices.Clone(next.Columns), slices.Clone(next.Modes), slices.Clone(next.Weapons)
+	next.AgentDots = slices.Clone(next.AgentDots)
 	edit(&next)
 	var changed []field
 	for _, fd := range fields {

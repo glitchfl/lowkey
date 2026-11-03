@@ -49,6 +49,9 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 		{`session_reset_hour = 6`, "general"},
 		{`cutoff_seconds = 40`, "general"},
 		{`region = "auto"`, "general"},
+		{`agent_dot = false`, "agent_select"},
+		{`agent_dot_seconds = 15`, "agent_select"},
+		{`agent_dots = []`, "agent_select"},
 	}
 	lines := strings.Split(file, "\n")
 	for _, d := range defaults {

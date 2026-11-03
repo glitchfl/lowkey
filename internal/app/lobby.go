@@ -64,6 +64,7 @@ func (l *lobby) member(puuid string) *member {
 }
 
 func (lv *live) startAgentSelect(matchID string) {
+	from := lv.phase
 	lv.setPhase(phaseAgentSelect)
 	lv.rateLimit, lv.problem = rateFine, ""
 	if q, ok := lv.presenceQueue(); ok && !lv.tracked(q) {
@@ -72,6 +73,9 @@ func (lv *live) startAgentSelect(matchID string) {
 	}
 	lob := &lobby{kind: lobbyAgentSelect, matchID: matchID, party: &party{}, started: lv.env.Clock.Now()}
 	lv.lobby = lob
+	if from == phaseMenus {
+		lv.matchFound()
+	}
 	lv.guard.SetWindow(remote.AgentSelect)
 	lv.ensureTarget(func() {
 		if lob != lv.lobby {
@@ -363,6 +367,9 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lob.members = members
+	if lob.kind == lobbyAgentSelect {
+		lv.pickedAgent(lob)
+	}
 	var named []*player
 	for _, m := range members {
 		if m.p != nil && !m.hidden {
@@ -398,6 +405,7 @@ func (lv *live) untrackedMode(queue string) {
 		queue = "custom games"
 	}
 	lv.untracked = queue
+	lv.hideDot("untracked mode")
 	lv.cancelLobby()
 }
 

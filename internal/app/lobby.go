@@ -1,12 +1,10 @@
 package app
 
 import (
-	"cmp"
 	"fmt"
-	"maps"
-	"math"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/lobbytable"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/render"
 	"github.com/glitchfl/lowkey/internal/riot"
@@ -40,13 +38,13 @@ type lobby struct {
 }
 
 type member struct {
-	puuid  string
-	agent  string
-	hover  bool // the agent is picked in agent select but not locked in
-	team   string
-	hidden bool
-	level  int // zero when hidden by the player
-	p      *player
+	puuid string
+	agent string
+	hover bool // the agent is picked in agent select but not locked in
+	team  string
+	vis   lobbytable.Visibility
+	level int     // zero when hidden by the player
+	p     *player // nil while vis.Stats is off
 }
 
 const (
@@ -316,25 +314,25 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 			lob.ownTeam = rp.Team
 		}
 	}
-	offLimits := func(rp riot.RosterPlayer) bool {
-		enemy := lob.kind == lobbyMatchLoad && rp.Team != lob.ownTeam
-		return rp.Incognito && rp.PUUID != lv.self && !cfg.HiddenPlayerStats || enemy && !cfg.EnemyLookups
-	}
+	rules := lobbytable.Rules{Self: lv.self, OwnTeam: lob.ownTeam, MatchLoad: lob.kind == lobbyMatchLoad,
+		HiddenPlayerStats: cfg.HiddenPlayerStats, EnemyLookups: cfg.EnemyLookups}
 	// every roster decides again - or a setting switched back on would keep refusing last lobby's players
 	for _, rp := range roster.Players {
-		if offLimits(rp) {
-			lv.guard.Hide(rp.PUUID)
-		} else {
+		v := rules.Decide(rp)
+		if v.Stats {
 			lv.guard.Show(rp.PUUID)
+		} else {
+			lv.guard.Hide(rp.PUUID)
 		}
-		lv.guard.KeepNameHidden(rp.PUUID, rp.Incognito)
+		lv.guard.KeepNameHidden(rp.PUUID, v.Hidden)
 	}
 	var members []*member
 	add := func(rp riot.RosterPlayer) {
+		v := rules.Decide(rp)
 		m := lob.member(rp.PUUID)
 		if m == nil {
-			m = &member{puuid: rp.PUUID, hidden: rp.Incognito && rp.PUUID != lv.self}
-			if !offLimits(rp) {
+			m = &member{puuid: rp.PUUID, vis: v}
+			if v.Stats {
 				m.p = newPlayer(m.puuid, lob.mode.Queue, cfg.Matches)
 				want := wantRank | wantTrend | wantSample
 				if m.puuid == lv.self {
@@ -345,8 +343,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 			}
 		}
 		m.agent, m.hover, m.team, m.level = rp.Agent, rp.Hover, rp.Team, rp.Level
-		// streamer mode can come on between rosters - a name already on screen still has to go
-		m.hidden = m.hidden || rp.Incognito && rp.PUUID != lv.self
+		m.vis = m.vis.Next(v)
 		members = append(members, m)
 	}
 	for _, rp := range roster.Players {
@@ -372,7 +369,7 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 	}
 	var named []*player
 	for _, m := range members {
-		if m.p != nil && !m.hidden {
+		if m.p != nil && !m.vis.Hidden {
 			named = append(named, m.p)
 		}
 	}
@@ -460,75 +457,42 @@ func (lv *live) lobbyTitle(lob *lobby, title string) string {
 
 func (lv *live) lobbyScreen(s *render.Screen, lob *lobby, title string) {
 	s.Header = lv.lobbyTitle(lob, title)
-	if len(lob.members) == 0 {
-		return
+	s.Sections = lobbytable.Build(lv.tableInput(lob)).Render()
+}
+
+// tableInput is everything the lobby table reads - your own trend comes from the session here so it's
+// there before any row is built
+func (lv *live) tableInput(lob *lobby) lobbytable.Input {
+	in := lobbytable.Input{
+		Lobby: lobbytable.Lobby{MatchLoad: lob.kind == lobbyMatchLoad, Mode: lob.mode, Self: lv.self, OwnTeam: lob.ownTeam,
+			Skins: lob.skins, Voice: lob.voice},
+		Acts: lv.eng.acts, Data: lv.data, Settings: lv.cfg.Settings(), Picking: lv.canPick(), Picked: lv.pick, Alias: lv.alias,
 	}
-	marks := lv.markers(lob)
+	if lob.party != nil {
+		in.Lobby.Party = lob.party.members
+	}
 	met := lv.metIndex(lob.matchID)
-	skins := lv.skinCells(lob)
-	voice := lv.voiceCells(lob)
-	// deathmatch has no teams - everyone is one list with a lobby average and nothing to diff
-	if lob.kind == lobbyAgentSelect || !lob.mode.Teams {
-		s.Sections = []render.Section{lv.teamSection("", lob.members, lob.mode, marks, met, skins, voice)}
-		return
-	}
-	var allies, enemies []*member
+	now := lv.env.Clock.Now()
 	for _, m := range lob.members {
-		if m.team == lob.ownTeam {
-			allies = append(allies, m)
-		} else {
-			enemies = append(enemies, m)
-		}
-	}
-	// until the core-game roster arrives there are only the allies carried over from agent select
-	if len(enemies) == 0 {
-		s.Sections = []render.Section{lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins, voice)}
-		return
-	}
-	us, them := lv.teamAverages(allies, lob.mode), lv.teamAverages(enemies, lob.mode)
-	s.Sections = []render.Section{
-		lv.teamSection("ALLIES", allies, lob.mode, marks, met, skins, voice),
-		lv.teamSection("ENEMIES", enemies, lob.mode, marks, met, skins, nil),
-		{Rows: []render.Row{diffRow(us, them)}},
-	}
-}
-
-func (lv *live) teamSection(title string, members []*member, mode stats.Mode, marks map[string]string, met map[string]encounter, skins map[string]render.Row, voice map[string]string) render.Section {
-	sec := render.Section{Title: title}
-	for _, m := range members {
-		row := lv.memberRow(m, mode)
-		if mark, ok := marks[m.puuid]; ok {
-			row["party"] = render.Cell{Text: mark}
-		}
-		if v, ok := voice[m.puuid]; ok {
-			row["voice"] = render.Cell{Text: v}
-		}
-		// meeting someone ties them to a game you saw them in - so a hidden player never gets it even with stats
-		if e, ok := met[m.puuid]; ok && !m.hidden && m.p != nil {
-			row["met"] = render.Cell{Text: e.text(lv.env.Clock.Now())}
-		}
-		// like every other stat a skin stays off players lowkey doesn't look up
+		tm := lobbytable.Member{PUUID: m.puuid, Agent: m.agent, Hover: m.hover, Team: m.team, Level: m.level, Visibility: m.vis}
 		if m.p != nil {
-			maps.Copy(row, skins[m.puuid])
+			p := lv.facts(m)
+			tm.Player = &p
 		}
-		if m.puuid == lv.pick {
-			row["pick"] = render.Cell{Text: pickMarker}
+		if e, ok := met[m.puuid]; ok {
+			tm.Met = e.text(now)
 		}
-		sec.Rows = append(sec.Rows, row)
+		in.Lobby.Members = append(in.Lobby.Members, tm)
 	}
-	sec.Rows = append(sec.Rows, lv.teamAverages(members, mode).row(lv))
-	return sec
+	return in
 }
 
-func (lv *live) voiceCells(lob *lobby) map[string]string {
-	if lob.kind != lobbyAgentSelect || !lv.cfg.Settings().VoiceCheck {
-		return nil
+// facts are a member's downloads for the lobby table and player details
+func (lv *live) facts(m *member) lobbytable.Player {
+	if m.puuid == lv.self {
+		return m.p.facts(lv.sess)
 	}
-	out := map[string]string{}
-	for _, m := range lob.members {
-		out[m.puuid] = cmp.Or(lob.voice[m.puuid], "-")
-	}
-	return out
+	return m.p.facts(nil)
 }
 
 func (lv *live) fetchVoice(lob *lobby) {
@@ -550,239 +514,4 @@ func (lv *live) fetchVoice(lob *lobby) {
 			lob.voice = status
 		})
 	}()
-}
-
-func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
-	row := render.Row{}
-	if m.p != nil {
-		if m.puuid == lv.self && lv.sess != nil && lv.sess.done {
-			m.p.useSession(lv.sess)
-		}
-		row = playerRow(m.p, mode, lv.eng.acts, lv.data)
-		if lv.alias != nil && m.p.name != "" {
-			row["name"] = render.Cell{Text: cut(lv.alias(m.p.name), nameWidth)}
-		}
-	}
-	row["agent"] = lv.agentCell(m)
-	// a name fetched before they went hidden stays off too - Riot only allows their stats while it does
-	if m.hidden {
-		row["name"] = render.Cell{Text: "hidden"}
-	}
-	return row
-}
-
-// agentCell brackets an agent that's only hovered - a locked-in agent stands bare
-func (lv *live) agentCell(m *member) render.Cell {
-	if m.agent == "" {
-		return render.Cell{}
-	}
-	name, ok := lv.data.AgentName(m.agent)
-	if !ok {
-		name = "?"
-	}
-	if m.hover {
-		name = "(" + name + ")"
-	}
-	return render.Cell{Text: name}
-}
-
-// skinKey is the column a gun's skins go in
-func skinKey(gun string) string { return "skin:" + gun }
-
-// skinCells show everyone's skin for each gun in the settings in its edition's color - "?" is a skin
-// newer than the snapshot until a refresh names it
-func (lv *live) skinCells(lob *lobby) map[string]render.Row {
-	cells := map[string]render.Row{}
-	for _, gun := range lv.cfg.Settings().Weapons {
-		weapon, _, ok := lv.data.Weapon(gun)
-		if !ok {
-			continue
-		}
-		for puuid, guns := range lob.skins {
-			g, ok := guns[weapon]
-			if !ok {
-				continue
-			}
-			if cells[puuid] == nil {
-				cells[puuid] = render.Row{}
-			}
-			cells[puuid][skinKey(gun)] = lv.skinCell(g.Skin)
-		}
-	}
-	return cells
-}
-
-func (lv *live) skinCell(id string) render.Cell {
-	s, ok := lv.data.Skin(id)
-	if !ok {
-		return render.Cell{Text: "?"}
-	}
-	return render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
-}
-
-// averages are the shown values of a team's average row - the diff subtracts what's on screen
-type averages struct {
-	covered, size    int
-	rank, peak, last int
-	wr, trend        int
-	hasWR, hasTrend  bool
-	kd               float64
-	hasKD            bool
-	hs, acs, adr, fb int
-	hasHS, hasRounds bool
-}
-
-func (lv *live) teamAverages(members []*member, mode stats.Mode) averages {
-	var tiers, peaks, lasts, wins, trends []float64
-	var kds, hss, acss, adrs, fbs []float64
-	a := averages{size: len(members)}
-	for _, m := range members {
-		if m.p == nil {
-			continue
-		}
-		if m.p.historyDone && m.p.historyErr == nil {
-			if s := stats.SampleOf(m.p.puuid, m.p.loaded()); s.N > 0 {
-				kds = append(kds, s.KD())
-				if v, ok := s.HSExact(); ok {
-					hss = append(hss, v)
-				}
-				if mode.Rounds {
-					acs, _ := s.ACSExact()
-					adr, _ := s.ADRExact()
-					fb, _ := s.FBExact()
-					acss, adrs, fbs = append(acss, acs), append(adrs, adr), append(fbs, fb)
-				}
-			}
-		}
-		if m.p.updatesDone && m.p.updatesErr == nil {
-			if t, ok := stats.Trend(m.p.updates, 5); ok {
-				trends = append(trends, float64(t))
-			}
-		}
-		if !m.p.mmrDone || m.p.mmrErr != nil || lv.eng.acts == nil {
-			continue
-		}
-		a.covered++
-		r := stats.RankOf(m.p.mmr, *lv.eng.acts, mode.Queue, lv.data.CurrentTier)
-		if r.Tier >= 3 {
-			tiers = append(tiers, float64(r.Tier))
-		}
-		if r.Peak >= 3 {
-			peaks = append(peaks, float64(r.Peak))
-		}
-		if r.Last >= 3 {
-			lasts = append(lasts, float64(r.Last))
-		}
-		if mode.WinRate && r.HasRecord {
-			wins = append(wins, r.WinRatio()*100)
-		}
-	}
-	a.rank, _ = roundedMean(tiers)
-	a.peak, _ = roundedMean(peaks)
-	a.last, _ = roundedMean(lasts)
-	a.wr, a.hasWR = roundedMean(wins)
-	a.trend, a.hasTrend = roundedMean(trends)
-	if v, ok := mean(kds); ok {
-		a.kd, a.hasKD = math.Round(v*100)/100, true
-	}
-	a.hs, a.hasHS = roundedMean(hss)
-	a.acs, a.hasRounds = roundedMean(acss)
-	a.adr, _ = roundedMean(adrs)
-	a.fb, _ = roundedMean(fbs)
-	return a
-}
-
-func (a averages) row(lv *live) render.Row {
-	label := "AVERAGE"
-	if a.covered < a.size {
-		label += fmt.Sprintf(" %d/%d", a.covered, a.size)
-	}
-	row := render.Row{"name": {Text: label}}
-	if a.rank > 0 {
-		row["rank"] = tierCell(lv.data, a.rank, "")
-	}
-	if a.peak > 0 {
-		row["peak"] = tierCell(lv.data, a.peak, "")
-	}
-	if a.last > 0 {
-		row["last_act"] = tierCell(lv.data, a.last, "")
-	}
-	if a.hasWR {
-		row["wr"] = render.Cell{Text: fmt.Sprintf("%d%%", a.wr)}
-	}
-	if a.hasTrend {
-		row["rr_trend"] = render.Cell{Text: signed(a.trend)}
-	}
-	if a.hasKD {
-		row["kd"] = render.Cell{Text: fmt.Sprintf("%.2f", a.kd)}
-	}
-	if a.hasHS {
-		row["hs"] = render.Cell{Text: fmt.Sprintf("%d%%", a.hs)}
-	}
-	if a.hasRounds {
-		row["acs"] = render.Cell{Text: fmt.Sprint(a.acs)}
-		row["adr"] = render.Cell{Text: fmt.Sprint(a.adr)}
-		row["fb"] = render.Cell{Text: fmt.Sprintf("%d%%", a.fb)}
-	}
-	return row
-}
-
-// diffRow is us minus them - ranks in tiers - for every stat both teams have
-func diffRow(us, them averages) render.Row {
-	row := render.Row{"name": {Text: "US - THEM"}}
-	diff := func(key string, a, b int, ok bool) {
-		if ok {
-			row[key] = render.Cell{Text: arrow(a - b)}
-		}
-	}
-	diff("rank", us.rank, them.rank, us.rank > 0 && them.rank > 0)
-	diff("peak", us.peak, them.peak, us.peak > 0 && them.peak > 0)
-	diff("last_act", us.last, them.last, us.last > 0 && them.last > 0)
-	diff("wr", us.wr, them.wr, us.hasWR && them.hasWR)
-	diff("rr_trend", us.trend, them.trend, us.hasTrend && them.hasTrend)
-	diff("hs", us.hs, them.hs, us.hasHS && them.hasHS)
-	diff("acs", us.acs, them.acs, us.hasRounds && them.hasRounds)
-	diff("adr", us.adr, them.adr, us.hasRounds && them.hasRounds)
-	diff("fb", us.fb, them.fb, us.hasRounds && them.hasRounds)
-	if us.hasKD && them.hasKD {
-		row["kd"] = render.Cell{Text: arrowKD(us.kd - them.kd)}
-	}
-	return row
-}
-
-func arrowKD(d float64) string {
-	d = math.Round(d*100) / 100
-	switch {
-	case d > 0:
-		return fmt.Sprintf("▲%.2f", d)
-	case d < 0:
-		return fmt.Sprintf("▼%.2f", -d)
-	}
-	return "0"
-}
-
-func arrow(d int) string {
-	switch {
-	case d > 0:
-		return fmt.Sprintf("▲%d", d)
-	case d < 0:
-		return fmt.Sprintf("▼%d", -d)
-	}
-	return "0"
-}
-
-func mean(vs []float64) (float64, bool) {
-	if len(vs) == 0 {
-		return 0, false
-	}
-	sum := 0.0
-	for _, v := range vs {
-		sum += v
-	}
-	return sum / float64(len(vs)), true
-}
-
-func roundedMean(vs []float64) (int, bool) {
-	v, ok := mean(vs)
-	return int(math.Round(v)), ok
 }

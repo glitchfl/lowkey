@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/glitchfl/lowkey/internal/lobbytable"
 	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/render"
@@ -12,9 +13,6 @@ import (
 	"github.com/glitchfl/lowkey/internal/static"
 	"github.com/glitchfl/lowkey/internal/stats"
 )
-
-// these columns only mean something in a lobby
-var lobbyOnly = map[string]bool{"party": true, "agent": true, "met": true, "skin": true}
 
 func runMe(ctx context.Context, env Env, opts options) int {
 	out := env.Console.Out
@@ -74,20 +72,9 @@ func runMe(ctx context.Context, env Env, opts options) int {
 		}
 	}
 
-	me.useSession(sess)
-	row := playerRow(me, mode, eng.acts, data)
-	screen := render.Screen{
-		Header:   "YOU · " + mode.Name,
-		Sections: []render.Section{{Rows: []render.Row{row}}},
-		Session:  sess.line(),
-	}
-	var columns []string
-	for _, c := range cfg.Columns {
-		if !lobbyOnly[c] {
-			columns = append(columns, c)
-		}
-	}
-	for _, line := range screen.Lines(render.Columns(columns), env.Console.Width(), env.Console.Terminal) {
+	t := lobbytable.You(me.facts(sess), mode, eng.acts, data, cfg)
+	screen := render.Screen{Header: "YOU · " + mode.Name, Sections: t.Render(), Session: sess.line()}
+	for _, line := range screen.Lines(t.Columns, env.Console.Width(), env.Console.Terminal) {
 		fmt.Fprintln(out, line)
 	}
 	return 0

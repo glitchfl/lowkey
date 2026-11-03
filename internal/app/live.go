@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glitchfl/lowkey/internal/lobbytable"
 	"github.com/glitchfl/lowkey/internal/platform"
 	"github.com/glitchfl/lowkey/internal/record"
 	"github.com/glitchfl/lowkey/internal/remote"
@@ -602,35 +603,6 @@ func (lv *live) screen() render.Screen {
 	return s
 }
 
-// columns follow the settings - the skin column is one column per gun headed by its name - the pick
-// marker's column stays empty and so hidden until someone presses an arrow
-func (lv *live) columns() []render.Column {
-	cfg := lv.cfg.Settings()
-	var cols []render.Column
-	if lv.canPick() {
-		cols = append(cols, render.Column{Key: "pick"})
-	}
-	for _, c := range render.Columns(cfg.Columns) {
-		if c.Key != "skin" {
-			cols = append(cols, c)
-			continue
-		}
-		for _, gun := range cfg.Weapons {
-			c.Key, c.Header = skinKey(gun), strings.ToUpper(gun)
-			cols = append(cols, c)
-		}
-	}
-	// the voice column has no place in the columns setting - outside agent select it has no cells and so hides
-	if cfg.VoiceCheck {
-		at := slices.IndexFunc(cols, func(c render.Column) bool { return c.Key == "agent" })
-		if at < 0 {
-			at = len(cols) - 1
-		}
-		cols = slices.Insert(cols, at+1, render.ColumnVoice)
-	}
-	return cols
-}
-
 // shown is the open tab - the settings are all status lines so every key press counts as a new one and draws at once
 func (lv *live) shown() render.Screen {
 	if !lv.keyboard {
@@ -660,7 +632,7 @@ func (lv *live) redraw() {
 		lv.recordScreen()
 	}
 	screen := lv.shown()
-	lines, scroll := screen.Layout(lv.columns(), lv.env.Console.Width(), lv.env.Console.Terminal)
+	lines, scroll := screen.Layout(lobbytable.Columns(lv.cfg.Settings(), lv.canPick()), lv.env.Console.Width(), lv.env.Console.Terminal)
 	// scrolling past the end stops there so the first press back up moves again
 	if len(screen.Tables) > 0 {
 		lv.scroll = scroll
@@ -701,7 +673,7 @@ func (lv *live) redraw() {
 // recordScreen keeps an anonymized plain copy of each new frame with the recording
 func (lv *live) recordScreen() {
 	lv.alias = lv.rec.Scrubber().Alias
-	lines := lv.screen().Lines(lv.columns(), lv.env.Console.Width(), false)
+	lines := lv.screen().Lines(lobbytable.Columns(lv.cfg.Settings(), lv.canPick()), lv.env.Console.Width(), false)
 	lv.alias = nil
 	text := strings.Join(lines, "\n")
 	if text != lv.lastScreen {

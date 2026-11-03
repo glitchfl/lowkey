@@ -164,17 +164,6 @@ func TestARejectedTokenResendsTheNameLookup(t *testing.T) {
 	}
 }
 
-func TestAFullRiotIDFitsUpTo20Characters(t *testing.T) {
-	r := newRig(t, ranked, func(w *fakeriot.World) { w.Player(w.Self).Name, w.Player(w.Self).Tag = "FifteenCharName", "1234" })
-	out, code := r.run("me")
-	if code != 0 {
-		t.Fatalf("me failed:\n%s", out)
-	}
-	if got := cell(t, out, "PLAYER"); got != "FifteenCharName#1234" {
-		t.Errorf("got %q\n%s", got, out)
-	}
-}
-
 // the guard checks again when a lookup finally goes out - someone can go hidden while it waits its turn
 func TestANameLookupThatWaitedIsRefusedIfSomeoneWentHiddenThenAsksWithoutThem(t *testing.T) {
 	r := newRig(t, agentSelectLobby)

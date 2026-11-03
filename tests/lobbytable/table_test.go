@@ -333,3 +333,18 @@ func TestThePickedPlayerGetsTheMarker(t *testing.T) {
 		t.Errorf("the pick column comes first, got %v", columnKeys(tb.Columns))
 	}
 }
+
+func TestAPlayerWithNoMatchesInTheModeShowsDashes(t *testing.T) {
+	tb := lobbytable.You(*player(self, "You#1"), mode(t, "competitive"), acts, data, settings.Default())
+	for _, key := range []string{"kd", "hs", "acs", "adr", "fb", "mains"} {
+		if got := cell(t, tb, self, key); got != "-" {
+			t.Errorf("%s: got %q, want -", key, got)
+		}
+	}
+	if got := cell(t, tb, self, "n"); got != "0" {
+		t.Errorf("n: got %q, want 0", got)
+	}
+	if got := cell(t, tb, self, "name"); got != "You#1" {
+		t.Errorf("your name doesn't depend on your matches: got %q", got)
+	}
+}

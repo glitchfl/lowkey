@@ -123,10 +123,14 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 	if err := lv.cfg.Create(); err != nil {
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
-	lv.tab.cfg, lv.tab.rows = lv.cfg, settingRows
+	lv.tab.cfg = lv.cfg
 	if lv.hasDot() {
 		lv.tab.place, lv.tab.agents = lv.placeDot, lv.data.AgentNames
-		lv.tab.rows = append(slices.Clip(settingRows), lv.tab.dotRows()...)
+	}
+	for _, f := range settings.Fields {
+		if !f.DotOnly || lv.hasDot() {
+			lv.tab.rows = append(lv.tab.rows, f)
+		}
 	}
 	moved, err := lv.cfg.Moved()
 	if err != nil {

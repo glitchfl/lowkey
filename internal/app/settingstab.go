@@ -3,15 +3,9 @@ package app
 import (
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/glitchfl/lowkey/internal/render"
-	"github.com/glitchfl/lowkey/internal/riot"
 	"github.com/glitchfl/lowkey/internal/settings"
-	"github.com/glitchfl/lowkey/internal/static"
-	"github.com/glitchfl/lowkey/internal/stats"
 )
 
 const (
@@ -24,7 +18,7 @@ const (
 // can't fire a burst of requests - lookups pick the new values up at the next lobby
 type settingsTab struct {
 	cfg    *settings.File
-	rows   []settingRow
+	rows   []settings.Field
 	row    int
 	list   *optionList // the open sub-list - nil on the main list
 	slots  *dotSlots   // the open agent dots list - nil on the main list
@@ -42,101 +36,6 @@ type settingsTab struct {
 type dotSlots struct{ row int }
 
 const placeHelp = "enter - then within 5 s rest the cursor on that agent in the game - lowkey saves where it is and turns the dots on"
-
-type settingRow struct {
-	key, label string
-	nextLobby  bool
-	value      func(settings.Settings) string
-	step       func(s *settings.Settings, dir int)
-	flips      bool // space and enter work too - stepping anything else by accident would be saved at once
-	open       func(settings.Settings) *optionList
-	act        func()
-	help       string // shown instead of the file's comment - for a row whose enter does more than change its key
-}
-
-// settingRows keep each section's rows together so every heading shows once
-var settingRows = []settingRow{
-	{key: "columns", label: "columns", open: columnsList,
-		value: func(s settings.Settings) string { return fmt.Sprintf("%d of %d", len(s.Columns), len(render.Keys())) }},
-	{key: "weapon", label: "skin weapons", open: weaponsList,
-		value: func(s settings.Settings) string { return strings.Join(s.Weapons, ", ") }},
-	{key: "matches", label: "matches", nextLobby: true,
-		value: func(s settings.Settings) string { return strconv.Itoa(s.Matches) },
-		step: func(s *settings.Settings, dir int) {
-			s.Matches = max(settings.MinMatches, min(s.Matches+dir, settings.MaxMatches))
-		}},
-	{key: "modes", label: "modes", nextLobby: true, open: modesList,
-		value: func(s settings.Settings) string { return fmt.Sprintf("%d of %d", len(s.Modes), len(stats.ModeKeys())) }},
-	{key: "enemy_lookups", label: "enemy lookups", nextLobby: true, flips: true,
-		value: func(s settings.Settings) string { return onOff(s.EnemyLookups) },
-		step:  func(s *settings.Settings, _ int) { s.EnemyLookups = !s.EnemyLookups }},
-	{key: "hidden_player_stats", label: "hidden player stats", nextLobby: true, flips: true,
-		value: func(s settings.Settings) string { return onOff(s.HiddenPlayerStats) },
-		step:  func(s *settings.Settings, _ int) { s.HiddenPlayerStats = !s.HiddenPlayerStats }},
-	{key: "exact_enemy_parties", label: "enemy parties", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.ExactEnemyParties) },
-		step:  func(s *settings.Settings, _ int) { s.ExactEnemyParties = !s.ExactEnemyParties }},
-	{key: "player_details", label: "player details", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.PlayerDetails) },
-		step:  func(s *settings.Settings, _ int) { s.PlayerDetails = !s.PlayerDetails }},
-	{key: "site_scouting", label: "site scouting", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.SiteScouting) },
-		step:  func(s *settings.Settings, _ int) { s.SiteScouting = !s.SiteScouting }},
-	{key: "weapon_profiling", label: "weapon profiling", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.WeaponProfiling) },
-		step:  func(s *settings.Settings, _ int) { s.WeaponProfiling = !s.WeaponProfiling }},
-	{key: "server_pod", label: "server pod", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.ServerPod) },
-		step:  func(s *settings.Settings, _ int) { s.ServerPod = !s.ServerPod }},
-	{key: "voice_check", label: "voice check", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.VoiceCheck) },
-		step:  func(s *settings.Settings, _ int) { s.VoiceCheck = !s.VoiceCheck }},
-	{key: "session_reset_hour", label: "session starts at", nextLobby: true,
-		value: func(s settings.Settings) string { return fmt.Sprintf("%02d:00", s.SessionResetHour) },
-		step:  func(s *settings.Settings, dir int) { s.SessionResetHour = (s.SessionResetHour + dir + 24) % 24 }},
-	{key: "cutoff_seconds", label: "cutoff", nextLobby: true,
-		value: func(s settings.Settings) string { return fmt.Sprintf("%ds", int(s.Cutoff/time.Second)) },
-		step:  stepCutoff},
-	{key: "region", label: "region", nextLobby: true,
-		value: func(s settings.Settings) string {
-			if s.Region == "" {
-				return "auto"
-			}
-			return s.Region
-		},
-		step: func(s *settings.Settings, dir int) {
-			s.Region = cycle(append([]string{""}, riot.Regions()...), s.Region, dir)
-		}},
-}
-
-// dotRows only exist in a build that can draw the agent dot
-func (t *settingsTab) dotRows() []settingRow {
-	return []settingRow{
-		{key: "agent_dot", label: "agent dot", nextLobby: true, flips: true,
-			value: func(s settings.Settings) string { return onOff(s.AgentDot) },
-			step:  func(s *settings.Settings, _ int) { s.AgentDot = !s.AgentDot }},
-		{key: "agent_dot_seconds", label: "dot time", nextLobby: true,
-			value: func(s settings.Settings) string { return fmt.Sprintf("%ds", s.AgentDotSeconds) },
-			step: func(s *settings.Settings, dir int) {
-				s.AgentDotSeconds = max(settings.MinDotSeconds, min(s.AgentDotSeconds+dir, settings.MaxDotSeconds))
-			}},
-		{key: "agent_dots", label: "agent dots", act: func() { t.slots = &dotSlots{} },
-			help: "enter - up to 3 agents whose dots show together when a match is found",
-			value: func(s settings.Settings) string {
-				if len(s.AgentDots) == 0 {
-					return "none"
-				}
-				names := make([]string, len(s.AgentDots))
-				for i, d := range s.AgentDots {
-					names[i] = d.Agent
-					if !d.At.Placed {
-						names[i] += " (not placed)"
-					}
-				}
-				return strings.Join(names, ", ")
-			}},
-	}
-}
 
 func slotCount(dots []settings.DotSlot) int {
 	return min(len(dots)+1, settings.MaxDots)
@@ -214,35 +113,11 @@ func cycleFold(values []string, current string, dir int) string {
 	return values[(i+dir+len(values))%len(values)]
 }
 
-// stepCutoff lands on multiples of 5 so a hand-set 37 goes to 40 or 35 - the limits can be off that grid
-func stepCutoff(s *settings.Settings, dir int) {
-	c := int(s.Cutoff / time.Second)
-	if dir > 0 {
-		c = (c/5 + 1) * 5
-	} else {
-		c = (c - 1) / 5 * 5
-	}
-	c = max(settings.MinCutoffSeconds, min(c, settings.MaxCutoffSeconds))
-	s.Cutoff = time.Duration(c) * time.Second
-}
-
-func onOff(on bool) string {
-	if on {
-		return "on"
-	}
-	return "off"
-}
-
 func direction(k key) int {
 	if k == keyLeft {
 		return -1
 	}
 	return 1
-}
-
-func cycle(values []string, current string, dir int) string {
-	i := slices.Index(values, current)
-	return values[(i+dir+len(values))%len(values)]
 }
 
 // press handles a key on the tab and reports whether it leaves for the lobby
@@ -256,24 +131,27 @@ func (t *settingsTab) press(k key) bool {
 		t.pressSlots(k)
 		return false
 	}
-	row := t.rows[t.row]
+	f := t.rows[t.row]
 	switch k {
 	case keyUp:
 		t.row = (t.row - 1 + len(t.rows)) % len(t.rows)
 	case keyDown:
 		t.row = (t.row + 1) % len(t.rows)
 	case keyLeft, keyRight:
-		if row.step != nil {
-			t.change(func(s *settings.Settings) { row.step(s, direction(k)) })
+		if f.Steps() {
+			t.change(func(s *settings.Settings) { f.Step(s, direction(k)) })
 		}
 	case keySpace, keyEnter:
-		switch {
-		case row.open != nil:
-			t.list = row.open(t.cfg.Settings())
-		case row.act != nil:
-			row.act()
-		case row.flips:
-			t.change(func(s *settings.Settings) { row.step(s, 1) })
+		switch kind := f.Kind.(type) {
+		case settings.List:
+			t.list = newOptionList(f, kind, t.cfg.Settings())
+		case settings.Custom:
+			// agent dots are the one custom key
+			t.slots = &dotSlots{}
+		default:
+			if f.Flips() {
+				t.change(func(s *settings.Settings) { f.Step(s, 1) })
+			}
 		}
 	case keyEsc:
 		return true
@@ -350,15 +228,12 @@ func (t *settingsTab) lines(rows int) []string {
 		body, row, foot = t.slotRows(cfg.AgentDots), t.slots.row, []string{placeHelp, "left/right agent · enter place · esc back"}
 	default:
 		body, row = t.mainRows(cfg)
-		r := t.rows[t.row]
-		note, help := "", r.help
-		if r.nextLobby {
+		f := t.rows[t.row]
+		note := ""
+		if f.NextLobby {
 			note = nextLobbyNote
 		}
-		if help == "" {
-			help = settings.Help(r.key)
-		}
-		foot = []string{help, note, "up/down move · left/right change · enter open · saved at once"}
+		foot = []string{f.TabHelp(), note, "up/down move · left/right change · enter open · saved at once"}
 	}
 	from, to := window(len(body), row, rows-len(lines)-1-len(foot))
 	lines = append(lines, body[from:to]...)
@@ -369,29 +244,29 @@ func (t *settingsTab) lines(rows int) []string {
 // mainRows puts each section's heading over its rows - at is the highlighted row's line
 func (t *settingsTab) mainRows(cfg settings.Settings) (out []string, at int) {
 	width := 0
-	for _, r := range t.rows {
-		width = max(width, len(r.label))
+	for _, f := range t.rows {
+		width = max(width, len(f.Label))
 	}
 	section := ""
-	for i, r := range t.rows {
-		if s := settings.Section(r.key); s != section {
+	for i, f := range t.rows {
+		if f.Section != section {
 			if section != "" {
 				out = append(out, "")
 			}
-			section = s
-			out = append(out, strings.ToUpper(strings.ReplaceAll(s, "_", " ")))
+			section = f.Section
+			out = append(out, strings.ToUpper(strings.ReplaceAll(section, "_", " ")))
 		}
-		value := r.value(cfg)
+		value := f.Show(cfg)
 		mark := " "
 		if i == t.row {
 			at, mark = len(out), ">"
-			if r.open != nil || r.act != nil {
-				value += "  (enter)"
-			} else {
+			if f.Steps() {
 				value = "< " + value + " >"
+			} else {
+				value += "  (enter)"
 			}
 		}
-		out = append(out, fmt.Sprintf("%s %-*s  %s", mark, width, r.label, value))
+		out = append(out, fmt.Sprintf("%s %-*s  %s", mark, width, f.Label, value))
 	}
 	return out, at
 }
@@ -418,31 +293,18 @@ type optionList struct {
 	field        func(*settings.Settings) *[]string
 }
 
-func columnsList(cfg settings.Settings) *optionList {
-	return newOptionList(optionList{
-		title: "columns - top is leftmost in the table", hint: "space on/off · left/right move · esc back",
-		all: render.Keys(), movable: true, keepOn: 1, keepOnNotice: "at least one column has to stay on",
-		field: func(s *settings.Settings) *[]string { return &s.Columns },
-	}, cfg)
-}
-
-func modesList(cfg settings.Settings) *optionList {
-	return newOptionList(optionList{
-		title: "modes to track - " + nextLobbyNote, hint: "space on/off · esc back",
-		all:   stats.ModeKeys(),
-		field: func(s *settings.Settings) *[]string { return &s.Modes },
-	}, cfg)
-}
-
-func weaponsList(cfg settings.Settings) *optionList {
-	return newOptionList(optionList{
-		title: "skin weapons - top is leftmost in the table", hint: "space on/off · left/right move · esc back",
-		all: static.Weapons(), movable: true, keepOn: 1, keepOnNotice: "at least one gun has to stay on - turn the skin column off under columns",
-		field: func(s *settings.Settings) *[]string { return &s.Weapons },
-	}, cfg)
-}
-
-func newOptionList(l optionList, cfg settings.Settings) *optionList {
+func newOptionList(f settings.Field, kind settings.List, cfg settings.Settings) *optionList {
+	l := optionList{title: kind.Title, hint: "space on/off · esc back", all: kind.All(), movable: kind.Movable,
+		keepOnNotice: kind.KeepOne, field: kind.Field}
+	if f.NextLobby {
+		l.title += " - " + nextLobbyNote
+	}
+	if l.movable {
+		l.hint = "space on/off · left/right move · esc back"
+	}
+	if l.keepOnNotice != "" {
+		l.keepOn = 1
+	}
 	l.items = arranged(*l.field(&cfg), l.all)
 	return &l
 }

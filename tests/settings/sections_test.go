@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/glitchfl/lowkey/internal/settings"
 )
@@ -28,7 +27,7 @@ func TestAFileFromBeforeSectionsIsMovedWhenItOpens(t *testing.T) {
 	}
 	want := settings.Default()
 	want.Matches, want.Region, want.Weapons = 7, "ap", []string{"phantom", "vandal"}
-	want.HiddenPlayerStats, want.ServerPod, want.Cutoff, want.Columns = false, true, 20*time.Second, []string{"name", "rank"}
+	want.HiddenPlayerStats, want.ServerPod, want.CutoffSeconds, want.Columns = false, true, 20, []string{"name", "rank"}
 	if !sameSettings(s, want) || !sameSettings(f.Settings(), want) {
 		t.Errorf("every value should come across\n got %+v\nwant %+v", s, want)
 	}
@@ -116,7 +115,7 @@ func TestAKeyOutsideItsSectionSaysWhereItGoes(t *testing.T) {
 
 func sameSettings(a, b settings.Settings) bool {
 	return slices.Equal(a.Columns, b.Columns) && slices.Equal(a.Modes, b.Modes) && slices.Equal(a.Weapons, b.Weapons) &&
-		a.Matches == b.Matches && a.SessionResetHour == b.SessionResetHour && a.Cutoff == b.Cutoff &&
+		a.Matches == b.Matches && a.SessionResetHour == b.SessionResetHour && a.CutoffSeconds == b.CutoffSeconds &&
 		a.EnemyLookups == b.EnemyLookups && a.HiddenPlayerStats == b.HiddenPlayerStats &&
 		a.ExactEnemyParties == b.ExactEnemyParties && a.ServerPod == b.ServerPod && a.VoiceCheck == b.VoiceCheck &&
 		a.PlayerDetails == b.PlayerDetails && a.SiteScouting == b.SiteScouting && a.WeaponProfiling == b.WeaponProfiling &&

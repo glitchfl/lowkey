@@ -13,10 +13,10 @@ PLAYERS
   player details       off
   site scouting        off
   weapon profiling     off
+  tendencies tab       off
 
 MATCH
   server pod           off
-  voice check          off
 
 GENERAL
   session starts at    06:00

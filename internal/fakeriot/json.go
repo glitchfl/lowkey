@@ -603,20 +603,6 @@ func (w *World) staticVersion() []byte {
 	}})
 }
 
-func (w *World) voice() []byte {
-	var participants []obj
-	for puuid, status := range w.Voice {
-		participants = append(participants, obj{
-			"puuid":  puuid,
-			"status": status,
-		})
-	}
-	if participants == nil {
-		participants = []obj{}
-	}
-	return mustJSON(obj{"participants": participants})
-}
-
 func (w *World) staticAgents() []byte {
 	list := []obj{}
 	for id, name := range w.StaticAgents {

@@ -163,3 +163,141 @@ func TestHiddenPlayersGetTheirTendenciesWithoutTheirName(t *testing.T) {
 		t.Errorf("the hidden ally's name showed up:\n%s", frame)
 	}
 }
+
+const tendenciesTabOn = "[players]\nsite_scouting = true\nweapon_profiling = true\ntendencies_tab = true\n"
+
+// tendenciesTab walks into a match load with the given settings and tabs over to the tendencies
+func tendenciesTab(t *testing.T, settings string, setup ...func(w *fakeriot.World)) *rig {
+	r := newRig(t, append([]func(w *fakeriot.World){matchLobby, allyOneTendencies}, setup...)...)
+	r.writeSettings(settings)
+	r.keyboard()
+	r.live()
+	r.screen("[LOBBY]", "waiting for the next match")
+	r.subscribed()
+	r.enterAgentSelect()
+	r.settled("AGENT SELECT", "AllyOne#A1")
+	r.enterMatchLoad()
+	r.settled("MATCH LOADING", "US - THEM")
+	r.con.setHeight(80)
+	r.press(tabKey)
+	r.settled("[TENDENCIES]")
+	return r
+}
+
+func TestTheTendenciesTabShowsEveryPlayerAtOnce(t *testing.T) {
+	r := tendenciesTab(t, tendenciesTabOn, hiddenSamples)
+	frame := r.settled("[TENDENCIES]", "ENEMIES", "Operator · Judge")
+	wantRows(t, frame,
+		"LOBBY [TENDENCIES] SETTINGS tab to switch",
+		"MATCH LOADING · Ascent · Defenders · Competitive",
+		"PLAYER AGENT ON MAP DEFENSE ATTACK OPENING N LEANS ON",
+		"ALLIES",
+		"AllyOne#A1 Jett 2 B 75% A 25% (4) A 67% B 33% (3) Mid 100% (2) 3 Operator · Judge",
+		"hidden Omen 0 - - - 2 -",
+		"ENEMIES",
+		"ON MAP is how many of their matches were on Ascent - brackets count the rounds plants or opening duels behind a split",
+	)
+	if strings.Contains(frame, "SecretAlly") || strings.Contains(frame, "SecretEnemy") {
+		t.Errorf("a hidden player's name showed up:\n%s", frame)
+	}
+	if strings.Contains(frame, "RANK") {
+		t.Errorf("the tab has only the tendencies - not the lobby table:\n%s", frame)
+	}
+}
+
+func TestTheTendenciesTabOnlyHasTheExtrasThatAreOn(t *testing.T) {
+	t.Run("site scouting", func(t *testing.T) {
+		r := tendenciesTab(t, "[players]\nsite_scouting = true\ntendencies_tab = true\n")
+		frame := r.settled("[TENDENCIES]", "Mid 100%")
+		wantRows(t, frame, "PLAYER AGENT ON MAP DEFENSE ATTACK OPENING",
+			"AllyOne#A1 Jett 2 B 75% A 25% (4) A 67% B 33% (3) Mid 100% (2)")
+		if strings.Contains(frame, "LEANS ON") {
+			t.Errorf("weapon profiling is off:\n%s", frame)
+		}
+	})
+	t.Run("weapon profiling", func(t *testing.T) {
+		r := tendenciesTab(t, "[players]\nweapon_profiling = true\ntendencies_tab = true\n")
+		frame := r.settled("[TENDENCIES]", "Operator · Judge")
+		wantRows(t, frame, "PLAYER AGENT N LEANS ON", "AllyOne#A1 Jett 3 Operator · Judge")
+		if strings.Contains(frame, "DEFENSE") || strings.Contains(frame, "ON MAP") {
+			t.Errorf("site scouting is off:\n%s", frame)
+		}
+	})
+	t.Run("neither", func(t *testing.T) {
+		r := tendenciesTab(t, "[players]\ntendencies_tab = true\n")
+		r.screen("[TENDENCIES]", "turn on site scouting or weapon profiling on the settings tab")
+	})
+}
+
+func TestTheTendenciesTabIsOffByDefault(t *testing.T) {
+	r := newRig(t, matchLobby)
+	r.writeSettings("[players]\nsite_scouting = true\nweapon_profiling = true\n")
+	r.keyboard()
+	r.live()
+	frame := r.screen("[LOBBY]", "waiting for the next match")
+	if strings.Contains(frame, "TENDENCIES") {
+		t.Errorf("no tendencies tab until it's switched on:\n%s", frame)
+	}
+	r.press(tabKey)
+	r.screen(" LOBBY  [SETTINGS]")
+}
+
+func TestTabGoesThroughAllThreeAndEscGoesBackToTheLobby(t *testing.T) {
+	r := tendenciesTab(t, tendenciesTabOn)
+	before := len(r.fr.RemoteRequests())
+	r.press(tabKey)
+	r.screen(" LOBBY   TENDENCIES  [SETTINGS]")
+	r.press(tabKey)
+	r.screen("[LOBBY]  TENDENCIES   SETTINGS", "US - THEM")
+	r.press(tabKey)
+	r.screen(" LOBBY  [TENDENCIES]  SETTINGS", "Operator · Judge")
+	r.press(downKey, upKey, leftKey, enterKey, spaceKey, escKey)
+	r.screen("[LOBBY]", "US - THEM")
+	settle()
+	if after := len(r.fr.RemoteRequests()); after != before {
+		t.Errorf("going through the tabs sent %d requests, want none", after-before)
+	}
+}
+
+func TestTheTendenciesTabStaysIntoTheMatchButANewLobbyTakesItBack(t *testing.T) {
+	r := newRig(t, matchLobby, allyOneTendencies)
+	r.writeSettings(tendenciesTabOn)
+	r.keyboard()
+	r.live()
+	r.screen("[LOBBY]", "waiting for the next match")
+	r.subscribed()
+	r.press(tabKey)
+	r.screen("[TENDENCIES]", "waiting for the next match")
+
+	r.enterAgentSelect()
+	r.settled("[LOBBY]", "AGENT SELECT", "AllyOne#A1")
+	r.press(tabKey)
+	frame := r.settled("[TENDENCIES]", "AGENT SELECT", "Operator · Judge")
+	if strings.Contains(frame, "ENEMIES") || strings.Contains(frame, "ALLIES") {
+		t.Errorf("agent select only has your team:\n%s", frame)
+	}
+
+	r.enterMatchLoad()
+	r.settled("[TENDENCIES]", "MATCH LOADING", "ENEMIES")
+}
+
+func TestSwitchingTheTendenciesTabOffGoesBackToTheLobby(t *testing.T) {
+	r := tendenciesTab(t, tendenciesTabOn)
+	r.writeSettings("[players]\nsite_scouting = true\nweapon_profiling = true\n")
+	frame := r.screen("[LOBBY]", "US - THEM")
+	if strings.Contains(frame, "TENDENCIES") {
+		t.Errorf("the tab should be gone:\n%s", frame)
+	}
+}
+
+func TestTheTendenciesTabScrollsInAShortWindow(t *testing.T) {
+	r := tendenciesTab(t, tendenciesTabOn)
+	r.con.setHeight(10)
+	r.press(downKey)
+	r.screen("[TENDENCIES]", "↑ 1 above")
+	r.press(upKey)
+	eventually(t, "back up at the top", func() bool {
+		last := r.con.last()
+		return strings.Contains(last, "below") && !strings.Contains(last, "above")
+	})
+}

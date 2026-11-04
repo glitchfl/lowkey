@@ -14,11 +14,7 @@ import (
 	"github.com/glitchfl/lowkey/internal/stats"
 )
 
-const (
-	tabBarLobby    = "[LOBBY]  SETTINGS          tab to switch"
-	tabBarSettings = " LOBBY  [SETTINGS]         tab to switch"
-	nextLobbyNote  = "applies from the next lobby"
-)
+const nextLobbyNote = "applies from the next lobby"
 
 // settingsTab edits lowkey.toml straight away - a press never asks Riot for anything so holding an arrow
 // can't fire a burst of requests - lookups pick the new values up at the next lobby
@@ -85,12 +81,12 @@ var settingRows = []settingRow{
 	{key: "weapon_profiling", label: "weapon profiling", flips: true,
 		value: func(s settings.Settings) string { return onOff(s.WeaponProfiling) },
 		step:  func(s *settings.Settings, _ int) { s.WeaponProfiling = !s.WeaponProfiling }},
+	{key: "tendencies_tab", label: "tendencies tab", flips: true,
+		value: func(s settings.Settings) string { return onOff(s.TendenciesTab) },
+		step:  func(s *settings.Settings, _ int) { s.TendenciesTab = !s.TendenciesTab }},
 	{key: "server_pod", label: "server pod", flips: true,
 		value: func(s settings.Settings) string { return onOff(s.ServerPod) },
 		step:  func(s *settings.Settings, _ int) { s.ServerPod = !s.ServerPod }},
-	{key: "voice_check", label: "voice check", flips: true,
-		value: func(s settings.Settings) string { return onOff(s.VoiceCheck) },
-		step:  func(s *settings.Settings, _ int) { s.VoiceCheck = !s.VoiceCheck }},
 	{key: "session_reset_hour", label: "session starts at", nextLobby: true,
 		value: func(s settings.Settings) string { return fmt.Sprintf("%02d:00", s.SessionResetHour) },
 		step:  func(s *settings.Settings, dir int) { s.SessionResetHour = (s.SessionResetHour + dir + 24) % 24 }},

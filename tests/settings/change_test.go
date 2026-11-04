@@ -304,8 +304,8 @@ func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
 		s.Cutoff = 5 * time.Second
 		s.EnemyLookups = false
 		s.HiddenPlayerStats = false
-		s.ExactEnemyParties, s.ServerPod, s.VoiceCheck, s.PlayerDetails = true, true, true, true
-		s.SiteScouting, s.WeaponProfiling = true, true
+		s.ExactEnemyParties, s.ServerPod, s.PlayerDetails = true, true, true
+		s.SiteScouting, s.WeaponProfiling, s.TendenciesTab = true, true, true
 		s.Region = "kr"
 		s.Weapons = []string{"ghost", "vandal"}
 	}); err != nil {
@@ -317,7 +317,7 @@ func TestAWholeNewFileParsesToWhatItWasWrittenFrom(t *testing.T) {
 	}
 	if strings.Join(s.Columns, ",") != "rank,name" || s.Matches != 3 || len(s.Modes) != 0 || s.SessionResetHour != 0 ||
 		s.Cutoff != 5*time.Second || s.EnemyLookups || s.HiddenPlayerStats ||
-		!s.ExactEnemyParties || !s.ServerPod || !s.VoiceCheck || !s.PlayerDetails || !s.SiteScouting || !s.WeaponProfiling ||
+		!s.ExactEnemyParties || !s.ServerPod || !s.PlayerDetails || !s.SiteScouting || !s.WeaponProfiling || !s.TendenciesTab ||
 		s.Region != "kr" || strings.Join(s.Weapons, ",") != "ghost,vandal" {
 		t.Errorf("got %+v", s)
 	}

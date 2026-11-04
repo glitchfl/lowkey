@@ -123,6 +123,9 @@ var detailColumns = struct {
 func (lv *live) detailsScreen(s *render.Screen, lob *lobby, m *member, title string) {
 	s.Header = lv.lobbyTitle(lob, title)
 	who := lv.memberRow(m, lob.mode)
+	if m.p != nil && m.p.name != "" && !m.hidden {
+		who["name"] = render.Cell{Text: lv.shownName(m.p)}
+	}
 	if mark, ok := lv.markers(lob)[m.puuid]; ok {
 		who["party"] = render.Cell{Text: mark}
 	}
@@ -401,7 +404,7 @@ func (lv *live) gunsTable(lob *lobby, m *member) render.Table {
 			if !ok {
 				buddy = "?"
 			}
-			row["buddy"] = render.Cell{Text: cut(buddy, 24)}
+			row["buddy"] = render.Cell{Text: render.Cut(buddy, 24)}
 		}
 		t.Rows = append(t.Rows, row)
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"slices"
+	"strings"
 )
 
 // Change applies one edit to the freshest settings and saves it at once - a healthy file only has the
@@ -35,7 +36,9 @@ func (f *File) Change(edit func(*Settings)) (backup string, err error) {
 	if !f.invalid {
 		data, inPlace = editedInPlace(raw, changed, next)
 	}
-	if !inPlace {
+	if inPlace {
+		data = dropRetired(data)
+	} else {
 		data = next.contents()
 	}
 	s, note, err := Parse(data)
@@ -112,6 +115,55 @@ func setKey(data []byte, fd field, value string) []byte {
 		block = "\n" + block
 	}
 	return slices.Concat(data[:at], []byte(block), data[at:])
+}
+
+// dropRetired takes each retired key out with its old comment and the blank line above that - a comment
+// someone wrote over it themselves stays
+func dropRetired(data []byte) []byte {
+	out := data
+	for _, fd := range retired {
+		for {
+			at, ok := retiredSpan(out, fd)
+			if !ok {
+				break
+			}
+			out = slices.Concat(out[:at.start], out[at.end:])
+		}
+	}
+	if _, _, err := Parse(out); err != nil {
+		return data
+	}
+	return out
+}
+
+func retiredSpan(data []byte, fd field) (span, bool) {
+	for k, v := range scanLayout(data).values {
+		if k.key != fd.key {
+			continue
+		}
+		start := bytes.LastIndexByte(data[:v.start], '\n') + 1
+		for i := len(fd.comment) - 1; i >= 0; i-- {
+			from, line := lineAbove(data, start)
+			if line != "# "+fd.comment[i] {
+				break
+			}
+			start = from
+		}
+		if from, line := lineAbove(data, start); from < start && line == "" {
+			start = from
+		}
+		return span{start, afterLine(data, v.end)}, true
+	}
+	return span{}, false
+}
+
+// lineAbove is the line ending just before start - without its line break
+func lineAbove(data []byte, start int) (int, string) {
+	if start == 0 {
+		return 0, ""
+	}
+	from := bytes.LastIndexByte(data[:start-1], '\n') + 1
+	return from, strings.TrimRight(string(data[from:start-1]), "\r")
 }
 
 var utf8BOM = []byte("\xef\xbb\xbf")

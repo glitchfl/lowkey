@@ -134,8 +134,6 @@ type World struct {
 	Pregame  *LiveGame
 	CoreGame *LiveGame
 
-	Voice map[string]string
-
 	// recorded responses keyed by "service path?query" - served before anything modeled above
 	Raw map[string]RawResponse
 

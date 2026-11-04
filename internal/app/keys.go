@@ -97,15 +97,17 @@ func (lv *live) readKeys(r io.Reader) {
 func (lv *live) pressed(k key) {
 	switch {
 	case k == keyTab:
-		lv.onSettings = !lv.onSettings
+		lv.switchView(lv.nextView())
 		lv.tab.notice = ""
-		if lv.onSettings {
+		if lv.view == viewSettings {
 			lv.tab.notice, lv.tab.firstOpen = lv.tab.firstOpen, ""
 		}
-	case lv.onSettings:
+	case lv.view == viewSettings:
 		if lv.tab.press(k) {
-			lv.onSettings = false
+			lv.view = viewLobby
 		}
+	case lv.view == viewTendencies:
+		lv.pressTendencies(k)
 	default:
 		lv.pressLobby(k)
 	}

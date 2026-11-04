@@ -43,10 +43,10 @@ type Settings struct {
 	HiddenPlayerStats bool
 	ExactEnemyParties bool
 	ServerPod         bool
-	VoiceCheck        bool
 	PlayerDetails     bool
 	SiteScouting      bool
 	WeaponProfiling   bool
+	TendenciesTab     bool
 	Region            string   // empty means detect it
 	Weapons           []string // the guns the skin column shows left to right - lowercase
 	AgentDot          bool
@@ -137,10 +137,11 @@ var fields = []field{
 		func(s Settings) string { return strconv.FormatBool(s.SiteScouting) }},
 	{"players", "weapon_profiling", []string{"say in player details when a player leans hard on the operator or on shotguns"},
 		func(s Settings) string { return strconv.FormatBool(s.WeaponProfiling) }},
+	{"players", "tendencies_tab", []string{"add a tendencies tab with every player's site scouting and weapon profiling side by side",
+		"it shows whichever of those two is on"},
+		func(s Settings) string { return strconv.FormatBool(s.TendenciesTab) }},
 	{"match", "server_pod", []string{"show the game server's city in the header at match load and during the match"},
 		func(s Settings) string { return strconv.FormatBool(s.ServerPod) }},
-	{"match", "voice_check", []string{"show which teammates are in team voice during agent select"},
-		func(s Settings) string { return strconv.FormatBool(s.VoiceCheck) }},
 	{"general", "session_reset_hour", []string{"hour of the day in local time when the session line starts over"},
 		func(s Settings) string { return strconv.Itoa(s.SessionResetHour) }},
 	{"general", "cutoff_seconds", []string{"seconds after the match loads when every lookup stops - rounds start soon after"},
@@ -243,11 +244,11 @@ type playersKeys struct {
 	PlayerDetails     *bool `toml:"player_details"`
 	SiteScouting      *bool `toml:"site_scouting"`
 	WeaponProfiling   *bool `toml:"weapon_profiling"`
+	TendenciesTab     *bool `toml:"tendencies_tab"`
 }
 
 type matchKeys struct {
-	ServerPod  *bool `toml:"server_pod"`
-	VoiceCheck *bool `toml:"voice_check"`
+	ServerPod *bool `toml:"server_pod"`
 }
 
 type generalKeys struct {
@@ -316,7 +317,7 @@ func parse(data []byte, flatOK bool) (s Settings, note string, flat bool, err er
 	for _, k := range md.Undecoded() {
 		// the toml library counts an inline table's keys as undecoded even when they land in an any -
 		// parseDots checks those itself - a file from before sections has them without the section
-		if dotEntryKey(k) {
+		if dotEntryKey(k) || isRetired(k) {
 			continue
 		}
 		return Settings{}, "", false, fmt.Errorf("unknown setting %q", k.String())
@@ -345,6 +346,20 @@ func parse(data []byte, flatOK bool) (s Settings, note string, flat bool, err er
 		return Settings{}, "", false, err
 	}
 	return s, note, flat, nil
+}
+
+// retired keys were only ever written by test builds - a file that still has one reads as if it didn't and
+// the next save takes it out so it never turns the whole file down
+var retired = []field{
+	{section: "match", key: "voice_check", comment: []string{"show which teammates are in team voice during agent select"}},
+	{key: "agent_dot_at", comment: []string{"where the agent dot goes in screen pixels - place dot on the settings tab fills it in - [] is not placed"}},
+}
+
+func isRetired(k toml.Key) bool {
+	if len(k) == 2 && isSection(k[0]) {
+		k = k[1:]
+	}
+	return len(k) == 1 && slices.ContainsFunc(retired, func(fd field) bool { return fd.key == k[0] })
 }
 
 func dotEntryKey(k toml.Key) bool {
@@ -415,9 +430,6 @@ func (f keys) settings() (Settings, string, error) {
 	if f.ServerPod != nil {
 		s.ServerPod = *f.ServerPod
 	}
-	if f.VoiceCheck != nil {
-		s.VoiceCheck = *f.VoiceCheck
-	}
 	if f.PlayerDetails != nil {
 		s.PlayerDetails = *f.PlayerDetails
 	}
@@ -426,6 +438,9 @@ func (f keys) settings() (Settings, string, error) {
 	}
 	if f.WeaponProfiling != nil {
 		s.WeaponProfiling = *f.WeaponProfiling
+	}
+	if f.TendenciesTab != nil {
+		s.TendenciesTab = *f.TendenciesTab
 	}
 	if f.Region != nil {
 		r := strings.ToLower(strings.TrimSpace(*f.Region))

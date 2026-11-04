@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/glitchfl/lowkey/internal/platform"
 	"github.com/glitchfl/lowkey/internal/remote"
 	"github.com/glitchfl/lowkey/internal/riot"
 )
@@ -19,7 +18,6 @@ type Env struct {
 	Servers    Servers
 	Clock      Clock
 	Console    Console
-	Dot        Dot
 	// Dir is the folder next to the exe that holds lowkey.toml plus the error log and recordings
 	Dir     string
 	GameLog string
@@ -48,15 +46,6 @@ type Console struct {
 	Terminal bool
 	// Keyboard opens the keyboard for the tabs - without one lowkey shows the lobby alone
 	Keyboard func() (keys io.Reader, restore func(), ok bool)
-}
-
-// Dot draws the agent dots outside the console - a build without Show has no agent dots at all
-type Dot struct {
-	// Show replaces whatever dots are up with these
-	Show func(marks []platform.Mark) error
-	Hide func()
-	// Cursor reads where the mouse is - placing the dot is the only time lowkey asks
-	Cursor func() (x, y int, ok bool)
 }
 
 func ProductionServers() Servers {

@@ -4,7 +4,6 @@ package settings
 import (
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -28,9 +27,6 @@ const (
 	MaxMatches       = 25
 	MinCutoffSeconds = 1
 	MaxCutoffSeconds = 600
-	MinDotSeconds    = 1
-	MaxDotSeconds    = 20
-	MaxDots          = 3
 )
 
 type Settings struct {
@@ -49,21 +45,6 @@ type Settings struct {
 	TendenciesTab     bool
 	Region            string   // empty means detect it
 	Weapons           []string // the guns the skin column shows left to right - lowercase
-	AgentDot          bool
-	AgentDotSeconds   int
-	AgentDots         []DotSlot
-}
-
-// DotSlot is one agent dot - At stays unplaced until place on the settings tab saves it
-type DotSlot struct {
-	Agent string
-	At    Spot
-}
-
-// Spot is a point on the screen in physical pixels - the zero Spot isn't placed
-type Spot struct {
-	X, Y   int
-	Placed bool
 }
 
 func Default() Settings {
@@ -76,7 +57,6 @@ func Default() Settings {
 		EnemyLookups:      true,
 		HiddenPlayerStats: true,
 		Weapons:           []string{"vandal"},
-		AgentDotSeconds:   15,
 	}
 }
 
@@ -153,27 +133,6 @@ var fields = []field{
 			}
 			return strconv.Quote(s.Region)
 		}},
-	// the section can't be called agent_dot - a flat file's agent_dot key would decode into its table
-	{"agent_select", "agent_dot", []string{"draw a small dot on your agent for a few seconds after a match is found - needs windowed or windowed fullscreen",
-		"it never picks or locks anything - place dot on the settings tab sets where it goes"},
-		func(s Settings) string { return strconv.FormatBool(s.AgentDot) }},
-	{"agent_select", "agent_dot_seconds", []string{"the most seconds the agent dot stays up - it goes as soon as you hover or lock - 1 to 20"},
-		func(s Settings) string { return strconv.Itoa(s.AgentDotSeconds) }},
-	{"agent_select", "agent_dots", []string{"up to 3 agents and where each one's icon sits in screen pixels - set them up under agent dots on the settings tab",
-		`like [{agent = "jett", at = [960, 540]}, {agent = "raze", at = []}] - [] is not placed yet`},
-		func(s Settings) string { return tomlDots(s.AgentDots) }},
-}
-
-func tomlDots(dots []DotSlot) string {
-	parts := make([]string, len(dots))
-	for i, d := range dots {
-		at := "[]"
-		if d.At.Placed {
-			at = fmt.Sprintf("[%d, %d]", d.At.X, d.At.Y)
-		}
-		parts[i] = fmt.Sprintf("{agent = %s, at = %s}", strconv.Quote(d.Agent), at)
-	}
-	return "[" + strings.Join(parts, ", ") + "]"
 }
 
 // Section names the section a key sits under - empty for a key lowkey doesn't have
@@ -257,28 +216,20 @@ type generalKeys struct {
 	Region           *string `toml:"region"`
 }
 
-type agentSelectKeys struct {
-	AgentDot        *bool `toml:"agent_dot"`
-	AgentDotSeconds *int  `toml:"agent_dot_seconds"`
-	AgentDots       any   `toml:"agent_dots"`
-}
-
 type keys struct {
 	tableKeys
 	playersKeys
 	matchKeys
 	generalKeys
-	agentSelectKeys
 }
 
 // file reads the keys at the top too - that's where a file from before sections has them
 type file struct {
 	keys
-	Table       *tableKeys       `toml:"table"`
-	Players     *playersKeys     `toml:"players"`
-	Match       *matchKeys       `toml:"match"`
-	General     *generalKeys     `toml:"general"`
-	AgentSelect *agentSelectKeys `toml:"agent_select"`
+	Table   *tableKeys   `toml:"table"`
+	Players *playersKeys `toml:"players"`
+	Match   *matchKeys   `toml:"match"`
+	General *generalKeys `toml:"general"`
 }
 
 // Parse fills missing keys with defaults - a clamped value comes back as a note and anything invalid as an error
@@ -315,9 +266,7 @@ func parse(data []byte, flatOK bool) (s Settings, note string, flat bool, err er
 	}
 	flat = stray != ""
 	for _, k := range md.Undecoded() {
-		// the toml library counts an inline table's keys as undecoded even when they land in an any -
-		// parseDots checks those itself - a file from before sections has them without the section
-		if dotEntryKey(k) || isRetired(k) {
+		if isRetired(k) {
 			continue
 		}
 		return Settings{}, "", false, fmt.Errorf("unknown setting %q", k.String())
@@ -333,9 +282,6 @@ func parse(data []byte, flatOK bool) (s Settings, note string, flat bool, err er
 	}
 	if f.General != nil {
 		f.generalKeys = *f.General
-	}
-	if f.AgentSelect != nil {
-		f.agentSelectKeys = *f.AgentSelect
 	}
 	s, note, err = f.keys.settings()
 	// a flat file that couldn't be moved names what kept it from moving first
@@ -360,13 +306,6 @@ func isRetired(k toml.Key) bool {
 		k = k[1:]
 	}
 	return len(k) == 1 && slices.ContainsFunc(retired, func(fd field) bool { return fd.key == k[0] })
-}
-
-func dotEntryKey(k toml.Key) bool {
-	if len(k) > 2 && k[0] == Section("agent_dots") {
-		k = k[1:]
-	}
-	return len(k) > 1 && k[0] == "agent_dots"
 }
 
 func (f keys) settings() (Settings, string, error) {
@@ -458,96 +397,7 @@ func (f keys) settings() (Settings, string, error) {
 		}
 		s.Weapons = weapons
 	}
-	if f.AgentDot != nil {
-		s.AgentDot = *f.AgentDot
-	}
-	if f.AgentDotSeconds != nil {
-		switch d := *f.AgentDotSeconds; {
-		case d < MinDotSeconds:
-			s.AgentDotSeconds, note = MinDotSeconds, fmt.Sprintf("agent_dot_seconds %d is below %d - using %d", d, MinDotSeconds, MinDotSeconds)
-		case d > MaxDotSeconds:
-			s.AgentDotSeconds, note = MaxDotSeconds, fmt.Sprintf("agent_dot_seconds %d is above %d - using %d", d, MaxDotSeconds, MaxDotSeconds)
-		default:
-			s.AgentDotSeconds = d
-		}
-	}
-	if f.AgentDots != nil {
-		dots, dotsNote := parseDots(f.AgentDots)
-		if dotsNote != "" {
-			note = dotsNote
-		}
-		s.AgentDots = dots
-	}
 	return s, note, nil
-}
-
-// parseDots keeps whatever it can use - a bad spot only unplaces its own dot
-func parseDots(v any) ([]DotSlot, string) {
-	var entries []map[string]any
-	switch list := v.(type) {
-	case []map[string]any:
-		entries = list
-	case []any:
-		for _, item := range list {
-			entry, ok := item.(map[string]any)
-			if !ok {
-				return nil, `agent_dots takes entries like {agent = "jett", at = [960, 540]} - no agent dots`
-			}
-			entries = append(entries, entry)
-		}
-	default:
-		return nil, `agent_dots isn't a list like [{agent = "jett", at = [960, 540]}] - no agent dots`
-	}
-	var dots []DotSlot
-	note := ""
-	for _, entry := range entries {
-		name, _ := entry["agent"].(string)
-		name = strings.TrimSpace(name)
-		if name == "" {
-			note = "an agent_dots entry has no agent - it's left out"
-			continue
-		}
-		d := DotSlot{Agent: name}
-		if at, ok := entry["at"]; ok {
-			if d.At, ok = parseSpot(at); !ok {
-				note = fmt.Sprintf("%s's at isn't two whole numbers like [960, 540] - that dot isn't placed", name)
-			}
-		}
-		for k := range entry {
-			if k != "agent" && k != "at" {
-				note = fmt.Sprintf("agent_dots has no %q - it's ignored", k)
-			}
-		}
-		dots = append(dots, d)
-	}
-	if len(dots) > MaxDots {
-		note = fmt.Sprintf("agent_dots lists %d agents - using the first %d", len(dots), MaxDots)
-		dots = dots[:MaxDots]
-	}
-	return dots, note
-}
-
-// parseSpot takes exactly two whole numbers - an empty list is a spot that was never placed
-func parseSpot(v any) (Spot, bool) {
-	list, ok := v.([]any)
-	if !ok {
-		return Spot{}, false
-	}
-	if len(list) == 0 {
-		return Spot{}, true
-	}
-	if len(list) != 2 {
-		return Spot{}, false
-	}
-	var xy [2]int
-	for i, n := range list {
-		whole, ok := n.(int64)
-		if !ok || whole < math.MinInt32 || whole > math.MaxInt32 {
-			return Spot{}, false
-		}
-		xy[i] = int(whole)
-	}
-	return Spot{X: xy[0], Y: xy[1], Placed: true}, true
 }
 
 func parseWeapons(v any) ([]string, error) {

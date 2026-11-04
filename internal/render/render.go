@@ -3,9 +3,10 @@ package render
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf8"
+	"unicode"
 )
 
 type Align int
@@ -87,9 +88,10 @@ type Section struct {
 
 // Table is a block with its own columns - the player details stack several under the header
 type Table struct {
-	Columns []Column
-	Rows    []Row
-	Note    string // a plain line under the rows
+	Columns  []Column
+	Rows     []Row
+	Sections []Section // titled groups after Rows - they share its column widths
+	Note     string    // plain lines under the rows
 }
 
 type Screen struct {
@@ -103,7 +105,54 @@ type Screen struct {
 	Scroll int
 }
 
-func width(s string) int { return utf8.RuneCountInString(s) }
+// wide is where the console gives a letter two cells - Korean Japanese and Chinese names and fullwidth forms
+var wide = [][2]rune{
+	{0x1100, 0x115f}, {0x2e80, 0x303e}, {0x3041, 0x33ff}, {0x3400, 0x4dbf}, {0x4e00, 0x9fff}, {0xa000, 0xa4cf},
+	{0xa960, 0xa97f}, {0xac00, 0xd7a3}, {0xf900, 0xfaff}, {0xfe10, 0xfe19}, {0xfe30, 0xfe6f}, {0xff00, 0xff60},
+	{0xffe0, 0xffe6}, {0x1f300, 0x1f64f}, {0x1f900, 0x1f9ff}, {0x20000, 0x3fffd},
+}
+
+// cells is how many columns the console draws a letter in - combining marks sit on the letter before them
+func cells(r rune) int {
+	if unicode.In(r, unicode.Mn, unicode.Me, unicode.Cf) {
+		return 0
+	}
+	if _, found := slices.BinarySearchFunc(wide, r, func(span [2]rune, r rune) int {
+		switch {
+		case r < span[0]:
+			return 1
+		case r > span[1]:
+			return -1
+		}
+		return 0
+	}); found {
+		return 2
+	}
+	return 1
+}
+
+func width(s string) int {
+	n := 0
+	for _, r := range s {
+		n += cells(r)
+	}
+	return n
+}
+
+// Cut shortens s to at most n cells and ends it with an ellipsis when anything went
+func Cut(s string, n int) string {
+	if width(s) <= n {
+		return s
+	}
+	w := 0
+	for i, r := range s {
+		if w+cells(r) > n-1 {
+			return s[:i] + "…"
+		}
+		w += cells(r)
+	}
+	return s
+}
 
 // Lines lays the screen out for the console width - columns that don't fit drop from the end
 func (s Screen) Lines(cols []Column, maxWidth int, ansi bool) []string {
@@ -123,11 +172,15 @@ func (s Screen) Layout(cols []Column, maxWidth int, ansi bool) ([]string, int) {
 	}
 	for _, t := range s.Tables {
 		body = append(body, "")
+		sections := t.Sections
 		if len(t.Rows) > 0 {
-			body = append(body, table(t.Columns, []Section{{Rows: t.Rows}}, maxWidth, ansi)...)
+			sections = append([]Section{{Rows: t.Rows}}, sections...)
+		}
+		if slices.ContainsFunc(sections, func(sec Section) bool { return len(sec.Rows) > 0 }) {
+			body = append(body, table(t.Columns, sections, maxWidth, ansi)...)
 		}
 		if t.Note != "" {
-			body = append(body, t.Note)
+			body = append(body, strings.Split(t.Note, "\n")...)
 		}
 	}
 	if s.Session != "" {
@@ -178,9 +231,9 @@ func table(cols []Column, sections []Section, maxWidth int, ansi bool) []string 
 		}
 		return t
 	}
-	gap, hidden := 2, 0
-	if total(gap) > maxWidth {
-		gap = 1
+	gap, hidden := 3, 0
+	for gap > 1 && total(gap) > maxWidth {
+		gap--
 	}
 	for len(shown) > 1 && total(gap) > maxWidth {
 		shown = shown[:len(shown)-1]
@@ -244,9 +297,8 @@ func colorize(padded, text, rgb string) string {
 
 // clip cuts plain lines to the width - table rows never need it since columns already fit
 func clip(s string, w int) string {
-	if w <= 0 || width(s) <= w || strings.Contains(s, "\x1b[") {
+	if w <= 0 || strings.Contains(s, "\x1b[") {
 		return s
 	}
-	runes := []rune(s)
-	return string(runes[:w-1]) + "…"
+	return Cut(s, w)
 }

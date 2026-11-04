@@ -37,7 +37,7 @@ func TestFullFlow(t *testing.T) {
 
 func TestHiddenPlayerStatsSwitchedOff(t *testing.T) {
 	fr := startRiot(t, fakeriot.LobbyWorld(time.Now(), false))
-	lk := startLowkey(t, fr, fastSettings+"hidden_player_stats = false\n")
+	lk := startLowkey(t, fr, fastSettings+"[players]\nhidden_player_stats = false\n")
 	lk.screen("waiting for the next match", "SESSION")
 	subscribed(t, fr)
 	fr.StartAgentSelect(fakeriot.LobbyPregame)

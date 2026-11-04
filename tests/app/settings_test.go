@@ -33,27 +33,39 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 	r.live()
 	r.screen("waiting for the next match")
 	file := r.settingsFile()
-	defaults := []string{
-		`columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met", "skin"]`,
-		`matches = 13`,
-		`modes = ["competitive", "premier", "unrated", "swiftplay", "deathmatch", "team_deathmatch"]`,
-		`session_reset_hour = 6`,
-		`cutoff_seconds = 40`,
-		`enemy_lookups = true`,
-		`hidden_player_stats = true`,
-		`region = "auto"`,
-		`weapon = "vandal"`,
+	defaults := []struct{ line, section string }{
+		{`columns = ["party", "name", "agent", "rank", "peak", "last_act", "wr", "wl", "kd", "hs", "acs", "adr", "fb", "n", "mains", "rr_trend", "met", "skin"]`, "table"},
+		{`weapon = "vandal"`, "table"},
+		{`matches = 13`, "table"},
+		{`modes = ["competitive", "premier", "unrated", "swiftplay", "deathmatch", "team_deathmatch"]`, "table"},
+		{`enemy_lookups = true`, "players"},
+		{`hidden_player_stats = true`, "players"},
+		{`exact_enemy_parties = false`, "players"},
+		{`player_details = false`, "players"},
+		{`site_scouting = false`, "players"},
+		{`weapon_profiling = false`, "players"},
+		{`tendencies_tab = false`, "players"},
+		{`server_pod = false`, "match"},
+		{`session_reset_hour = 6`, "general"},
+		{`cutoff_seconds = 40`, "general"},
+		{`region = "auto"`, "general"},
 	}
 	lines := strings.Split(file, "\n")
 	for _, d := range defaults {
-		i := -1
+		i, section := -1, ""
 		for j, l := range lines {
-			if l == d {
+			if strings.HasPrefix(l, "[") && i < 0 {
+				section = strings.Trim(l, "[]")
+			}
+			if l == d.line {
 				i = j
 			}
 		}
+		if section != d.section {
+			t.Errorf("want %q under [%s], got [%s]", d.line, d.section, section)
+		}
 		if i < 1 || !strings.HasPrefix(lines[i-1], "# ") {
-			t.Errorf("want %q with a comment above it in:\n%s", d, file)
+			t.Errorf("want %q with a comment above it in:\n%s", d.line, file)
 			continue
 		}
 		comment := lines[i-1]
@@ -73,7 +85,7 @@ func TestTheFirstRunWritesEveryDefaultWithAComment(t *testing.T) {
 
 func TestColumnsComeFromTheSettingsInTheirOrder(t *testing.T) {
 	r := newRig(t, agentSelectLobby)
-	r.writeSettings(`columns = ["rank", "agent", "rr_trend"]` + "\n")
+	r.writeSettings("[table]\n" + `columns = ["rank", "agent", "rr_trend"]` + "\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -97,7 +109,7 @@ func TestEditsApplyAtTheNextRedraw(t *testing.T) {
 	r.subscribed()
 	r.enterAgentSelect()
 	r.settled("AGENT SELECT", "Dia1 50", "MAINS")
-	r.writeSettings(`columns = ["name", "agent", "rank"]` + "\n")
+	r.writeSettings("[table]\n" + `columns = ["name", "agent", "rank"]` + "\n")
 	frame := r.screen("AGENT SELECT", "Dia1 50")
 	eventually(t, "the edited columns", func() bool {
 		frame = r.con.last()
@@ -109,20 +121,22 @@ func TestInvalidSettingsKeepTheLastGoodOnesAndSayWhy(t *testing.T) {
 	cases := []struct {
 		name, content, warning string
 	}{
-		{"broken toml", "columns = [\"name\",\n", "lowkey.toml"},
-		{"unknown column", `columns = ["name", "kda"]` + "\n", `unknown column "kda"`},
-		{"unknown setting", `matchs = 5` + "\n", `unknown setting "matchs"`},
-		{"bad hour", `session_reset_hour = 25` + "\n", "session_reset_hour"},
-		{"unknown weapon", `weapon = "vandl"` + "\n", `unknown weapon "vandl"`},
-		{"unknown weapon in a list", `weapon = ["vandal", "vandl"]` + "\n", `unknown weapon "vandl"`},
-		{"a gun listed twice", `weapon = ["vandal", "Vandal"]` + "\n", `weapon "Vandal" is listed twice`},
-		{"no guns", `weapon = []` + "\n", "weapon is an empty list"},
-		{"a gun that isn't a name", `weapon = ["vandal", 3]` + "\n", "weapon takes a gun's name or a list of them"},
+		{"broken toml", "[table]\ncolumns = [\"name\",\n", "lowkey.toml"},
+		{"unknown column", "[table]\n" + `columns = ["name", "kda"]` + "\n", `unknown column "kda"`},
+		{"unknown setting", "[table]\nmatchs = 5\n", `unknown setting "table.matchs"`},
+		{"bad hour", "[general]\nsession_reset_hour = 25\n", "session_reset_hour"},
+		{"unknown weapon", "[table]\n" + `weapon = "vandl"` + "\n", `unknown weapon "vandl"`},
+		{"unknown weapon in a list", "[table]\n" + `weapon = ["vandal", "vandl"]` + "\n", `unknown weapon "vandl"`},
+		{"a gun listed twice", "[table]\n" + `weapon = ["vandal", "Vandal"]` + "\n", `weapon "Vandal" is listed twice`},
+		{"no guns", "[table]\nweapon = []\n", "weapon is an empty list"},
+		{"a gun that isn't a name", "[table]\n" + `weapon = ["vandal", 3]` + "\n", "weapon takes a gun's name or a list of them"},
+		{"a key outside its section", "[players]\nenemy_lookups = true\n\n" + `columns = ["name"]` + "\n", "columns goes under [table] - not [players]"},
+		{"a key from before sections", `columns = ["name"]` + "\n", "columns goes under [table]"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			r := newRig(t, agentSelectLobby)
-			r.writeSettings(`columns = ["agent", "rank"]` + "\n")
+			r.writeSettings("[table]\n" + `columns = ["agent", "rank"]` + "\n")
 			r.live()
 			r.screen("waiting for the next match")
 			r.subscribed()
@@ -145,7 +159,7 @@ func TestMatchesIsClampedToOneThroughTwentyFive(t *testing.T) {
 	}{{"0", "1", "matches 0 is below 1 - using 1"}, {"99", "25", "matches 99 is above 25 - using 25"}} {
 		t.Run(c.value, func(t *testing.T) {
 			r := newRig(t, agentSelectLobby)
-			r.writeSettings("matches = " + c.value + "\n")
+			r.writeSettings("[table]\nmatches = " + c.value + "\n")
 			r.live()
 			r.screen("waiting for the next match", c.warning)
 			r.subscribed()
@@ -162,7 +176,7 @@ func TestMatchesIsClampedToOneThroughTwentyFive(t *testing.T) {
 
 func TestEnemyLookupsCanBeSwitchedOff(t *testing.T) {
 	r := newRig(t, matchLobby)
-	r.writeSettings("enemy_lookups = false\n")
+	r.writeSettings("[players]\nenemy_lookups = false\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -191,7 +205,7 @@ func TestEnemyLookupsCanBeSwitchedOff(t *testing.T) {
 func TestModesCutoffAndResetHourComeFromTheSettings(t *testing.T) {
 	t.Run("modes", func(t *testing.T) {
 		r := newRig(t, agentSelectLobby)
-		r.writeSettings(`modes = ["unrated"]` + "\n")
+		r.writeSettings("[table]\n" + `modes = ["unrated"]` + "\n")
 		r.live()
 		r.screen("waiting for the next match")
 		r.subscribed()
@@ -200,7 +214,7 @@ func TestModesCutoffAndResetHourComeFromTheSettings(t *testing.T) {
 	})
 	t.Run("cutoff", func(t *testing.T) {
 		r := newRig(t, matchLobby)
-		r.writeSettings("cutoff_seconds = 10\n")
+		r.writeSettings("[general]\ncutoff_seconds = 10\n")
 		r.live()
 		r.screen("waiting for the next match")
 		r.subscribed()
@@ -211,7 +225,7 @@ func TestModesCutoffAndResetHourComeFromTheSettings(t *testing.T) {
 	})
 	t.Run("reset hour", func(t *testing.T) {
 		r := newRig(t, ranked, todaysGames)
-		r.writeSettings("session_reset_hour = 18\n")
+		r.writeSettings("[general]\nsession_reset_hour = 18\n")
 		r.live()
 		// since 18:00 only the 19:00 win and the 18:00 loss count
 		r.screen("SESSION · 1W 1L +3 RR since 18:00")
@@ -220,7 +234,7 @@ func TestModesCutoffAndResetHourComeFromTheSettings(t *testing.T) {
 
 func TestARegionInTheSettingsOverridesTheLaunchArguments(t *testing.T) {
 	r := newRig(t, agentSelectLobby)
-	r.writeSettings(`region = "ap"` + "\n")
+	r.writeSettings("[general]\n" + `region = "ap"` + "\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -243,22 +257,51 @@ func TestDoctorReportsTheSettingsFile(t *testing.T) {
 		t.Errorf("missing file: got %q", l)
 	}
 	r2 := newRig(t)
-	r2.writeSettings(`columns = ["kda"]` + "\n")
+	r2.writeSettings("[table]\n" + `columns = ["kda"]` + "\n")
 	out, code := r2.run("doctor")
 	if l := line(t, out, "settings"); code == 0 || !strings.HasPrefix(l, "FAIL") || !strings.Contains(l, `unknown column "kda"`) {
 		t.Errorf("broken file: got %q (exit %d)", l, code)
 	}
 	r3 := newRig(t)
-	r3.writeSettings("matches = 9\n")
+	r3.writeSettings("[table]\nmatches = 9\n")
 	out, _ = r3.run("doctor")
 	if l := line(t, out, "settings"); !strings.HasPrefix(l, "PASS") || !strings.Contains(l, "lowkey.toml") {
 		t.Errorf("good file: got %q", l)
+	}
+	r4 := newRig(t)
+	r4.writeSettings("matches = 9\n")
+	out, code = r4.run("doctor")
+	if l := line(t, out, "settings"); code != 0 || !strings.HasPrefix(l, "PASS") || !strings.Contains(l, "moved into sections") {
+		t.Errorf("file from before sections: got %q (exit %d)\n%s", l, code, out)
+	}
+}
+
+func TestAFileFromBeforeSectionsIsMovedAtStartAndTheTabSaysSo(t *testing.T) {
+	r := newRig(t)
+	flat := "matches = 9\nserver_pod = true\n"
+	r.writeSettings(flat)
+	r.settingsTab()
+	r.screen("lowkey.toml moved into sections - the old one is now lowkey.toml.bak", "  matches              9", "  server pod           on")
+	if backup, err := os.ReadFile(filepath.Join(r.dir, "lowkey.toml.bak")); err != nil || string(backup) != flat {
+		t.Errorf("the old file should be kept word for word: %q %v", backup, err)
+	}
+	file := r.settingsFile()
+	if !strings.Contains(file, "[table]") || !strings.Contains(file, "[match]") || !strings.Contains(file, "matches = 9\n") {
+		t.Errorf("the file should be in sections with its values:\n%s", file)
+	}
+	r.press(downKey)
+	if frame := r.screen("> skin weapons"); strings.Contains(frame, "moved into sections") {
+		t.Errorf("the next key should clear the notice:\n%s", frame)
+	}
+	r.press(tabKey)
+	if frame := r.screen("[LOBBY]"); strings.Contains(frame, "moved into sections") {
+		t.Errorf("the lobby doesn't need to hear about it:\n%s", frame)
 	}
 }
 
 func TestMeUsesTheSettings(t *testing.T) {
 	r := newRig(t, ranked, threeCompMatches)
-	r.writeSettings("matches = 2\nsession_reset_hour = 18\n")
+	r.writeSettings("[table]\nmatches = 2\n\n[general]\nsession_reset_hour = 18\n")
 	out, code := r.run("me")
 	if code != 0 {
 		t.Fatalf("me failed:\n%s", out)

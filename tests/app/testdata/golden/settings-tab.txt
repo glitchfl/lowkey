@@ -1,14 +1,27 @@
  LOBBY  [SETTINGS]         tab to switch
 
+TABLE
 > columns              18 of 18  (enter)
+  skin weapons         vandal
   matches              13
   modes                6 of 6
-  session starts at    06:00
-  cutoff               40s
+
+PLAYERS
   enemy lookups        on
   hidden player stats  on
+  enemy parties        off
+  player details       off
+  site scouting        off
+  weapon profiling     off
+  tendencies tab       off
+
+MATCH
+  server pod           off
+
+GENERAL
+  session starts at    06:00
+  cutoff               40s
   region               auto
-  skin weapons         vandal
 
 columns left to right - drop or reorder freely
 

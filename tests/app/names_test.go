@@ -92,7 +92,7 @@ func TestNameLookupsNeverIncludeHiddenPlayersWhateverTheSetting(t *testing.T) {
 
 func TestEnemyLookupsOffKeepsEnemiesOutOfTheNameLookup(t *testing.T) {
 	r := newRig(t, matchLobby, func(w *fakeriot.World) { w.Player(enemy1).Name, w.Player(enemy1).Tag = "EnemyOne", "E1" })
-	r.writeSettings("enemy_lookups = false\n")
+	r.writeSettings("[players]\nenemy_lookups = false\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -164,13 +164,13 @@ func TestARejectedTokenResendsTheNameLookup(t *testing.T) {
 	}
 }
 
-func TestAFullRiotIDFitsUpTo20Characters(t *testing.T) {
-	r := newRig(t, ranked, func(w *fakeriot.World) { w.Player(w.Self).Name, w.Player(w.Self).Tag = "FifteenCharName", "1234" })
+func TestTheMeScreenShowsYourWholeRiotID(t *testing.T) {
+	r := newRig(t, ranked, func(w *fakeriot.World) { w.Player(w.Self).Name, w.Player(w.Self).Tag = "SixteenCharName1", "12345" })
 	out, code := r.run("me")
 	if code != 0 {
 		t.Fatalf("me failed:\n%s", out)
 	}
-	if got := cell(t, out, "PLAYER"); got != "FifteenCharName#1234" {
+	if got := cell(t, out, "PLAYER"); got != "SixteenCharName1#12345" {
 		t.Errorf("got %q\n%s", got, out)
 	}
 }
@@ -285,5 +285,58 @@ func TestRecordingsKeepNameLookupsAnonymous(t *testing.T) {
 	}
 	if !seen {
 		t.Error("the name lookup wasn't recorded")
+	}
+}
+
+func TestALongNameIsCutInTheTableAndWholeInPlayerDetails(t *testing.T) {
+	r := inMatchLoad(t, func(w *fakeriot.World) { w.Player(ally2).Name, w.Player(ally2).Tag = "SixteenCharName1", "12345" })
+	frame := r.con.last()
+	if !strings.Contains(frame, "SixteenCharName…") || strings.Contains(frame, "SixteenCharName1#") {
+		t.Errorf("the table should cut the name at 16 cells:\n%s", frame)
+	}
+	r.press(downKey, downKey, downKey)
+	eventually(t, "three presses down to pick ally two", func() bool {
+		return strings.HasPrefix(pickedRow(r.con.last()), "SixteenCharName… Killjoy")
+	})
+	r.press(enterKey)
+	frame = r.settled("esc back", "THIS ACT")
+	if !strings.Contains(frame, "SixteenCharName1#12345") {
+		t.Errorf("player details should show the whole Riot ID:\n%s", frame)
+	}
+}
+
+// consoleColumn is where a byte offset of a line lands on screen - a hangul syllable takes two cells
+func consoleColumn(line string, offset int) int {
+	n := 0
+	for _, r := range line[:offset] {
+		n++
+		if r >= 0xac00 && r <= 0xd7a3 {
+			n++
+		}
+	}
+	return n
+}
+
+func TestWideLettersKeepTheColumnsLinedUp(t *testing.T) {
+	r := fromAgentSelect(t, func(w *fakeriot.World) {
+		w.Player(ally1).Name, w.Player(ally1).Tag = "한국어", "KR1"
+		w.Player(ally2).Name, w.Player(ally2).Tag = "가나다라마바사아", "KR1"
+	})
+	frame := plain(r.settled("AGENT SELECT", "한국어#KR1", "가나다라마바사…"))
+	rank := -1
+	for _, l := range strings.Split(frame, "\n") {
+		if i := strings.Index(l, "RANK"); i >= 0 && !strings.Contains(l, "·") {
+			rank = consoleColumn(l, i)
+		}
+	}
+	for name, cell := range map[string]string{"Kestrel#EUW": "Dia3 12", "한국어#KR1": "Dia1 50", "가나다라마바사…": "Plat1 30"} {
+		i := slices.IndexFunc(strings.Split(frame, "\n"), func(l string) bool { return strings.Contains(l, name) })
+		if i < 0 {
+			t.Fatalf("no row for %s:\n%s", name, frame)
+		}
+		l := strings.Split(frame, "\n")[i]
+		if got := consoleColumn(l, strings.Index(l, cell)); got != rank {
+			t.Errorf("%s's rank starts at column %d - the header's at %d:\n%s", name, got, rank, frame)
+		}
 	}
 }

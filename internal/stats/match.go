@@ -19,11 +19,13 @@ type Match struct {
 	Won     map[string]bool
 	// RoundsWon is by team - deathmatch teams are single players
 	RoundsWon map[string]int
+	Rounds    []Round
 }
 
 type MatchPlayer struct {
 	PUUID       string
 	Team        string
+	PartyID     string
 	Agent       string
 	Score       int
 	Rounds      int
@@ -35,13 +37,52 @@ type MatchPlayer struct {
 	Leg         int
 	Damage      int
 	FirstBloods int
+	// KillsWith counts kills by the weapon ID that finished them - other kills go by their damage type
+	KillsWith map[string]int
+	// Loadouts counts the rounds they started holding each weapon - by its ID
+	Loadouts map[string]int
+}
+
+type Point struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// Round is who attacked and where players stood - Attackers is empty when the result doesn't say
+type Round struct {
+	Attackers string
+	Plant     string // the site the spike went down on - empty without a plant
+	// Spots is each player's last known position in the first EarlyRound of it
+	Spots   map[string]Point
+	Opening *Opening // the round's first kill - nil when nobody died
+}
+
+type Opening struct {
+	Killer, Victim     string
+	KillerAt, VictimAt Point
+}
+
+// EarlyRound is how long into a round a position still shows where a player set up
+const EarlyRound = 25 * time.Second
+
+type spot struct {
+	Subject  string `json:"subject"`
+	Location Point  `json:"location"`
 }
 
 type kill struct {
 	Killer string `json:"killer"`
+	Victim string `json:"victim"`
 	// community docs call it roundTime - the spec and older captures say timeSinceRoundStartMillis
 	RoundTime  *int64 `json:"roundTime"`
 	SinceStart *int64 `json:"timeSinceRoundStartMillis"`
+
+	VictimLocation  Point  `json:"victimLocation"`
+	PlayerLocations []spot `json:"playerLocations"`
+	FinishingDamage struct {
+		DamageType string `json:"damageType"`
+		DamageItem string `json:"damageItem"`
+	} `json:"finishingDamage"`
 }
 
 func (k kill) at() (int64, bool) {
@@ -52,6 +93,43 @@ func (k kill) at() (int64, bool) {
 		return *k.SinceStart, true
 	}
 	return 0, false
+}
+
+// finisher is the weapon's ID for a gun kill and the damage type for anything else - an ability or the spike
+func (k kill) finisher() string {
+	if k.FinishingDamage.DamageType == "Weapon" && k.FinishingDamage.DamageItem != "" {
+		return strings.ToLower(k.FinishingDamage.DamageItem)
+	}
+	return strings.ToLower(k.FinishingDamage.DamageType)
+}
+
+// opening falls back to where the victim fell when the killer's own spot is missing
+func (k kill) opening() *Opening {
+	o := &Opening{Killer: strings.ToLower(k.Killer), Victim: strings.ToLower(k.Victim), VictimAt: k.VictimLocation}
+	o.KillerAt = o.VictimAt
+	for _, s := range k.PlayerLocations {
+		if strings.EqualFold(s.Subject, k.Killer) {
+			o.KillerAt = s.Location
+		}
+	}
+	return o
+}
+
+// attackers reads the attacking team off the round's winner and the side it won on
+func attackers(winner, role string, teams []string) string {
+	switch role {
+	case "Attacker":
+		return winner
+	case "Defender":
+		if len(teams) == 2 {
+			for _, t := range teams {
+				if t != winner {
+					return t
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func DecodeMatch(body []byte) (*Match, error) {
@@ -65,6 +143,7 @@ func DecodeMatch(body []byte) (*Match, error) {
 		Players []struct {
 			Subject     string `json:"subject"`
 			TeamID      string `json:"teamId"`
+			PartyID     string `json:"partyId"`
 			CharacterID string `json:"characterId"`
 			Stats       *struct {
 				Score        int `json:"score"`
@@ -80,7 +159,12 @@ func DecodeMatch(body []byte) (*Match, error) {
 			RoundsWon int    `json:"roundsWon"`
 		} `json:"teams"`
 		RoundResults []struct {
-			PlayerStats []struct {
+			WinningTeam          string `json:"winningTeam"`
+			WinningTeamRole      string `json:"winningTeamRole"`
+			PlantSite            string `json:"plantSite"`
+			PlantRoundTime       int64  `json:"plantRoundTime"`
+			PlantPlayerLocations []spot `json:"plantPlayerLocations"`
+			PlayerStats          []struct {
 				Subject string `json:"subject"`
 				Kills   []kill `json:"kills"`
 				Damage  []struct {
@@ -89,6 +173,9 @@ func DecodeMatch(body []byte) (*Match, error) {
 					Bodyshots int `json:"bodyshots"`
 					Legshots  int `json:"legshots"`
 				} `json:"damage"`
+				Economy *struct {
+					Weapon string `json:"weapon"`
+				} `json:"economy"`
 			} `json:"playerStats"`
 		} `json:"roundResults"`
 	}
@@ -106,7 +193,8 @@ func DecodeMatch(body []byte) (*Match, error) {
 	}
 	for _, p := range v.Players {
 		mp := &MatchPlayer{
-			PUUID: strings.ToLower(p.Subject), Team: p.TeamID, Agent: strings.ToLower(p.CharacterID),
+			PUUID: strings.ToLower(p.Subject), Team: p.TeamID, PartyID: p.PartyID, Agent: strings.ToLower(p.CharacterID),
+			KillsWith: map[string]int{}, Loadouts: map[string]int{},
 		}
 		if p.Stats != nil {
 			mp.Score, mp.Rounds, mp.Kills, mp.Deaths = p.Stats.Score, p.Stats.RoundsPlayed, p.Stats.Kills, p.Stats.Deaths
@@ -114,36 +202,70 @@ func DecodeMatch(body []byte) (*Match, error) {
 		}
 		m.Players[mp.PUUID] = mp
 	}
+	var teams []string
 	for _, t := range v.Teams {
 		m.Won[t.TeamID] = t.Won
 		m.RoundsWon[t.TeamID] = t.RoundsWon
+		teams = append(teams, t.TeamID)
 	}
+	early := EarlyRound.Milliseconds()
 	for _, round := range v.RoundResults {
-		first, firstAt := "", int64(math.MaxInt64)
+		r := Round{Attackers: attackers(round.WinningTeam, round.WinningTeamRole, teams), Plant: round.PlantSite, Spots: map[string]Point{}}
+		seen := map[string]int64{}
+		saw := func(subject string, at int64, p Point) {
+			subject = strings.ToLower(subject)
+			if last, ok := seen[subject]; subject != "" && at <= early && (!ok || at >= last) {
+				seen[subject], r.Spots[subject] = at, p
+			}
+		}
+		if round.PlantSite != "" {
+			for _, s := range round.PlantPlayerLocations {
+				saw(s.Subject, round.PlantRoundTime, s.Location)
+			}
+		}
+		var first *kill
+		firstAt := int64(math.MaxInt64)
 		for _, ps := range round.PlayerStats {
 			subject := strings.ToLower(ps.Subject)
-			if mp := m.Players[subject]; mp != nil {
+			mp := m.Players[subject]
+			if mp != nil {
 				for _, d := range ps.Damage {
 					mp.Damage += d.Damage
 					mp.Head += d.Headshots
 					mp.Body += d.Bodyshots
 					mp.Leg += d.Legshots
 				}
+				if ps.Economy != nil && ps.Economy.Weapon != "" {
+					mp.Loadouts[strings.ToLower(ps.Economy.Weapon)]++
+				}
 			}
-			for _, k := range ps.Kills {
+			for i, k := range ps.Kills {
+				if k.Killer == "" {
+					ps.Kills[i].Killer, k.Killer = subject, subject
+				}
+				if killer := m.Players[strings.ToLower(k.Killer)]; killer != nil {
+					killer.KillsWith[k.finisher()]++
+				}
 				at, ok := k.at()
-				if !ok || at >= firstAt {
+				if !ok {
 					continue
 				}
-				first, firstAt = subject, at
-				if k.Killer != "" {
-					first = strings.ToLower(k.Killer)
+				for _, s := range k.PlayerLocations {
+					saw(s.Subject, at, s.Location)
+				}
+				saw(k.Victim, at, k.VictimLocation)
+				if at < firstAt {
+					first, firstAt = &ps.Kills[i], at
 				}
 			}
 		}
-		if mp := m.Players[first]; mp != nil {
-			mp.FirstBloods++
+		if first != nil {
+			r.Opening = first.opening()
+			if mp := m.Players[r.Opening.Killer]; mp != nil {
+				mp.FirstBloods++
+			}
 		}
+		m.Rounds = append(m.Rounds, r)
 	}
 	return m, nil
 }

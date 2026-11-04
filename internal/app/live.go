@@ -32,6 +32,7 @@ const (
 	recentEvents    = 32
 	finishedMatches = 8
 	redrawEvery     = 250 * time.Millisecond
+	wideColumns     = 150
 )
 
 var phaseTitles = map[phase]string{phaseAgentSelect: "AGENT SELECT", phaseMatchLoad: "MATCH LOADING", phaseInRound: "IN MATCH"}
@@ -92,12 +93,12 @@ type live struct {
 	drawnKind   string
 	redrawTimer *time.Timer
 
-	keyboard   bool // someone can type - so there's a tab bar
-	onSettings bool
-	tab        settingsTab
-	pick       string // the player highlighted on the lobby tab - by PUUID so rosters can reorder
-	details    bool   // the picked player's details fill the lobby tab
-	scroll     int
+	keyboard bool // someone can type - so there's a tab bar
+	view     view
+	tab      settingsTab
+	pick     string // the player highlighted on the lobby tab - by PUUID so rosters can reorder
+	details  bool   // the picked player's details fill the lobby tab
+	scroll   int
 }
 
 type rateState int
@@ -121,6 +122,15 @@ func runLive(ctx context.Context, env Env, opts options, setup platform.Setup) i
 		lv.log.printf("can't create %s: %v", lv.cfg.Path(), err)
 	}
 	lv.tab.cfg = lv.cfg
+	moved, err := lv.cfg.Moved()
+	if err != nil {
+		lv.log.printf("%v", err)
+	}
+	lv.tab.firstOpen = moved
+	// a new window opens 120 columns wide and a full lobby wants more - a terminal that can't resize ignores it
+	if env.Console.Terminal && env.Console.Width() < wideColumns {
+		fmt.Fprintf(env.Console.Out, "\x1b[8;%d;%dt", env.Console.Height(), wideColumns)
+	}
 	if env.Console.Keyboard != nil {
 		if keys, restore, ok := env.Console.Keyboard(); ok {
 			defer restore()
@@ -465,9 +475,13 @@ func (lv *live) onCoreGame(matchID string) {
 }
 
 func (lv *live) setPhase(p phase) {
-	// the table only matters for about a minute and edits are already saved - so a new lobby takes the screen back
+	// the table only matters for about a minute and edits are already saved - so a new lobby takes the screen back -
+	// the tendencies tab stays from agent select into the match since that's when the enemies fill it in
 	if p != lv.phase && (p == phaseAgentSelect || p == phaseMatchLoad) {
-		lv.onSettings, lv.details = false, false
+		if lv.view == viewSettings || lv.view == viewTendencies && (p == phaseAgentSelect || lv.phase != phaseAgentSelect) {
+			lv.view = viewLobby
+		}
+		lv.details = false
 		// your allies stay picked from agent select into the match
 		if p == phaseAgentSelect || lv.phase != phaseAgentSelect {
 			lv.pick = ""
@@ -538,7 +552,10 @@ func (lv *live) ensureTarget(then func()) {
 	})
 }
 
-func (lv *live) screen() render.Screen {
+func (lv *live) screen() render.Screen { return lv.screenWith(lv.lobbyTab) }
+
+// screenWith says what lowkey is waiting for or what went wrong around whatever draw puts under the header
+func (lv *live) screenWith(draw func(s *render.Screen, lob *lobby, title string)) render.Screen {
 	var s render.Screen
 	lob, title := lv.shownLobby()
 	switch {
@@ -550,13 +567,13 @@ func (lv *live) screen() render.Screen {
 		s.Status = []string{"waiting for Valorant"}
 	case lv.phase == phaseMenus:
 		s.Status = []string{"waiting for the next match"}
-		lv.lobbyTab(&s, lob, title)
+		draw(&s, lob, title)
 	case lv.untracked != "":
 		s.Status = []string{"not tracking " + lv.untracked + " - waiting for the next match"}
 	case lv.midMatch:
 		s.Status = []string{"match in progress - lowkey waits for it to end"}
 	case lob != nil:
-		lv.lobbyTab(&s, lob, title)
+		draw(&s, lob, title)
 	default:
 		s.Header = phaseTitles[lv.phase]
 	}
@@ -583,7 +600,7 @@ func (lv *live) screen() render.Screen {
 func (lv *live) columns() []render.Column {
 	cfg := lv.cfg.Settings()
 	var cols []render.Column
-	if lv.keyboard {
+	if lv.canPick() {
 		cols = append(cols, render.Column{Key: "pick"})
 	}
 	for _, c := range render.Columns(cfg.Columns) {
@@ -604,12 +621,18 @@ func (lv *live) shown() render.Screen {
 	if !lv.keyboard {
 		return lv.screen()
 	}
-	if lv.onSettings {
+	switch lv.view {
+	case viewSettings:
 		// the tab bar and the newline after the last line take a row each
-		return render.Screen{Status: append([]string{tabBarSettings}, lv.tab.lines(lv.env.Console.Height()-2)...)}
+		return render.Screen{Status: append([]string{lv.tabBar()}, lv.tab.lines(lv.env.Console.Height()-2)...)}
+	case viewTendencies:
+		s := lv.screenWith(lv.tendenciesTab)
+		s.Status = append([]string{lv.tabBar()}, s.Status...)
+		s.Height, s.Scroll = lv.env.Console.Height()-1, lv.scroll
+		return s
 	}
 	s := lv.screen()
-	s.Status = append([]string{tabBarLobby + lv.tabHint()}, s.Status...)
+	s.Status = append([]string{lv.tabBar() + lv.tabHint()}, s.Status...)
 	if len(s.Tables) > 0 {
 		// the newline after the last line takes a row
 		s.Height, s.Scroll = lv.env.Console.Height()-1, lv.scroll
@@ -620,7 +643,14 @@ func (lv *live) shown() render.Screen {
 // redraw writes the whole screen as one write in place on a terminal - it also picks up lowkey.toml edits
 func (lv *live) redraw() {
 	lv.cfg.Refresh()
-	if lv.rec != nil && lv.onSettings {
+	// switching player details off closes an open one - and turning it back on later starts with nobody picked
+	if !lv.canPick() {
+		lv.pick, lv.details = "", false
+	}
+	if lv.view == viewTendencies && !lv.canTendencies() {
+		lv.view = viewLobby
+	}
+	if lv.rec != nil && lv.view != viewLobby {
 		lv.recordScreen()
 	}
 	screen := lv.shown()

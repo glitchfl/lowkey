@@ -175,6 +175,12 @@ func (d *doctor) offline() {
 	}
 	d.report(true, "console", fmt.Sprintf("width %d · %s", d.env.Console.Width(), ansi))
 
+	switch moved, err := d.cfg.Moved(); {
+	case err != nil:
+		d.report(false, "settings", err.Error())
+	case moved != "":
+		d.report(true, "settings", moved)
+	}
 	switch {
 	case !d.cfg.Exists():
 		d.report(true, "settings", fmt.Sprintf("no %s yet - defaults in use (the first normal run creates it)", settings.FileName))

@@ -25,6 +25,7 @@ type lobby struct {
 	mode    stats.Mode
 	known   bool // mode and map came from the roster
 	mapURL  string
+	pod     string
 	ownTeam string
 	members []*member
 	party   *party
@@ -99,7 +100,7 @@ func (lv *live) startMatchLoad(matchID string) {
 		lv.rateLimit, lv.problem = rateFine, ""
 	}
 	if prev != nil {
-		lob.mode, lob.known, lob.mapURL, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.ownTeam
+		lob.mode, lob.known, lob.mapURL, lob.pod, lob.ownTeam = prev.mode, prev.known, prev.mapURL, prev.pod, prev.ownTeam
 		lob.members, lob.party = prev.members, prev.party
 		// agent select is over so whatever was still hovered got locked in
 		for _, m := range lob.members {
@@ -296,6 +297,9 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 			lv.sess = sess
 		}
 	}
+	if roster.GamePodID != "" {
+		lob.pod = roster.GamePodID
+	}
 	cfg := lv.cfg.Settings()
 	for _, rp := range roster.Players {
 		if rp.PUUID == lv.self {
@@ -360,8 +364,8 @@ func (lv *live) applyRosterBatch(lob *lobby, roster riot.Roster) {
 		}
 	}
 	lv.eng.lookUpNames(named)
-	// the details list every gun - so with a keyboard the skins come even with the skin column off
-	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.keyboard) {
+	// the details list every gun - so while they can be opened the skins come even with the skin column off
+	if lob.kind == lobbyMatchLoad && !lob.loadoutsAsked && (cfg.Shows("skin") || lv.canPick()) {
 		lv.fetchLoadouts(lob)
 	}
 }
@@ -432,6 +436,11 @@ func (lv *live) lobbyTitle(lob *lobby, title string) string {
 		}
 		title += " · " + lob.mode.Name
 	}
+	if lv.cfg.Settings().ServerPod && (lv.phase == phaseMatchLoad || lv.phase == phaseInRound) {
+		if pod := riot.PodName(lob.pod); pod != "" {
+			title += " · POD: " + pod
+		}
+	}
 	return title
 }
 
@@ -500,16 +509,31 @@ func (lv *live) memberRow(m *member, mode stats.Mode) render.Row {
 			m.p.useSession(lv.sess)
 		}
 		row = playerRow(m.p, mode, lv.eng.acts, lv.data)
-		if lv.alias != nil && m.p.name != "" {
-			row["name"] = render.Cell{Text: cut(lv.alias(m.p.name), nameWidth)}
-		}
 	}
+	row["name"] = lv.nameCell(m)
 	row["agent"] = lv.agentCell(m)
-	// a name fetched before they went hidden stays off too - Riot only allows their stats while it does
-	if m.hidden {
-		row["name"] = render.Cell{Text: "hidden"}
-	}
 	return row
+}
+
+func (lv *live) nameCell(m *member) render.Cell {
+	switch {
+	// a name fetched before they went hidden stays off too - Riot only allows their stats while it does
+	case m.hidden:
+		return render.Cell{Text: "hidden"}
+	case m.p == nil || !m.p.nameDone:
+		return render.Cell{}
+	case m.p.name == "":
+		return dash
+	}
+	return render.Cell{Text: render.Cut(lv.shownName(m.p), nameWidth)}
+}
+
+// shownName is the whole Riot ID - swapped for the recording's fake while a frame goes to screens.txt
+func (lv *live) shownName(p *player) string {
+	if lv.alias != nil {
+		return lv.alias(p.name)
+	}
+	return p.name
 }
 
 // agentCell brackets an agent that's only hovered - a locked-in agent stands bare
@@ -558,7 +582,7 @@ func (lv *live) skinCell(id string) render.Cell {
 	if !ok {
 		return render.Cell{Text: "?"}
 	}
-	return render.Cell{Text: cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
+	return render.Cell{Text: render.Cut(s.Name, 16), Color: lv.data.EditionColor(s.Edition)}
 }
 
 // averages are the shown values of a team's average row - the diff subtracts what's on screen

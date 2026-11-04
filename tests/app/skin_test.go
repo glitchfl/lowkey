@@ -10,7 +10,7 @@ import (
 
 const (
 	loadouts    = "/core-game/v1/matches/" + coreGame + "/loadouts"
-	skinColumns = `columns = ["name", "agent", "rank", "skin"]` + "\n"
+	skinColumns = "[table]\n" + `columns = ["name", "agent", "rank", "skin"]` + "\n"
 	newSkin     = "5c1a0000-0000-4000-8000-000000000001"
 	ghostSkin   = "5c1a0000-0000-4000-8000-000000000002"
 	newPhantom  = "5c1a0000-0000-4000-8000-000000000003"
@@ -144,7 +144,7 @@ func TestANewSkinOnAnyGunInTheListIsNamedByARefresh(t *testing.T) {
 
 func TestLoadoutsAreOnlyFetchedForTheSkinColumn(t *testing.T) {
 	r := newRig(t, matchLobby, lobbySkins)
-	r.writeSettings(`columns = ["name", "agent", "rank"]` + "\n")
+	r.writeSettings("[table]\n" + `columns = ["name", "agent", "rank"]` + "\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()
@@ -157,7 +157,7 @@ func TestLoadoutsAreOnlyFetchedForTheSkinColumn(t *testing.T) {
 
 func TestEnemiesShownByAgentOnlyShowNoSkins(t *testing.T) {
 	r := newRig(t, matchLobby, lobbySkins)
-	r.writeSettings(skinColumns + "enemy_lookups = false\n")
+	r.writeSettings(skinColumns + "[players]\nenemy_lookups = false\n")
 	r.live()
 	r.screen("waiting for the next match")
 	r.subscribed()

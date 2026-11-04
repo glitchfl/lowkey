@@ -12,8 +12,8 @@ import (
 
 var sampleKeys = []string{"kd", "hs", "acs", "adr", "fb", "mains"}
 
-// a full Riot ID can reach 22 - 20 is what still fits every stat column in 120 columns
-const nameWidth = 20
+// a full Riot ID can reach 22 - past 16 cells it's cut and player details show the whole of it
+const nameWidth = 16
 
 // playerRow shows what's known - cells still loading stay blank and cells with no value show "-"
 func playerRow(p *player, mode stats.Mode, acts *stats.Acts, data *static.Data) render.Row {
@@ -21,7 +21,7 @@ func playerRow(p *player, mode stats.Mode, acts *stats.Acts, data *static.Data) 
 	if p.nameDone {
 		row["name"] = dash
 		if p.name != "" {
-			row["name"] = render.Cell{Text: cut(p.name, nameWidth)}
+			row["name"] = render.Cell{Text: p.name}
 		}
 	}
 	switch {
@@ -91,12 +91,4 @@ func numberCell(v int, ok bool) render.Cell {
 		return dash
 	}
 	return render.Cell{Text: strconv.Itoa(v)}
-}
-
-func cut(s string, n int) string {
-	r := []rune(s)
-	if len(r) <= n {
-		return s
-	}
-	return string(r[:n-1]) + "…"
 }

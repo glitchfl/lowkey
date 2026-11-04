@@ -1,0 +1,2156 @@
+[
+ {
+  "method": "POST",
+  "host": "euc-prod.pp.sgp.pvp.net",
+  "path": "/activities/v1/lookup",
+  "names": {
+   "AGS_GetActivity": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "404": 1
+  },
+  "query_keys": [],
+  "slowest": 0.115
+ },
+ {
+  "method": "GET",
+  "host": "eucN-red.pp.sgp.pvp.net",
+  "path": "/leaderboard/v1/name/val-premier/region/eu/season/{id}/grouping/EU_DACH-1",
+  "names": {
+   "Leaderboard_GetEntriesByRange": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [
+   "endRank",
+   "startRank"
+  ],
+  "slowest": 0.204
+ },
+ {
+  "method": "GET",
+  "host": "eucN-red.pp.sgp.pvp.net",
+  "path": "/leaderboard/v1/name/val-premier/region/eu/season/{id}/grouping/EU_DACH-18",
+  "names": {
+   "Leaderboard_GetEntriesByRange": 2
+  },
+  "phases": {
+   "MENUS": 2
+  },
+  "codes": {
+   "200": 2
+  },
+  "query_keys": [
+   "endRank",
+   "startRank"
+  ],
+  "slowest": 0.2
+ },
+ {
+  "method": "GET",
+  "host": "eucN-red.pp.sgp.pvp.net",
+  "path": "/leaderboard/v1/name/val-premier/region/eu/season/{id}/grouping/EU_DACH-18/jump-to-entry/{id}",
+  "names": {
+   "Leaderboard_JumpToMe": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [
+   "pageSize"
+  ],
+  "slowest": 0.092
+ },
+ {
+  "method": "POST",
+  "host": "eucN-red.pp.sgp.pvp.net",
+  "path": "/login-queue/v2/login/products/valorant/regions/eu",
+  "names": {
+   "LoginQueue_FetchToken": 2
+  },
+  "phases": {
+   "MENUS": 2
+  },
+  "codes": {
+   "200": 2
+  },
+  "query_keys": [],
+  "slowest": 0.244
+ },
+ {
+  "method": "POST",
+  "host": "eucN.pp.sgp.pvp.net",
+  "path": "/login-queue/v2/login/products/valorant/regions/eu",
+  "names": {
+   "LoginQueue_FetchToken": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.308
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/core-game/v1/matches/{id}",
+  "names": {
+   "CoreGame_FetchMatch": 297
+  },
+  "phases": {
+   "INGAME": 239,
+   "PREGAME": 12,
+   "MENUS": 46
+  },
+  "codes": {
+   "200": 297
+  },
+  "query_keys": [],
+  "slowest": 2.921
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/core-game/v1/matches/{id}/allchatmuctoken",
+  "names": {
+   "CoreGame_FetchAllChatMUCToken": 72
+  },
+  "phases": {
+   "INGAME": 72
+  },
+  "codes": {
+   "200": 72
+  },
+  "query_keys": [],
+  "slowest": 2.086
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/core-game/v1/matches/{id}/loadouts",
+  "names": {
+   "CoreGame_FetchMatchLoadouts": 72
+  },
+  "phases": {
+   "INGAME": 72
+  },
+  "codes": {
+   "200": 72
+  },
+  "query_keys": [],
+  "slowest": 2.116
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/core-game/v1/matches/{id}/teamchatmuctoken",
+  "names": {
+   "CoreGame_FetchTeamChatMUCToken": 72
+  },
+  "phases": {
+   "INGAME": 72
+  },
+  "codes": {
+   "200": 71,
+   "403": 1
+  },
+  "query_keys": [],
+  "slowest": 2.087
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/core-game/v1/matches/{id}/teamvoicetoken",
+  "names": {
+   "CoreGame_FetchVoiceToken": 24
+  },
+  "phases": {
+   "INGAME": 24
+  },
+  "codes": {
+   "200": 24
+  },
+  "query_keys": [],
+  "slowest": 0.313
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/core-game/v1/players/{id}",
+  "names": {
+   "CoreGame_FetchPlayer": 230
+  },
+  "phases": {
+   "MENUS": 74,
+   "INGAME": 144,
+   "PREGAME": 12
+  },
+  "codes": {
+   "404": 86,
+   "200": 144
+  },
+  "query_keys": [],
+  "slowest": 2.309
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/core-game/v1/players/{id}/disassociate/{id}",
+  "names": {
+   "CoreGame_DisassociatePlayer": 57
+  },
+  "phases": {
+   "INGAME": 30,
+   "MENUS": 27
+  },
+  "codes": {
+   "204": 57
+  },
+  "query_keys": [],
+  "slowest": 3.185
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/parties/v1/parties/customgameconfigs",
+  "names": {
+   "Party_FetchCustomGameConfigs": 1711
+  },
+  "phases": {
+   "MENUS": 1657,
+   "INGAME": 49,
+   "PREGAME": 5
+  },
+  "codes": {
+   "200": 1711
+  },
+  "query_keys": [],
+  "slowest": 2.452
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/refreshPremierPrestigeInfo",
+  "names": {
+   "Party_RefreshPremierPrestigeInfo": 7
+  },
+  "phases": {
+   "MENUS": 6,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 7
+  },
+  "query_keys": [],
+  "slowest": 0.228
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}",
+  "names": {
+   "Party_FetchParty": 1231
+  },
+  "phases": {
+   "MENUS": 760,
+   "INGAME": 405,
+   "PREGAME": 60,
+   "REPLAY": 6
+  },
+  "codes": {
+   "200": 1228,
+   "404": 3
+  },
+  "query_keys": [],
+  "slowest": 4.089
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/converttodefault",
+  "names": {
+   "Party_ConvertToDefault": 3
+  },
+  "phases": {
+   "MENUS": 3
+  },
+  "codes": {
+   "200": 3
+  },
+  "query_keys": [
+   "queueID"
+  ],
+  "slowest": 0.12
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/customgamemembership/TeamSpectate",
+  "names": {
+   "Party_ChangeTeamInCustomGame": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [],
+  "slowest": 0.131
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/customgamemembership/TeamTwo",
+  "names": {
+   "Party_ChangeTeamInCustomGame": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [],
+  "slowest": 0.148
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/customgamesettings",
+  "names": {
+   "Party_SetCustomGameSettings": 4
+  },
+  "phases": {
+   "MENUS": 4
+  },
+  "codes": {
+   "200": 4
+  },
+  "query_keys": [],
+  "slowest": 0.139
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/invites",
+  "names": {
+   "Party_InviteToParty": 16
+  },
+  "phases": {
+   "MENUS": 14,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 16
+  },
+  "query_keys": [],
+  "slowest": 0.265
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/makecustomgame",
+  "names": {
+   "Party_MakePartyIntoCustomGame": 3
+  },
+  "phases": {
+   "MENUS": 3
+  },
+  "codes": {
+   "200": 3
+  },
+  "query_keys": [],
+  "slowest": 0.118
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/matchmaking/join",
+  "names": {
+   "Party_EnterMatchmakingQueue": 28
+  },
+  "phases": {
+   "MENUS": 23,
+   "INGAME": 5
+  },
+  "codes": {
+   "200": 28
+  },
+  "query_keys": [],
+  "slowest": 0.183
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/matchmaking/leave",
+  "names": {
+   "Party_LeaveMatchmakingQueue": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.279
+ },
+ {
+  "method": "DELETE",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/members/{id}",
+  "names": {
+   "Party_LeaveFromParty": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [],
+  "slowest": 0.112
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/members/{id}/refreshCompetitiveTier",
+  "names": {
+   "Party_RefreshCompetitiveTier": 42
+  },
+  "phases": {
+   "INGAME": 18,
+   "MENUS": 24
+  },
+  "codes": {
+   "200": 42
+  },
+  "query_keys": [],
+  "slowest": 2.845
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/members/{id}/refreshPings",
+  "names": {
+   "Party_RefreshPings": 54
+  },
+  "phases": {
+   "INGAME": 37,
+   "MENUS": 14,
+   "PREGAME": 3
+  },
+  "codes": {
+   "200": 54
+  },
+  "query_keys": [
+   "aresriot.aws-afs1-prod.eu-gp-capetown-1",
+   "aresriot.aws-apne1-prod.eu-gp-tokyo-1",
+   "aresriot.aws-aps1-prod.eu-gp-mumbai-1",
+   "aresriot.aws-euc1-prod.eu-gp-frankfurt-1",
+   "aresriot.aws-eun1-prod.eu-gp-stockholm-1",
+   "aresriot.aws-eus2-prod.eu-gp-madrid-1",
+   "aresriot.aws-euw2-prod.eu-gp-london-1",
+   "aresriot.aws-euw3-prod.eu-gp-paris-1",
+   "aresriot.aws-ist1-prod.eu-gp-istanbul-2",
+   "aresriot.aws-ksa1-prod.eu-gp-riyadh-1",
+   "aresriot.aws-mec1-prod.eu-gp-dubai-1",
+   "aresriot.aws-mes1-prod.eu-gp-bahrain-1",
+   "aresriot.aws-waw1-prod.eu-gp-warsaw-1",
+   "aresriot.mtl-riot-ist1-2.eu-gp-istanbul-2"
+  ],
+  "slowest": 0.167
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/members/{id}/refreshPlayerIdentity",
+  "names": {
+   "Party_RefreshPlayerIdentity": 17
+  },
+  "phases": {
+   "MENUS": 15,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 17
+  },
+  "query_keys": [],
+  "slowest": 3.241
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/members/{id}/setReady",
+  "names": {
+   "Party_SetMemberReady": 76
+  },
+  "phases": {
+   "INGAME": 50,
+   "MENUS": 24,
+   "REPLAY": 2
+  },
+  "codes": {
+   "200": 76
+  },
+  "query_keys": [],
+  "slowest": 1.454
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/preferredgamepods",
+  "names": {
+   "Party_SetPreferredGamePods": 18
+  },
+  "phases": {
+   "MENUS": 17,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 13,
+   "403": 5
+  },
+  "query_keys": [],
+  "slowest": 0.15
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/queue",
+  "names": {
+   "Party_ChangeQueue": 22
+  },
+  "phases": {
+   "MENUS": 17,
+   "INGAME": 5
+  },
+  "codes": {
+   "200": 22
+  },
+  "query_keys": [],
+  "slowest": 0.126
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/request",
+  "names": {
+   "Party_RequestToJoinParty": 4
+  },
+  "phases": {
+   "MENUS": 2,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 4
+  },
+  "query_keys": [],
+  "slowest": 0.125
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/request/{id}/decline",
+  "names": {
+   "Party_DeclineRequest": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "404": 1
+  },
+  "query_keys": [],
+  "slowest": 0.11
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/parties/{id}/startcustomgame",
+  "names": {
+   "Party_StartCustomGame": 4
+  },
+  "phases": {
+   "MENUS": 2,
+   "PREGAME": 2
+  },
+  "codes": {
+   "200": 4
+  },
+  "query_keys": [],
+  "slowest": 0.424
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/parties/v1/players/{id}",
+  "names": {
+   "Party_FetchPlayer": 91
+  },
+  "phases": {
+   "MENUS": 71,
+   "INGAME": 20
+  },
+  "codes": {
+   "200": 91
+  },
+  "query_keys": [
+   "aresriot.aws-afs1-prod.eu-gp-capetown-1",
+   "aresriot.aws-apne1-prod.eu-gp-tokyo-1",
+   "aresriot.aws-aps1-prod.eu-gp-mumbai-1",
+   "aresriot.aws-euc1-prod.eu-gp-frankfurt-1",
+   "aresriot.aws-eun1-prod.eu-gp-stockholm-1",
+   "aresriot.aws-eus2-prod.eu-gp-madrid-1",
+   "aresriot.aws-euw2-prod.eu-gp-london-1",
+   "aresriot.aws-euw3-prod.eu-gp-paris-1",
+   "aresriot.aws-ist1-prod.eu-gp-istanbul-2",
+   "aresriot.aws-ksa1-prod.eu-gp-riyadh-1",
+   "aresriot.aws-mec1-prod.eu-gp-dubai-1",
+   "aresriot.aws-mes1-prod.eu-gp-bahrain-1",
+   "aresriot.aws-waw1-prod.eu-gp-warsaw-1",
+   "aresriot.mtl-riot-ist1-2.eu-gp-istanbul-2",
+   "preferredgamepods"
+  ],
+  "slowest": 0.419
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/players/{id}/joinparty/{id}",
+  "names": {
+   "Party_PlayerJoin": 10
+  },
+  "phases": {
+   "MENUS": 8,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 10
+  },
+  "query_keys": [],
+  "slowest": 0.316
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/players/{id}/leaveparty/{id}",
+  "names": {
+   "Party_PlayerLeave": 7
+  },
+  "phases": {
+   "MENUS": 6,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 7
+  },
+  "query_keys": [],
+  "slowest": 0.14
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/players/{id}/reconcile",
+  "names": {
+   "Party_ReconcilePlayer": 3
+  },
+  "phases": {
+   "MENUS": 3
+  },
+  "codes": {
+   "200": 3
+  },
+  "query_keys": [
+   "aresriot.aws-afs1-prod.eu-gp-capetown-1",
+   "aresriot.aws-apne1-prod.eu-gp-tokyo-1",
+   "aresriot.aws-aps1-prod.eu-gp-mumbai-1",
+   "aresriot.aws-euc1-prod.eu-gp-frankfurt-1",
+   "aresriot.aws-eun1-prod.eu-gp-stockholm-1",
+   "aresriot.aws-eus2-prod.eu-gp-madrid-1",
+   "aresriot.aws-euw2-prod.eu-gp-london-1",
+   "aresriot.aws-euw3-prod.eu-gp-paris-1",
+   "aresriot.aws-ist1-prod.eu-gp-istanbul-2",
+   "aresriot.aws-ksa1-prod.eu-gp-riyadh-1",
+   "aresriot.aws-waw1-prod.eu-gp-warsaw-1",
+   "preferredgamepods"
+  ],
+  "slowest": 0.095
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/parties/v1/players/{id}/startsoloexperience",
+  "names": {
+   "Party_StartSoloExperience": 23
+  },
+  "phases": {
+   "MENUS": 4,
+   "INGAME": 17,
+   "REPLAY": 2
+  },
+  "codes": {
+   "200": 23
+  },
+  "query_keys": [],
+  "slowest": 0.295
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/parties/v2/parties/{id}/muctoken",
+  "names": {
+   "Party_FetchMUCToken": 29
+  },
+  "phases": {
+   "MENUS": 25,
+   "INGAME": 4
+  },
+  "codes": {
+   "200": 29
+  },
+  "query_keys": [],
+  "slowest": 2.105
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/parties/v2/parties/{id}/voicetoken",
+  "names": {
+   "Party_FetchVoiceToken": 21
+  },
+  "phases": {
+   "MENUS": 13,
+   "INGAME": 8
+  },
+  "codes": {
+   "200": 21
+  },
+  "query_keys": [],
+  "slowest": 1.643
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/pregame/v1/matches/{id}",
+  "names": {
+   "Pregame_GetMatch": 1427
+  },
+  "phases": {
+   "PREGAME": 1286,
+   "INGAME": 93,
+   "MENUS": 48
+  },
+  "codes": {
+   "200": 1336,
+   "404": 91
+  },
+  "query_keys": [],
+  "slowest": 2.315
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/pregame/v1/matches/{id}/chattoken",
+  "names": {
+   "Pregame_FetchChatToken": 94
+  },
+  "phases": {
+   "PREGAME": 48,
+   "INGAME": 45,
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 91,
+   "404": 3
+  },
+  "query_keys": [],
+  "slowest": 0.257
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/pregame/v1/matches/{id}/loadouts",
+  "names": {
+   "Pregame_GetMatchLoadouts": 48
+  },
+  "phases": {
+   "PREGAME": 48
+  },
+  "codes": {
+   "200": 48
+  },
+  "query_keys": [],
+  "slowest": 0.556
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/pregame/v1/matches/{id}/lock/{id}",
+  "names": {
+   "Pregame_LockCharacter": 48
+  },
+  "phases": {
+   "PREGAME": 48
+  },
+  "codes": {
+   "200": 47,
+   "409": 1
+  },
+  "query_keys": [],
+  "slowest": 0.238
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/pregame/v1/matches/{id}/select/{id}",
+  "names": {
+   "Pregame_SelectCharacter": 106
+  },
+  "phases": {
+   "PREGAME": 106
+  },
+  "codes": {
+   "200": 106
+  },
+  "query_keys": [],
+  "slowest": 0.84
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/pregame/v1/matches/{id}/voicetoken",
+  "names": {
+   "Pregame_FetchVoiceToken": 54
+  },
+  "phases": {
+   "PREGAME": 54
+  },
+  "codes": {
+   "200": 52,
+   "404": 2
+  },
+  "query_keys": [],
+  "slowest": 0.304
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/pregame/v1/players/{id}",
+  "names": {
+   "Pregame_GetPlayer": 153
+  },
+  "phases": {
+   "MENUS": 11,
+   "PREGAME": 140,
+   "INGAME": 2
+  },
+  "codes": {
+   "404": 11,
+   "200": 142
+  },
+  "query_keys": [],
+  "slowest": 2.335
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/session/v1/sessions/{id}",
+  "names": {
+   "Session_Get": 7
+  },
+  "phases": {
+   "MENUS": 7
+  },
+  "codes": {
+   "200": 7
+  },
+  "query_keys": [],
+  "slowest": 0.275
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/session/v1/sessions/{id}/exitreplay",
+  "names": {
+   "Session_ExitReplay": 2
+  },
+  "phases": {
+   "REPLAY": 2
+  },
+  "codes": {
+   "200": 2
+  },
+  "query_keys": [],
+  "slowest": 0.083
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/session/v1/sessions/{id}/heartbeat",
+  "names": {
+   "Session_Heartbeat": 4316
+  },
+  "phases": {
+   "MENUS": 2434,
+   "INGAME": 1785,
+   "PREGAME": 90,
+   "REPLAY": 7
+  },
+  "codes": {
+   "200": 4316
+  },
+  "query_keys": [],
+  "slowest": 9.094
+ },
+ {
+  "method": "GET",
+  "host": "glz",
+  "path": "/session/v1/sessions/{id}/reconnect",
+  "names": {
+   "Session_ReConnect": 11
+  },
+  "phases": {
+   "MENUS": 11
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.438
+ },
+ {
+  "method": "POST",
+  "host": "glz",
+  "path": "/session/v2/sessions/{id}/connect",
+  "names": {
+   "Session_Connect": 11
+  },
+  "phases": {
+   "MENUS": 11
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.131
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/account-xp/v1/players/{id}",
+  "names": {
+   "AccountXP_GetPlayer": 88
+  },
+  "phases": {
+   "MENUS": 36,
+   "INGAME": 51,
+   "PREGAME": 1
+  },
+  "codes": {
+   "200": 88
+  },
+  "query_keys": [],
+  "slowest": 2.462
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/bloomline/v0/config/valid-queues",
+  "names": {
+   "Bloomline_FetchValidQueues": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.132
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/bloomline/v0/players/{id}",
+  "names": {
+   "Bloomline_FetchPlayer": 49
+  },
+  "phases": {
+   "MENUS": 44,
+   "INGAME": 5
+  },
+  "codes": {
+   "200": 49
+  },
+  "query_keys": [
+   "longOnly"
+  ],
+  "slowest": 3.215
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/bloomline/v0/players/{id}/bonsai/{id}",
+  "names": {
+   "Bloomline_FetchPlayerForBonsai": 72
+  },
+  "phases": {
+   "MENUS": 43,
+   "INGAME": 29
+  },
+  "codes": {
+   "200": 72
+  },
+  "query_keys": [],
+  "slowest": 1.876
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/bloomline/v0/players/{id}/matches/{id}",
+  "names": {
+   "Bloomline_FetchProcessedMatch": 30
+  },
+  "phases": {
+   "MENUS": 1,
+   "INGAME": 29
+  },
+  "codes": {
+   "200": 30
+  },
+  "query_keys": [],
+  "slowest": 1.104
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/contract-definitions/v3/item-upgrades",
+  "names": {
+   "ItemProgressionDefinitionsV2_Fetch": 11
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 2.549
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/contracts/v1/agents/activeRecruitmentEvent",
+  "names": {
+   "Contracts_Fetch": 3,
+   "Contracts_FetchActiveRecruitmentEvent": 8
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 10,
+   "204": 1
+  },
+  "query_keys": [],
+  "slowest": 0.342
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/contracts/v1/agents/{id}/progress/{id}",
+  "names": {
+   "Contracts_Fetch": 2
+  },
+  "phases": {
+   "MENUS": 1,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 2
+  },
+  "query_keys": [],
+  "slowest": 0.166
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/contracts/v1/contracts/{id}",
+  "names": {
+   "Contracts_Fetch": 37,
+   "Contracts_FetchContracts": 128
+  },
+  "phases": {
+   "MENUS": 43,
+   "INGAME": 121,
+   "PREGAME": 1
+  },
+  "codes": {
+   "200": 165
+  },
+  "query_keys": [],
+  "slowest": 3.239
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/contracts/v1/players/{id}/matches/{id}",
+  "names": {
+   "Contracts_FetchProcessedMatch": 36
+  },
+  "phases": {
+   "INGAME": 31,
+   "MENUS": 5
+  },
+  "codes": {
+   "200": 32,
+   "404": 4
+  },
+  "query_keys": [],
+  "slowest": 1.56
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/contracts/v2/item-upgrades/{id}/{id}",
+  "names": {
+   "Contracts_UnlockItemProgressV2": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [],
+  "slowest": 0.141
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/daily-ticket/v1/queue-config",
+  "names": {
+   "DailyRewards_GET_QUEUE_CONFIG": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.111
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/daily-ticket/v1/{id}",
+  "names": {
+   "DailyRewards_GET": 68
+  },
+  "phases": {
+   "INGAME": 42,
+   "MENUS": 25,
+   "PREGAME": 1
+  },
+  "codes": {
+   "200": 68
+  },
+  "query_keys": [],
+  "slowest": 1.459
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/daily-ticket/v1/{id}/renew",
+  "names": {
+   "DailyRewards_RENEW": 12
+  },
+  "phases": {
+   "MENUS": 12
+  },
+  "codes": {
+   "200": 12
+  },
+  "query_keys": [],
+  "slowest": 3.544
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/esports-service/v1/combined",
+  "names": {
+   "Esports_GetAllEventsForCurrentVCTSeason": 2
+  },
+  "phases": {
+   "MENUS": 1,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 2
+  },
+  "query_keys": [
+   "locale",
+   "sport"
+  ],
+  "slowest": 2.358
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/esports-service/v1/schedules",
+  "names": {
+   "Esports_GetSchedulesForLeagueIDs": 2
+  },
+  "phases": {
+   "MENUS": 1,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 2
+  },
+  "query_keys": [
+   "locale",
+   "sport"
+  ],
+  "slowest": 2.234
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/esports-service/v2/liveEventTimes",
+  "names": {
+   "Esports_GetLiveEventTimes": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [
+   "includePickemData",
+   "leagueID",
+   "locale",
+   "sport"
+  ],
+  "slowest": 1.755
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/esports-service/v2/matches",
+  "names": {
+   "Esports_GetMatches": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [
+   "locale",
+   "sport"
+  ],
+  "slowest": 0.085
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/esports-service/v2/overview",
+  "names": {
+   "Esports_GetOverview": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [
+   "leagueID",
+   "locale",
+   "sport"
+  ],
+  "slowest": 0.217
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/esports-service/v2/upcomingMatches",
+  "names": {
+   "Esports_GetUpcomingMatches": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [
+   "leagueID",
+   "locale",
+   "sport"
+  ],
+  "slowest": 0.111
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/experimentation/v2/group-assignments/{id}",
+  "names": {
+   "Experimentation_GroupAssignments": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.137
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/favorites/v1/players/{id}/favorites",
+  "names": {
+   "Favorites_GetFavorites": 11
+  },
+  "phases": {
+   "MENUS": 11
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.307
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/favorites/v1/players/{id}/favorites-batch",
+  "names": {
+   "Favorites_ModifyFavorites": 10
+  },
+  "phases": {
+   "MENUS": 10
+  },
+  "codes": {
+   "400": 10
+  },
+  "query_keys": [],
+  "slowest": 0.264
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/goldstars/v1/goldstars",
+  "names": {
+   "GoldStar_GetGoldStars": 11
+  },
+  "phases": {
+   "MENUS": 11
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.135
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/goldstars/v1/players/",
+  "names": {
+   "GoldStar_GetPlayer": 3
+  },
+  "phases": {
+   "MENUS": 3
+  },
+  "codes": {
+   "404": 3
+  },
+  "query_keys": [],
+  "slowest": 0.117
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/goldstars/v1/players/{id}",
+  "names": {
+   "GoldStar_GetPlayer": 41
+  },
+  "phases": {
+   "INGAME": 27,
+   "MENUS": 14
+  },
+  "codes": {
+   "200": 41
+  },
+  "query_keys": [],
+  "slowest": 3.266
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/mass-rewards/v1/players/{id}/reconcile",
+  "names": {
+   "MassRewards_ReconcilePlayer": 11
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 2.46
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/match-details/v1/matches/{id}",
+  "names": {
+   "MatchDetails_FetchMatchDetails": 599
+  },
+  "phases": {
+   "MENUS": 525,
+   "INGAME": 74
+  },
+  "codes": {
+   "200": 575,
+   "404": 24
+  },
+  "query_keys": [],
+  "slowest": 3.028
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/match-history/v1/history/{id}",
+  "names": {
+   "MatchHistory_FetchMatchHistory": 109
+  },
+  "phases": {
+   "MENUS": 104,
+   "INGAME": 3,
+   "PREGAME": 2
+  },
+  "codes": {
+   "200": 109
+  },
+  "query_keys": [
+   "endIndex",
+   "queue",
+   "startIndex"
+  ],
+  "slowest": 3.053
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/mmr/v1/players/",
+  "names": {
+   "MMR_FetchPlayer": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "404": 8
+  },
+  "query_keys": [],
+  "slowest": 0.128
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/mmr/v1/players/{id}",
+  "names": {
+   "MMR_FetchPlayer": 155,
+   "MMR_FetchPlayer_WithPrestigeBackfill": 9
+  },
+  "phases": {
+   "MENUS": 83,
+   "INGAME": 81
+  },
+  "codes": {
+   "200": 164
+  },
+  "query_keys": [
+   "backfill"
+  ],
+  "slowest": 3.342
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/mmr/v1/players/{id}/competitiveupdates",
+  "names": {
+   "MMR_FetchCompetitiveUpdates": 77
+  },
+  "phases": {
+   "MENUS": 77
+  },
+  "codes": {
+   "200": 77
+  },
+  "query_keys": [
+   "endIndex",
+   "queue",
+   "startIndex"
+  ],
+  "slowest": 0.237
+ },
+ {
+  "method": "PUT",
+  "host": "pd",
+  "path": "/name-service/v2/players",
+  "names": {
+   "DisplayNameService_FetchPlayers_BySubjects": 1005
+  },
+  "phases": {
+   "MENUS": 359,
+   "INGAME": 82,
+   "PREGAME": 559,
+   "REPLAY": 5
+  },
+  "codes": {
+   "200": 914,
+   "403": 91
+  },
+  "query_keys": [],
+  "slowest": 2.309
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/name-service/v3/players",
+  "names": {
+   "DisplayNameService_UpdatePlayer": 11
+  },
+  "phases": {
+   "MENUS": 11
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.261
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/personalization/v2/players/{id}/playerloadout",
+  "names": {
+   "playerLoadoutUpdate": 3
+  },
+  "phases": {
+   "MENUS": 2,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 3
+  },
+  "query_keys": [],
+  "slowest": 0.29
+ },
+ {
+  "method": "PUT",
+  "host": "pd",
+  "path": "/personalization/v2/players/{id}/playerloadout",
+  "names": {
+   "playerLoadoutUpdate": 5
+  },
+  "phases": {
+   "MENUS": 5
+  },
+  "codes": {
+   "200": 5
+  },
+  "query_keys": [],
+  "slowest": 0.182
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/personalization/v3/players/{id}/playerloadout",
+  "names": {
+   "playerLoadoutUpdate": 16
+  },
+  "phases": {
+   "MENUS": 16
+  },
+  "codes": {
+   "200": 16
+  },
+  "query_keys": [],
+  "slowest": 3.06
+ },
+ {
+  "method": "PUT",
+  "host": "pd",
+  "path": "/personalization/v3/players/{id}/playerloadout",
+  "names": {
+   "playerLoadoutUpdate": 9
+  },
+  "phases": {
+   "MENUS": 9
+  },
+  "codes": {
+   "200": 9
+  },
+  "query_keys": [],
+  "slowest": 2.233
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/affinities/eu/conferences",
+  "names": {
+   "Premier_GetPremierConferences": 11
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.317
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/affinities/eu/premier-seasons",
+  "names": {
+   "Premier_FetchPremierSeasons": 23
+  },
+  "phases": {
+   "MENUS": 22,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 23
+  },
+  "query_keys": [],
+  "slowest": 2.212
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/affinities/eu/premier-seasons/active",
+  "names": {
+   "Premier_GetActivePremierSeason": 23
+  },
+  "phases": {
+   "MENUS": 22,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 23
+  },
+  "query_keys": [],
+  "slowest": 2.2
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/matchlimitinfo",
+  "names": {
+   "Premier_GetMatchLimitInfo": 32
+  },
+  "phases": {
+   "MENUS": 16,
+   "INGAME": 16
+  },
+  "codes": {
+   "200": 32
+  },
+  "query_keys": [],
+  "slowest": 1.293
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/player/eligibility",
+  "names": {
+   "Premier_GetEligibility": 11
+  },
+  "phases": {
+   "MENUS": 11
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.259
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/rosters/{id}/eligibility",
+  "names": {
+   "Premier_GetRosterRestrictions": 4
+  },
+  "phases": {
+   "MENUS": 4
+  },
+  "codes": {
+   "200": 4
+  },
+  "query_keys": [],
+  "slowest": 0.156
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/rosters/{id}/matchhistory",
+  "names": {
+   "Premier_GetPremierRosterMatchHistory": 14
+  },
+  "phases": {
+   "MENUS": 10,
+   "PREGAME": 2,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 14
+  },
+  "query_keys": [],
+  "slowest": 1.522
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v1/rsp/rosters/v1/val-premier-eu/roster/{id}/muctoken",
+  "names": {
+   "Premier_GetMUCToken_Proxy": 12
+  },
+  "phases": {
+   "MENUS": 10,
+   "PREGAME": 2
+  },
+  "codes": {
+   "200": 12
+  },
+  "query_keys": [],
+  "slowest": 0.229
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v2/players/{id}",
+  "names": {
+   "Premier_GetPlayer_V2": 13
+  },
+  "phases": {
+   "MENUS": 12,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 13
+  },
+  "query_keys": [],
+  "slowest": 2.461
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v2/players/{id}/crests",
+  "names": {
+   "Premier_GetPlayerCrests": 3
+  },
+  "phases": {
+   "MENUS": 1,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 3
+  },
+  "query_keys": [],
+  "slowest": 1.56
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v2/rosters/{id}",
+  "names": {
+   "Premier_GetRoster_V2": 29
+  },
+  "phases": {
+   "MENUS": 21,
+   "PREGAME": 4,
+   "INGAME": 4
+  },
+  "codes": {
+   "200": 29
+  },
+  "query_keys": [],
+  "slowest": 1.147
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/premier/v2/rosters/{id}/invites/{id}/accept",
+  "names": {
+   "Premier_AcceptInvite_V2": 1
+  },
+  "phases": {
+   "MENUS": 1
+  },
+  "codes": {
+   "200": 1
+  },
+  "query_keys": [],
+  "slowest": 0.151
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v3/players/{id}",
+  "names": {
+   "PremierRosterService_GetPlayer_V3": 12
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 2
+  },
+  "codes": {
+   "200": 12
+  },
+  "query_keys": [],
+  "slowest": 1.56
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/premier/v3/players/{id}/playerRosterPublicInfo",
+  "names": {
+   "Premier_GetPlayerRoster_PublicInfo": 49
+  },
+  "phases": {
+   "MENUS": 49
+  },
+  "codes": {
+   "200": 48,
+   "404": 1
+  },
+  "query_keys": [],
+  "slowest": 0.382
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/region-index/v1/players/{id}",
+  "names": {
+   "RegionIndex_GetPlayer": 65
+  },
+  "phases": {
+   "PREGAME": 17,
+   "INGAME": 20,
+   "MENUS": 28
+  },
+  "codes": {
+   "200": 50,
+   "404": 15
+  },
+  "query_keys": [
+   "seasonID"
+  ],
+  "slowest": 1.956
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/restrictions/v1/activeFutureInterventions",
+  "names": {
+   "Restrictions_GetPlayerInterventions": 12
+  },
+  "phases": {
+   "MENUS": 9,
+   "INGAME": 3
+  },
+  "codes": {
+   "200": 12
+  },
+  "query_keys": [],
+  "slowest": 1.112
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/restrictions/v1/avoidList",
+  "names": {
+   "Restrictions_GetPlayerAvoidList": 11
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 0.335
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/restrictions/v1/interventionFeedback/{id}",
+  "names": {
+   "Restrictions_GetInterventionFeedback": 6
+  },
+  "phases": {
+   "INGAME": 6
+  },
+  "codes": {
+   "200": 6
+  },
+  "query_keys": [],
+  "slowest": 1.112
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/restrictions/v1/playerReportToken/{id}/{id}",
+  "names": {
+   "Restrictions_PlayerReportToken": 4
+  },
+  "phases": {
+   "INGAME": 4
+  },
+  "codes": {
+   "200": 4
+  },
+  "query_keys": [],
+  "slowest": 0.187
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/restrictions/v3/penalties",
+  "names": {
+   "Restrictions_FetchPlayerRestrictionsV3": 15
+  },
+  "phases": {
+   "MENUS": 11,
+   "INGAME": 4
+  },
+  "codes": {
+   "200": 15
+  },
+  "query_keys": [],
+  "slowest": 1.112
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/store/v1/entitlements/{id}",
+  "names": {
+   "Store_GetAllEntitlements": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.584
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/store/v1/entitlements/{id}/{id}",
+  "names": {
+   "Store_GetEntitlements": 124
+  },
+  "phases": {
+   "MENUS": 107,
+   "INGAME": 17
+  },
+  "codes": {
+   "200": 124
+  },
+  "query_keys": [],
+  "slowest": 2.47
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/store/v1/gifts/{id}/purchasereligibility",
+  "names": {
+   "Store_GetGiftPurchaserEligibility": 8
+  },
+  "phases": {
+   "MENUS": 8
+  },
+  "codes": {
+   "200": 8
+  },
+  "query_keys": [],
+  "slowest": 0.362
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/store/v1/offers/",
+  "names": {
+   "Store_GetOffers": 9
+  },
+  "phases": {
+   "MENUS": 8,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 9
+  },
+  "query_keys": [],
+  "slowest": 2.472
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/store/v1/storefronts/agent",
+  "names": {
+   "Store_GetAgentStorefront": 11
+  },
+  "phases": {
+   "MENUS": 10,
+   "INGAME": 1
+  },
+  "codes": {
+   "200": 11
+  },
+  "query_keys": [],
+  "slowest": 2.466
+ },
+ {
+  "method": "GET",
+  "host": "pd",
+  "path": "/store/v1/wallet/{id}",
+  "names": {
+   "Store_GetWallet": 56
+  },
+  "phases": {
+   "MENUS": 13,
+   "INGAME": 43
+  },
+  "codes": {
+   "200": 56
+  },
+  "query_keys": [],
+  "slowest": 2.092
+ },
+ {
+  "method": "POST",
+  "host": "pd",
+  "path": "/store/v3/storefront/{id}",
+  "names": {
+   "Store_GetStorefrontV3": 21
+  },
+  "phases": {
+   "MENUS": 21
+  },
+  "codes": {
+   "200": 21
+  },
+  "query_keys": [],
+  "slowest": 2.305
+ },
+ {
+  "method": "GET",
+  "host": "shared",
+  "path": "/content-service/v3/content",
+  "names": {
+   "Content_FetchContent": 850
+  },
+  "phases": {
+   "MENUS": 814,
+   "PREGAME": 30,
+   "INGAME": 1,
+   "REPLAY": 5
+  },
+  "codes": {
+   "200": 850
+  },
+  "query_keys": [],
+  "slowest": 2.443
+ },
+ {
+  "method": "POST",
+  "host": "shared",
+  "path": "/latency/v1/ingest",
+  "names": {
+   "Latency_Stat": 648
+  },
+  "phases": {
+   "INGAME": 648
+  },
+  "codes": {
+   "204": 648
+  },
+  "query_keys": [],
+  "slowest": 0.541
+ },
+ {
+  "method": "POST",
+  "host": "shared",
+  "path": "/latency/v1/ingestMulti",
+  "names": {
+   "Latency_Stats": 730
+  },
+  "phases": {
+   "MENUS": 579,
+   "INGAME": 116,
+   "PREGAME": 31,
+   "REPLAY": 4
+  },
+  "codes": {
+   "204": 730
+  },
+  "query_keys": [],
+  "slowest": 1.039
+ },
+ {
+  "method": "GET",
+  "host": "shared",
+  "path": "/v1/config/eu",
+  "names": {
+   "Config_FetchConfig": 2886
+  },
+  "phases": {
+   "MENUS": 1634,
+   "INGAME": 1190,
+   "PREGAME": 57,
+   "REPLAY": 5
+  },
+  "codes": {
+   "200": 2886
+  },
+  "query_keys": [],
+  "slowest": 11.907
+ }
+]

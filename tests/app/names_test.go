@@ -295,10 +295,9 @@ func TestALongNameIsCutInTheTableAndWholeInPlayerDetails(t *testing.T) {
 		t.Errorf("the table should cut the name at 16 cells:\n%s", frame)
 	}
 	r.press(downKey, downKey, downKey)
-	frame = r.screen("enter for details")
-	if got := pickedRow(frame); !strings.HasPrefix(got, "SixteenCharName… Killjoy") {
-		t.Fatalf("three presses down should pick ally two, got %q\n%s", got, frame)
-	}
+	eventually(t, "three presses down to pick ally two", func() bool {
+		return strings.HasPrefix(pickedRow(r.con.last()), "SixteenCharName… Killjoy")
+	})
 	r.press(enterKey)
 	frame = r.settled("esc back", "THIS ACT")
 	if !strings.Contains(frame, "SixteenCharName1#12345") {

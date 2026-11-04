@@ -108,10 +108,11 @@ func TestArrowsPickAPlayerAndEnterShowsEverythingKnownAboutThem(t *testing.T) {
 	before := len(r.fr.RemoteRequests())
 
 	r.press(downKey, downKey)
-	frame = r.screen("enter for details")
-	if got := pickedRow(frame); !strings.HasPrefix(got, "AllyOne#A1 Jett") {
-		t.Errorf("two presses down should pick the first ally after you, got %q\n%s", got, frame)
-	}
+	// the frame after the first press already says enter for details - so wait for the pick itself
+	eventually(t, "two presses down to pick the first ally after you", func() bool {
+		return strings.HasPrefix(pickedRow(r.con.last()), "AllyOne#A1 Jett")
+	})
+	r.screen("enter for details")
 
 	r.press(enterKey)
 	frame = r.settled("esc back", "THIS ACT")

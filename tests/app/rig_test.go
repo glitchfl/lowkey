@@ -215,11 +215,11 @@ func (c *console) last() string {
 }
 
 // live starts lowkey's normal mode and stops it when the test ends
-func (r *rig) live() {
+func (r *rig) live(args ...string) {
 	r.t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan int, 1)
-	go func() { done <- app.Run(ctx, r.env, nil) }()
+	go func() { done <- app.Run(ctx, r.env, args) }()
 	var once sync.Once
 	r.stop = func() {
 		once.Do(func() {

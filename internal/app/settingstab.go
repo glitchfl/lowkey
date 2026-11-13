@@ -20,12 +20,24 @@ const nextLobbyNote = "applies from the next lobby"
 // can't fire a burst of requests - lookups pick the new values up at the next lobby
 type settingsTab struct {
 	cfg    *settings.File
+	rows   []settingRow
 	row    int
 	list   *optionList // the open sub-list - nil on the main list
+	slots  *dotSlots   // the open agent dots list - nil on the main list
 	notice string      // what the last press couldn't do or what it did to a broken file
 	// firstOpen is what the tab says the first time it opens - what lowkey did to an old lowkey.toml at start
 	firstOpen string
+	agents    func() []string
+	// place starts a slot's countdown and placing is the seconds it has left
+	place       func(slot int)
+	placing     int
+	placingSlot int
 }
+
+// dotSlots is the list behind agent dots - a row per agent with a dot plus a free row while there's room
+type dotSlots struct{ row int }
+
+const placeHelp = "enter - then within 5 s rest the cursor on that agent in the game - lowkey saves where it is and turns the dots on"
 
 type settingRow struct {
 	key, label string
@@ -34,6 +46,8 @@ type settingRow struct {
 	step       func(s *settings.Settings, dir int)
 	flips      bool // space and enter work too - stepping anything else by accident would be saved at once
 	open       func(settings.Settings) *optionList
+	act        func()
+	help       string // shown instead of the file's comment - for a row whose enter does more than change its key
 }
 
 // settingRows keep each section's rows together so every heading shows once
@@ -91,6 +105,111 @@ var settingRows = []settingRow{
 		}},
 }
 
+// dotRows only exist in a build that can draw the agent dot
+func (t *settingsTab) dotRows() []settingRow {
+	return []settingRow{
+		{key: "agent_dot", label: "agent dot", nextLobby: true, flips: true,
+			value: func(s settings.Settings) string { return onOff(s.AgentDot) },
+			step:  func(s *settings.Settings, _ int) { s.AgentDot = !s.AgentDot }},
+		{key: "agent_dot_seconds", label: "dot time", nextLobby: true,
+			value: func(s settings.Settings) string { return fmt.Sprintf("%ds", s.AgentDotSeconds) },
+			step: func(s *settings.Settings, dir int) {
+				s.AgentDotSeconds = max(settings.MinDotSeconds, min(s.AgentDotSeconds+dir, settings.MaxDotSeconds))
+			}},
+		{key: "agent_dots", label: "agent dots", act: func() { t.slots = &dotSlots{} },
+			help: "enter - up to 3 agents whose dots show together when a match is found",
+			value: func(s settings.Settings) string {
+				if len(s.AgentDots) == 0 {
+					return "none"
+				}
+				names := make([]string, len(s.AgentDots))
+				for i, d := range s.AgentDots {
+					names[i] = d.Agent
+					if !d.At.Placed {
+						names[i] += " (not placed)"
+					}
+				}
+				return strings.Join(names, ", ")
+			}},
+	}
+}
+
+func slotCount(dots []settings.DotSlot) int {
+	return min(len(dots)+1, settings.MaxDots)
+}
+
+func (t *settingsTab) pressSlots(k key) {
+	dots := t.cfg.Settings().AgentDots
+	n := slotCount(dots)
+	sl := t.slots
+	sl.row = min(sl.row, n-1)
+	switch k {
+	case keyUp:
+		sl.row = (sl.row - 1 + n) % n
+	case keyDown:
+		sl.row = (sl.row + 1) % n
+	case keyLeft, keyRight:
+		if t.placing > 0 {
+			t.notice = "wait for placing to finish"
+			return
+		}
+		row, current := sl.row, ""
+		if row < len(dots) {
+			current = dots[row].Agent
+		}
+		next := cycleFold(append([]string{""}, t.agents()...), current, direction(k))
+		t.change(func(s *settings.Settings) {
+			switch {
+			case row < len(s.AgentDots) && next == "":
+				s.AgentDots = slices.Delete(s.AgentDots, row, row+1)
+			case row < len(s.AgentDots):
+				// another agent's icon sits somewhere else so the old spot means nothing for it
+				s.AgentDots[row] = settings.DotSlot{Agent: next}
+			case next != "" && len(s.AgentDots) < settings.MaxDots:
+				s.AgentDots = append(s.AgentDots, settings.DotSlot{Agent: next})
+			}
+		})
+	case keySpace, keyEnter:
+		if sl.row >= len(dots) {
+			t.notice = "pick an agent with left/right first"
+			return
+		}
+		t.place(sl.row)
+	case keyEsc:
+		t.slots = nil
+	}
+}
+
+func (t *settingsTab) slotRows(dots []settings.DotSlot) []string {
+	n := slotCount(dots)
+	out := make([]string, n)
+	for i := range n {
+		mark, name, value := " ", "none", ""
+		if i == t.slots.row {
+			mark = ">"
+		}
+		if i < len(dots) {
+			name = dots[i].Agent
+			switch {
+			case t.placing > 0 && t.placingSlot == i:
+				value = fmt.Sprintf("point at your agent - %d", t.placing)
+			case dots[i].At.Placed:
+				value = fmt.Sprintf("%d, %d", dots[i].At.X, dots[i].At.Y)
+			default:
+				value = "not placed"
+			}
+		}
+		out[i] = strings.TrimRight(fmt.Sprintf("%s %d  %-10s  %s", mark, i+1, name, value), " ")
+	}
+	return out
+}
+
+// cycleFold is cycle for names a hand edit may have typed in another case - an unknown one starts from none
+func cycleFold(values []string, current string, dir int) string {
+	i := max(0, slices.IndexFunc(values, func(v string) bool { return strings.EqualFold(v, current) }))
+	return values[(i+dir+len(values))%len(values)]
+}
+
 // stepCutoff lands on multiples of 5 so a hand-set 37 goes to 40 or 35 - the limits can be off that grid
 func stepCutoff(s *settings.Settings, dir int) {
 	c := int(s.Cutoff / time.Second)
@@ -129,12 +248,16 @@ func (t *settingsTab) press(k key) bool {
 		t.pressList(k)
 		return false
 	}
-	row := settingRows[t.row]
+	if t.slots != nil {
+		t.pressSlots(k)
+		return false
+	}
+	row := t.rows[t.row]
 	switch k {
 	case keyUp:
-		t.row = (t.row - 1 + len(settingRows)) % len(settingRows)
+		t.row = (t.row - 1 + len(t.rows)) % len(t.rows)
 	case keyDown:
-		t.row = (t.row + 1) % len(settingRows)
+		t.row = (t.row + 1) % len(t.rows)
 	case keyLeft, keyRight:
 		if row.step != nil {
 			t.change(func(s *settings.Settings) { row.step(s, direction(k)) })
@@ -143,6 +266,8 @@ func (t *settingsTab) press(k key) bool {
 		switch {
 		case row.open != nil:
 			t.list = row.open(t.cfg.Settings())
+		case row.act != nil:
+			row.act()
 		case row.flips:
 			t.change(func(s *settings.Settings) { row.step(s, 1) })
 		}
@@ -209,17 +334,27 @@ func (t *settingsTab) lines(rows int) []string {
 	lines = append(lines, "")
 	var body, foot []string
 	var row int
-	if l := t.list; l != nil {
+	switch {
+	case t.list != nil:
+		l := t.list
 		l.sync(*l.field(&cfg))
 		lines = append(lines, l.title)
 		body, row, foot = l.rows(*l.field(&cfg)), l.row, []string{l.hint}
-	} else {
+	case t.slots != nil:
+		t.slots.row = min(t.slots.row, slotCount(cfg.AgentDots)-1)
+		lines = append(lines, "agent dots - up to 3 - shown together when a match is found")
+		body, row, foot = t.slotRows(cfg.AgentDots), t.slots.row, []string{placeHelp, "left/right agent · enter place · esc back"}
+	default:
 		body, row = t.mainRows(cfg)
-		note := ""
-		if settingRows[t.row].nextLobby {
+		r := t.rows[t.row]
+		note, help := "", r.help
+		if r.nextLobby {
 			note = nextLobbyNote
 		}
-		foot = []string{settings.Help(settingRows[t.row].key), note, "up/down move · left/right change · enter open · saved at once"}
+		if help == "" {
+			help = settings.Help(r.key)
+		}
+		foot = []string{help, note, "up/down move · left/right change · enter open · saved at once"}
 	}
 	from, to := window(len(body), row, rows-len(lines)-1-len(foot))
 	lines = append(lines, body[from:to]...)
@@ -230,23 +365,23 @@ func (t *settingsTab) lines(rows int) []string {
 // mainRows puts each section's heading over its rows - at is the highlighted row's line
 func (t *settingsTab) mainRows(cfg settings.Settings) (out []string, at int) {
 	width := 0
-	for _, r := range settingRows {
+	for _, r := range t.rows {
 		width = max(width, len(r.label))
 	}
 	section := ""
-	for i, r := range settingRows {
+	for i, r := range t.rows {
 		if s := settings.Section(r.key); s != section {
 			if section != "" {
 				out = append(out, "")
 			}
 			section = s
-			out = append(out, strings.ToUpper(s))
+			out = append(out, strings.ToUpper(strings.ReplaceAll(s, "_", " ")))
 		}
 		value := r.value(cfg)
 		mark := " "
 		if i == t.row {
 			at, mark = len(out), ">"
-			if r.open != nil {
+			if r.open != nil || r.act != nil {
 				value += "  (enter)"
 			} else {
 				value = "< " + value + " >"

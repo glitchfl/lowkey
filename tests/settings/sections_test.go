@@ -42,6 +42,29 @@ func TestAFileFromBeforeSectionsIsMovedWhenItOpens(t *testing.T) {
 	}
 }
 
+func TestAFlatFileFromAnAgentDotBuildKeepsItsDotsWhenItsMoved(t *testing.T) {
+	flat := "matches = 7\nagent_dot = true\nagent_dot_seconds = 9\n" +
+		`agent_dots = [{agent = "Raze", at = [800, 450]}, {agent = "Jett", at = []}]` + "\n"
+	f, path := openWith(t, flat)
+	if moved, err := f.Moved(); moved == "" || err != nil {
+		t.Fatalf("moved %q err %v", moved, err)
+	}
+	file := read(t, path)
+	s, _, err := settings.Parse([]byte(file))
+	if err != nil {
+		t.Fatalf("the moved file should parse: %v\n%s", err, file)
+	}
+	want := settings.Default()
+	want.Matches, want.AgentDot, want.AgentDotSeconds = 7, true, 9
+	want.AgentDots = []settings.DotSlot{{Agent: "Raze", At: settings.Spot{X: 800, Y: 450, Placed: true}}, {Agent: "Jett"}}
+	if !sameSettings(s, want) {
+		t.Errorf("every dot should come across\n got %+v\nwant %+v", s, want)
+	}
+	if !strings.Contains(file, "\n[agent_select]\n") {
+		t.Errorf("missing [agent_select] in:\n%s", file)
+	}
+}
+
 func TestOnlyAFileFromBeforeSectionsIsMoved(t *testing.T) {
 	cases := []struct{ name, content, warning string }{
 		{"one with sections", "[table]\nmatches = 7\n", ""},
@@ -77,6 +100,10 @@ func TestAKeyOutsideItsSectionSaysWhereItGoes(t *testing.T) {
 		{"after a section ends", "[match]\nserver_pod = true\n\n[general]\nmatches = 7\n", "matches goes under [table] - not [general]"},
 		{"a key no section has", "[players]\nfoo = 1\n", `unknown setting "players.foo"`},
 		{"a section lowkey doesn't have", "[colors]\nfoo = 1\n", `unknown setting "colors"`},
+		{"an agent dot key at the top", "agent_dot = true\n", "agent_dot goes under [agent_select]"},
+		{"agent dots under another section", "[match]\nagent_dots = [{agent = \"Raze\", at = [800, 450]}]\n",
+			"agent_dots goes under [agent_select] - not [match]"},
+		{"a key agent select doesn't have", "[agent_select]\nagent = \"Raze\"\n", `unknown setting "agent_select.agent"`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -93,7 +120,9 @@ func sameSettings(a, b settings.Settings) bool {
 		a.EnemyLookups == b.EnemyLookups && a.HiddenPlayerStats == b.HiddenPlayerStats &&
 		a.ExactEnemyParties == b.ExactEnemyParties && a.ServerPod == b.ServerPod &&
 		a.PlayerDetails == b.PlayerDetails && a.SiteScouting == b.SiteScouting && a.WeaponProfiling == b.WeaponProfiling &&
-		a.TendenciesTab == b.TendenciesTab && a.Region == b.Region
+		a.TendenciesTab == b.TendenciesTab &&
+		a.Region == b.Region && a.AgentDot == b.AgentDot && a.AgentDotSeconds == b.AgentDotSeconds &&
+		slices.Equal(a.AgentDots, b.AgentDots)
 }
 
 const voiceBlock = "\n# show which teammates are in team voice during agent select\nvoice_check = true\n"
